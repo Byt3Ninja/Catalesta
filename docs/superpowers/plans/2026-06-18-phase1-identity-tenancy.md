@@ -6,7 +6,7 @@
 
 **Architecture:** One Laravel 13 codebase runs in two roles. The **platform** depends only on identity/profile adapter *interfaces* (bound to Startup Gate HTTP clients). The **Startup Gate mock** is an isolated `app/StartupGateMock/` namespace whose routes register only when `APP_ROLE=mock`; it issues RS256-signed JWTs with a JWKS endpoint and reproduces the docs/10 contract. Tenancy is enforced by an `X-Organization-Id` middleware that populates a request-scoped `TenantContext`, plus a `BelongsToTenant` Eloquent scope.
 
-**Tech Stack:** PHP 8.3 (target) / Laravel 13, PostgreSQL, Redis, `laravel/sanctum` (SPA cookie session), `firebase/php-jwt ^6.10` (RS256 + JWKS), ULIDs via `HasUlids`, PHPUnit, Pint, Larastan.
+**Tech Stack:** PHP 8.3 (target) / Laravel 13, PostgreSQL, Redis, `laravel/sanctum` (SPA cookie session), `firebase/php-jwt ^7.0` (RS256 + JWKS; the 7.x line patches CVE-2025-45769), ULIDs via `HasUlids`, PHPUnit, Pint, Larastan.
 
 ## Global Constraints
 
@@ -88,9 +88,11 @@ final class TenantContext {
 Run:
 ```bash
 cd backend
-composer require laravel/sanctum:^4 firebase/php-jwt:^6.10 --no-interaction
+composer require laravel/sanctum:^4 firebase/php-jwt:^7.0 --no-interaction
 ```
 Expected: both added; lock updated; `composer.lock` resolves on php 8.3.
+Do NOT disable Composer's audit/advisory blocking — `^7.0` is already free of
+the known php-jwt advisory (CVE-2025-45769), so `composer audit` stays clean.
 
 - [ ] **Step 2: Publish Sanctum config + migration**
 
