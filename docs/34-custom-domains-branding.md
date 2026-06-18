@@ -1,0 +1,116 @@
+# Tenant Custom Domains and Basic Branding
+
+## Objective
+
+Allow each SaaS customer to connect:
+
+- a platform-provided subdomain
+- one or more verified custom domains
+
+Examples:
+
+```text
+acme.platform.example
+programs.acme.org
+accelerator.acme.org
+```
+
+## Domain Ownership
+
+Entities:
+
+- tenant_domains
+- domain_verification_challenges
+- domain_certificates
+- domain_routing_status
+- domain_audit_logs
+
+## Domain Types
+
+- platform_subdomain
+- custom_subdomain
+- custom_apex_domain, only when supported operationally
+
+## Domain Lifecycle
+
+```text
+Requested
+→ Reserved
+→ DNS Instructions Issued
+→ Verification Pending
+→ Verified
+→ Certificate Provisioning
+→ Active
+→ Failed
+→ Suspended
+→ Removed
+```
+
+## Verification
+
+Support DNS-based verification using:
+
+- CNAME for routing
+- TXT ownership challenge where required
+
+The platform must verify ownership before activating routing.
+
+## TLS
+
+- automatic certificate provisioning
+- automatic renewal
+- certificate status monitoring
+- no HTTP-only tenant domains
+- failed renewal alerting
+- safe fallback to platform domain
+
+## Routing
+
+Resolve tenant context from the validated host header.
+
+Security rules:
+
+- reject unknown hosts
+- prevent host-header injection
+- map only active verified domains
+- never trust tenant ID from frontend input
+- preserve canonical URLs
+- support safe redirects
+
+## Basic Branding
+
+Each tenant may configure:
+
+- organization logo
+- favicon
+- primary brand color
+- secondary or accent color
+- portal display name
+- email sender display name
+- login or landing illustration
+- certificate logo
+- footer text
+- support email
+- public program-page branding
+
+## Branding Safety
+
+- validate image type and size
+- sanitize text
+- enforce accessible color contrast
+- define safe fallback tokens
+- prevent arbitrary CSS or JavaScript
+- preview before publishing
+- version branding changes
+- maintain audit history
+
+## Plan Entitlements
+
+Possible plan controls:
+
+- platform subdomain
+- custom domain count
+- remove platform branding
+- custom email branding
+- custom certificate branding
+- advanced theme controls
