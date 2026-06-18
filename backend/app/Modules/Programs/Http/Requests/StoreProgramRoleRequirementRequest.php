@@ -4,11 +4,39 @@ declare(strict_types=1);
 
 namespace App\Modules\Programs\Http\Requests;
 
+use App\Modules\Programs\Domain\Models\Program;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 final class StoreProgramRoleRequirementRequest extends FormRequest
 {
+    /**
+     * Validate the class instance.
+     */
+    public function validateResolved(): void
+    {
+        $this->checkAuthorization();
+        parent::validateResolved();
+    }
+
+    private function checkAuthorization(): void
+    {
+        $program = Program::query()->find($this->route('program'));
+        if ($program === null) {
+            return; // let the controller's findOrFail produce a clean 404
+        }
+        if ($this->user() === null || ! Gate::forUser($this->user())->allows('update', $program)) {
+            throw new AuthorizationException;
+        }
+    }
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
     /**
      * @return array<string, mixed>
      */
