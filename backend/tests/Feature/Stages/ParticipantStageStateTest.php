@@ -44,7 +44,7 @@ final class ParticipantStageStateTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $membership = OrganizationMembership::query()
+        $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $org->id)
             ->where('external_user_id', $user->id)
             ->firstOrFail();
