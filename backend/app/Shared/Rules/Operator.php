@@ -17,7 +17,7 @@ enum Operator: string
     case IS_NULL = 'is_null';
     case IS_NOT_NULL = 'is_not_null';
     case CONTAINS = 'contains';
-    case NOT_CONTAINS = 'not_contains';
+    case CONTAINS_ANY = 'contains_any';
 
     /**
      * Apply the operator to a value and comparison value.

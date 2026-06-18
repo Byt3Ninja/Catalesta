@@ -63,4 +63,20 @@ final class ExpressionValidatorTest extends TestCase
         $this->expectException(InvalidExpressionException::class);
         $this->validator()->validate(['php' => 'system("rm -rf /")']);
     }
+
+    public function test_accepts_contains_any_operator(): void
+    {
+        $this->validator()->validate([
+            'all' => [
+                ['field' => 'cohort.is_open', 'operator' => 'contains_any', 'value' => ['tag1', 'tag2']],
+            ],
+        ]);
+        $this->addToAssertionCount(1); // no exception
+    }
+
+    public function test_rejects_not_contains_operator(): void
+    {
+        $this->expectException(InvalidExpressionException::class);
+        $this->validator()->validate(['all' => [['field' => 'cohort.x', 'operator' => 'not_contains', 'value' => 'test']]]);
+    }
 }
