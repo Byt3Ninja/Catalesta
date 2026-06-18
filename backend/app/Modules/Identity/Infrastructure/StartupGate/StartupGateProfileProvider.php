@@ -18,6 +18,8 @@ final class StartupGateProfileProvider implements ProfileProvider
 
         $response = Http::withToken($accessToken)->get($baseUrl.'/me/profile');
 
+        $response->throw();
+
         return $response->json();
     }
 }

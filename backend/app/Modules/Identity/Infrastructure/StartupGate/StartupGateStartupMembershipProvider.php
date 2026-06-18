@@ -18,6 +18,8 @@ final class StartupGateStartupMembershipProvider implements StartupMembershipPro
 
         $response = Http::withToken($accessToken)->get($baseUrl.'/me/startups');
 
+        $response->throw();
+
         return $response->json();
     }
 }

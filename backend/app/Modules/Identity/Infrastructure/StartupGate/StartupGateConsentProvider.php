@@ -18,6 +18,8 @@ final class StartupGateConsentProvider implements ConsentProvider
 
         $response = Http::withToken($accessToken)->get($baseUrl.'/me/consents');
 
+        $response->throw();
+
         return $response->json();
     }
 }

@@ -18,6 +18,8 @@ final class StartupGateRoleProfileProvider implements RoleProfileProvider
 
         $response = Http::withToken($accessToken)->get($baseUrl.'/me/role-profiles');
 
+        $response->throw();
+
         return $response->json();
     }
 }

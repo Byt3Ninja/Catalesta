@@ -22,6 +22,11 @@ final class StartupGateIdentityProvider implements IdentityProvider
             $clientId = (string) config('identity.oidc.client_id');
 
             $jwksResponse = Http::get($issuer.'/.well-known/jwks.json');
+
+            if (! $jwksResponse->successful()) {
+                throw new InvalidTokenException('Failed to fetch JWKS');
+            }
+
             $jwks = $jwksResponse->json();
 
             if (! is_array($jwks)) {
@@ -97,6 +102,8 @@ final class StartupGateIdentityProvider implements IdentityProvider
             'code_verifier' => $codeVerifier,
         ]);
 
+        $response->throw();
+
         /** @var array{id_token:string, access_token:string, refresh_token:?string, expires_in:int} */
         return $response->json();
     }
@@ -114,6 +121,8 @@ final class StartupGateIdentityProvider implements IdentityProvider
             'client_secret' => config('identity.oidc.client_secret'),
             'refresh_token' => $refreshToken,
         ]);
+
+        $response->throw();
 
         /** @var array{access_token:string, refresh_token:?string, expires_in:int} */
         return $response->json();
@@ -141,6 +150,8 @@ final class StartupGateIdentityProvider implements IdentityProvider
         $issuer = (string) config('identity.oidc.issuer');
 
         $response = Http::withToken($accessToken)->get($issuer.'/oauth/userinfo');
+
+        $response->throw();
 
         return $response->json();
     }

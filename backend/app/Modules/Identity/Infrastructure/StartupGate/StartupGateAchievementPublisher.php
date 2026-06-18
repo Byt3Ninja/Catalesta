@@ -18,6 +18,8 @@ final class StartupGateAchievementPublisher implements AchievementPublisher
 
         $response = Http::withToken($accessToken)->post($baseUrl.'/program-achievements', $achievement);
 
+        $response->throw();
+
         return $response->json();
     }
 }
