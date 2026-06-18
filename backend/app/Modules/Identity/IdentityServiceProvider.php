@@ -78,9 +78,9 @@ class IdentityServiceProvider extends ServiceProvider
         if (! array_key_exists($provider, self::PROVIDER_MAP)) {
             throw new RuntimeException(
                 "Unknown identity provider '{$provider}'. "
-                . 'Set IDENTITY_PROVIDER to one of: '
-                . implode(', ', array_keys(self::PROVIDER_MAP))
-                . '.',
+                .'Set IDENTITY_PROVIDER to one of: '
+                .implode(', ', array_keys(self::PROVIDER_MAP))
+                .'.',
             );
         }
 
