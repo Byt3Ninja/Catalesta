@@ -21,6 +21,10 @@ final class AuthController extends Controller
      *
      * Generates PKCE state/nonce/verifier, stores them in session, and returns
      * the IdP authorization URL to which the client should redirect the user.
+     *
+     * Note: Use the session() helper (not $request->session()) so OIDC handshake state
+     * persists whether or not Sanctum's stateful middleware injected StartSession
+     * (it is skipped on requests without an Origin/Referer header).
      */
     public function login(IdentityProvider $provider): JsonResponse
     {
@@ -124,8 +128,8 @@ final class AuthController extends Controller
         // Logout from session guard and invalidate session
         Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        session()->invalidate();
+        session()->regenerateToken();
 
         return response()->json(null, 204);
     }
