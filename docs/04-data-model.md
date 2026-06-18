@@ -1,5 +1,12 @@
 # Data Model
 
+> **Phase 1 implementation status (2026-06-18):** The following tables are
+> implemented and migrated: `external_users`, `external_user_tokens`,
+> `profile_snapshots`, `organizations`, `organization_memberships`,
+> `organization_roles`, `organization_permissions`, `role_permission_assignments`,
+> `organization_membership_roles`, `audit_logs`. All remaining sections are
+> design targets for future phases.
+
 ## Identity and Profile Projection
 
 ```text

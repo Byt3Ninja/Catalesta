@@ -217,8 +217,9 @@ All errors use the standard error object from docs/06 with `correlation_id`.
 ## 13. New dependencies
 
 - `laravel/sanctum` — SPA cookie session for the platform API.
-- `web-auth/jwt-library` — RS256 JWS signing (mock) and verification + JWKS
-  handling (platform). Chosen over `firebase/php-jwt` for first-class JWKS support.
+- `firebase/php-jwt ^7.0` — RS256 JWS signing (mock) and verification + JWKS
+  handling (platform). Patches CVE-2025-45769; used for signing and JWKS-based
+  token validation.
 - `symfony/uid` — ships with Laravel; ULIDs via `HasUlids`.
 
 ## 14. Explicitly deferred (not Phase 1)

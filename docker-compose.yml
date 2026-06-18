@@ -46,7 +46,7 @@ services:
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       OIDC_ISSUER: http://startup-gate-mock:8080
-      PROFILE_API_BASE_URL: http://startup-gate-mock:8080/api/v1
+      PROFILE_API_BASE_URL: http://startup-gate-mock:8080/sg/api/v1
     volumes:
       - ./backend:/var/www/html
 
@@ -130,12 +130,38 @@ services:
       - "1025:1025"
 
   startup-gate-mock:
-    build: ./services/startup-gate-mock
+    # Runs the same Laravel image as laravel-api but in APP_ROLE=mock mode.
+    # MockKeys generates and caches an RS256 keypair per process — artisan serve
+    # is a single process so the keypair is consistent across all requests.
+    # For a multi-worker setup (php-fpm), set SG_MOCK_PRIVATE_KEY and
+    # SG_MOCK_PUBLIC_KEY (from `php artisan sg-mock:keys`) so all workers share
+    # one signing key; artisan serve avoids that need.
+    build: ./backend
+    command: php artisan serve --host=0.0.0.0 --port=8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      PORT: 8080
+      APP_ROLE: mock
+      APP_ENV: local
+      APP_KEY: "${APP_KEY}"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: catalesta
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
       OIDC_ISSUER: http://startup-gate-mock:8080
     ports:
       - "8081:8080"
+    volumes:
+      - ./backend:/var/www/html
 
 volumes:
   postgres-data:
