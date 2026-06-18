@@ -224,23 +224,21 @@ final class AuthSecurityTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // 7. Revoked-consent passthrough
+    // 7. Revoked-consent passthrough — real platform relay assertion
     //
-    // The revoked-consent enforcement logic lives inside the mock Startup Gate
-    // profile API and is contract-tested exhaustively in:
-    //   tests/Contract/ProfileApiContractTest::test_me_profile_omits_gated_sections_for_revoked_consent_user
-    //   tests/Contract/ProfileApiContractTest::test_me_consents_returns_granted_false_for_revoked_consent_user
+    // Consent enforcement lives inside the mock Startup Gate profile API and is
+    // contract-tested exhaustively in ProfileApiContractTest. This test proves
+    // the PLATFORM is a faithful passthrough: it relays exactly what the upstream
+    // profile API returns, without fabricating or injecting gated fields.
     //
-    // To satisfy the mandatory "revoked consent enforced" checklist item without
-    // duplicating the mock's internal logic, this test asserts the platform
-    // passthrough faithfully relays whatever the consent-filtered profile API
-    // returns: faking /sg/api/v1/me/profile to return an empty gated payload
-    // (as the mock does for sg_user_08) and asserting the platform relays it.
+    // The platform uses session-based Sanctum auth (Auth::login in CompleteLogin),
+    // so the same test client retains the session cookie after callback — no
+    // separate token field is returned or needed.
     // -------------------------------------------------------------------------
 
     public function test_platform_relays_consent_filtered_profile_response(): void
     {
-        // Complete a full login so the user is authenticated
+        // Step 1 — complete OIDC login for the revoked-consent persona (sg_user_08).
         ['state' => $state, 'nonce' => $nonce] = $this->initiateLogin();
 
         $idToken = JWT::encode(
@@ -263,10 +261,11 @@ final class AuthSecurityTest extends TestCase
 
         $issuer = $this->issuer();
 
-        // The profile API for this persona returns a gated (empty) payload —
-        // no bio, avatar_url, or location — because consent is revoked.
-        // We fake the upstream call to mirror what the real mock returns for sg_user_08.
-        $gatedProfilePayload = []; // no profile fields — consent-filtered
+        // Step 2 — fake upstream profile API to return a realistic consent-gated
+        // payload for sg_user_08: only the immutable 'sub' claim is present;
+        // gated fields (bio, avatar_url, location) are ABSENT (not null, but missing),
+        // which is exactly what the mock returns when consent is revoked.
+        $gatedProfilePayload = ['sub' => 'sg_user_08'];
 
         Http::fake([
             $issuer.'/oauth/token' => Http::response([
@@ -277,37 +276,19 @@ final class AuthSecurityTest extends TestCase
                 'scope' => 'openid',
             ]),
             $issuer.'/.well-known/jwks.json' => Http::response(MockKeys::jwks()),
-            // The profile API returns a consent-gated (empty) payload for sg_user_08
+            // Profile API returns consent-gated payload — no bio/avatar_url/location
             config('identity.profile_api_base_url').'/me/profile' => Http::response($gatedProfilePayload, 200),
         ]);
 
-        $callbackResponse = $this->postJson('/api/v1/auth/callback', ['code' => 'abc', 'state' => $state]);
-        $callbackResponse->assertOk();
+        // Login succeeds (200) and the test session becomes authenticated.
+        $this->postJson('/api/v1/auth/callback', ['code' => 'abc', 'state' => $state])
+            ->assertOk();
 
-        // Extract the Sanctum token so we can call /api/v1/me/profile as an authenticated user
-        $platformToken = $callbackResponse->json('token');
-
-        if ($platformToken === null) {
-            // If the platform bundles the user but no separate token field, simply check
-            // that the callback succeeded and the user projection was created correctly.
-            $this->assertDatabaseHas('external_users', ['startup_gate_subject_id' => 'sg_user_08']);
-
-            // The consent enforcement assertion: the platform must NOT have stored
-            // any gated profile sections for this user.
-            $this->assertDatabaseMissing('profile_snapshots', [
-                'startup_gate_subject_id' => 'sg_user_08',
-                'bio' => 'any-bio-value',
-            ]);
-
-            return;
-        }
-
-        // If the platform returns a token, verify /api/v1/me/profile relays the gated payload
-        $this->withToken($platformToken)
-            ->getJson('/api/v1/me/profile')
+        // Step 3 — call /api/v1/me/profile using the retained session (no token needed).
+        // Assert the platform relays the gated payload faithfully and does NOT inject
+        // any fabricated fields that were absent from the upstream response.
+        $this->getJson('/api/v1/me/profile')
             ->assertOk()
-            ->assertJsonMissing(['bio'])
-            ->assertJsonMissing(['avatar_url'])
-            ->assertJsonMissing(['location']);
+            ->assertExactJson($gatedProfilePayload);
     }
 }
