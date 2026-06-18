@@ -9,6 +9,7 @@ use App\Modules\Identity\Domain\Models\ExternalUserToken;
 use App\Modules\Identity\Domain\Models\ProfileSnapshot;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
+use App\Modules\Programs\Domain\Models\Program;
 use App\Shared\Audit\AuditLog;
 use App\Shared\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +36,10 @@ final class TenantIsolationArchTest extends TestCase
 
     public function test_every_model_with_organization_id_uses_belongs_to_tenant(): void
     {
-        foreach ($this->modelClasses() as $class) {
+        $classes = $this->modelClasses();
+        $this->assertNotEmpty($classes, 'No model classes discovered — the architecture test would pass vacuously; check the Finder path.');
+
+        foreach ($classes as $class) {
             $model = new $class;
             $table = $model->getTable();
             if (! Schema::hasColumn($table, 'organization_id')) {
@@ -47,6 +51,8 @@ final class TenantIsolationArchTest extends TestCase
                 "$class has an organization_id column but does not use BelongsToTenant (tenant isolation gap).",
             );
         }
+
+        $this->assertContains(Program::class, $classes, 'Program model not discovered by the architecture test.');
     }
 
     public function test_global_allowlist_models_do_not_use_belongs_to_tenant(): void
