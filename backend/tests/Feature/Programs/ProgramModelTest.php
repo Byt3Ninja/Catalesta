@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Programs;
 
+use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
 use App\Modules\Programs\Domain\Models\Program;
+use App\Shared\Tenancy\TenantContext;
 use Database\Seeders\PermissionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +19,15 @@ final class ProgramModelTest extends TestCase
     public function test_program_persists_with_ulid_slug_and_settings_cast(): void
     {
         [$user, $org] = $this->bootUserWithOrg();
-        $this->withHeader('X-Organization-Id', $org->id);
+
+        $membership = OrganizationMembership::query()
+            ->where('organization_id', $org->id)
+            ->where('external_user_id', $user->id)
+            ->firstOrFail();
+
+        $this->app->make(TenantContext::class)
+            ->setOrganization($org->id, $membership, $membership->effectivePermissionKeys());
+
         $p = Program::create(['name' => 'Accelerator 2026', 'settings' => ['cohort_cap' => 20]]);
         $this->assertSame(26, strlen($p->id));
         $this->assertSame('accelerator-2026', $p->slug);

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Programs\Domain\Models;
 
 use App\Shared\Tenancy\BelongsToTenant;
-use App\Shared\Versioning\ImmutableWhenPublished;
-use App\Shared\Versioning\VersionStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -15,7 +13,6 @@ final class Program extends Model
 {
     use BelongsToTenant;
     use HasUlids;
-    use ImmutableWhenPublished;
 
     protected $guarded = [];
 
@@ -24,7 +21,7 @@ final class Program extends Model
      */
     protected $casts = [
         'settings' => 'array',
-        'status' => VersionStatus::class,
+        'status' => ProgramStatus::class,
     ];
 
     protected static function booting(): void

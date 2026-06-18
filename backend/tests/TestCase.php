@@ -7,9 +7,7 @@ namespace Tests;
 use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
-use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Shared\Support\CorrelationId;
-use App\Shared\Tenancy\TenantContext;
 use Database\Seeders\PermissionCatalogSeeder;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Str;
@@ -20,39 +18,6 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         CorrelationId::reset();
-    }
-
-    /**
-     * Override withHeader so that passing X-Organization-Id also sets TenantContext.
-     * This allows direct model operations in feature tests to benefit from tenant
-     * auto-stamping via BelongsToTenant without needing a full HTTP request.
-     *
-     * @param  array<string, string>|string  $name
-     */
-    public function withHeader(string $name, string $value): static
-    {
-        parent::withHeader($name, $value);
-
-        if ($name === (string) config('tenancy.header')) {
-            /** @var TenantContext $ctx */
-            $ctx = $this->app->make(TenantContext::class);
-
-            $user = $this->app['auth']->guard('web')->user();
-
-            $membership = $user
-                ? OrganizationMembership::withoutGlobalScope('tenant')
-                    ->where('organization_id', $value)
-                    ->where('external_user_id', $user->id)
-                    ->where('status', 'active')
-                    ->first()
-                : null;
-
-            if ($membership) {
-                $ctx->setOrganization($value, $membership, $membership->effectivePermissionKeys());
-            }
-        }
-
-        return $this;
     }
 
     /**

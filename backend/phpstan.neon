@@ -6,3 +6,9 @@ parameters:
     paths:
         - app
     tmpDir: storage/phpstan
+    ignoreErrors:
+        -
+            identifier: trait.unused
+            # ImmutableWhenPublished is intentionally unused at this phase.
+            # It will be adopted by StageVersion in M3.1 — remove this entry then.
+            path: app/Shared/Versioning/ImmutableWhenPublished.php
