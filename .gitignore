@@ -35,3 +35,10 @@
 
 # Local Claude Code plugins/skills/settings (not project source)
 /.claude/
+
+# Graphify tooling (local code-graph; not project source)
+/graphify-out/
+/.graphifyignore
+/bin/
+/lib/
+/pyvenv.cfg

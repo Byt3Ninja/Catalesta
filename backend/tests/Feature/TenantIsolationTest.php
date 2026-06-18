@@ -180,6 +180,48 @@ final class TenantIsolationTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // I1 regression: owner of Org A cannot POST memberships into Org B
+    // -------------------------------------------------------------------------
+
+    /**
+     * I1 cross-tenant membership write regression test.
+     *
+     * A user who is owner of Org A sends X-Organization-Id: <OrgA> (valid header,
+     * passes MembershipPolicy) but POSTs to /api/v1/organizations/{OrgB}/memberships.
+     *
+     * The route-vs-header reconciliation guard in MembershipController must abort
+     * with 403 before any write occurs.  No membership row must be created for OrgB.
+     */
+    public function test_owner_of_org_a_cannot_post_membership_into_org_b(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        // Boot Org A with its owner (owner has members.manage in Org A)
+        [$ownerA, $orgA] = $this->bootUserWithOrg('Org A');
+
+        // Create Org B with a separate owner (ownerA has no membership in Org B)
+        $orgB = $this->createBareOrg('Org B');
+
+        // A third user to be (incorrectly) added to Org B
+        $victim = $this->makeExternalUser();
+
+        // ownerA authenticates with a valid Org A header (passes MembershipPolicy)
+        // but targets Org B in the URL — must be blocked
+        $this->actingAs($ownerA, 'web')
+            ->withHeader('X-Organization-Id', $orgA->id)
+            ->postJson('/api/v1/organizations/'.$orgB->id.'/memberships', [
+                'external_user_id' => $victim->id,
+            ])
+            ->assertStatus(403);
+
+        // Confirm NO membership row was created for Org B
+        $this->assertDatabaseMissing('organization_memberships', [
+            'organization_id' => $orgB->id,
+            'external_user_id' => $victim->id,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
     // 5. GET /api/v1/organizations returns ONLY the user's orgs
     // -------------------------------------------------------------------------
 
