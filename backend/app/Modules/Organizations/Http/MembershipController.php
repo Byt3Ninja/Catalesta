@@ -13,6 +13,8 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final class MembershipController extends Controller
 {
@@ -49,35 +51,55 @@ final class MembershipController extends Controller
         /** @var array{external_user_id: string, role_keys?: array<int, string>} $data */
         $data = $request->validated();
 
-        // Create the membership with explicit organization_id
-        $membership = OrganizationMembership::create([
-            'organization_id' => $orgId,
-            'external_user_id' => $data['external_user_id'],
-            'status' => 'active',
-        ]);
-
-        // Attach roles if role_keys provided
+        // Validate role_keys against known roles for this org before writing anything
         if (! empty($data['role_keys'])) {
-            $roles = OrganizationRole::withoutGlobalScope('tenant')
+            $knownKeys = OrganizationRole::withoutGlobalScope('tenant')
                 ->where('organization_id', $orgId)
-                ->whereIn('key', $data['role_keys'])
-                ->get();
+                ->pluck('key')
+                ->all();
 
-            $membership->roles()->attach($roles->pluck('id')->toArray());
+            $unknownKeys = array_diff($data['role_keys'], $knownKeys);
+
+            if (! empty($unknownKeys)) {
+                throw ValidationException::withMessages([
+                    'role_keys' => 'Unknown role key for this organization.',
+                ]);
+            }
         }
 
-        $membership->load('roles');
-
-        $audit->record(
-            'membership.created',
-            'organization_membership',
-            $membership->id,
-            [],
-            [
+        $membership = DB::transaction(function () use ($orgId, $data, $audit): OrganizationMembership {
+            // Create the membership with explicit organization_id
+            $membership = OrganizationMembership::create([
                 'organization_id' => $orgId,
                 'external_user_id' => $data['external_user_id'],
-            ],
-        );
+                'status' => 'active',
+            ]);
+
+            // Attach roles if role_keys provided
+            if (! empty($data['role_keys'])) {
+                $roles = OrganizationRole::withoutGlobalScope('tenant')
+                    ->where('organization_id', $orgId)
+                    ->whereIn('key', $data['role_keys'])
+                    ->get();
+
+                $membership->roles()->attach($roles->pluck('id')->toArray());
+            }
+
+            $membership->load('roles');
+
+            $audit->record(
+                'membership.created',
+                'organization_membership',
+                $membership->id,
+                [],
+                [
+                    'organization_id' => $orgId,
+                    'external_user_id' => $data['external_user_id'],
+                ],
+            );
+
+            return $membership;
+        });
 
         return (new MembershipResource($membership))
             ->response()

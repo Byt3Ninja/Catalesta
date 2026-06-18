@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
+use App\Modules\Organizations\Domain\Models\OrganizationRole;
 use Database\Seeders\PermissionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -141,6 +142,105 @@ final class OrganizationApiTest extends TestCase
             ->getJson("/api/v1/organizations/{$org->id}");
 
         $response->assertStatus(403);
+    }
+
+    /**
+     * Test 6: Owner can list memberships → 200.
+     */
+    public function test_owner_can_list_memberships(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+        $owner = $this->makeUser();
+
+        $createResponse = $this->actingAs($owner, 'web')
+            ->postJson('/api/v1/organizations', ['name' => 'Membership Org']);
+
+        $createResponse->assertStatus(201);
+        $orgId = $createResponse->json('data.id');
+
+        $response = $this->actingAs($owner, 'web')
+            ->withHeader('X-Organization-Id', $orgId)
+            ->getJson("/api/v1/organizations/{$orgId}/memberships");
+
+        $response->assertStatus(200);
+        $this->assertNotEmpty($response->json('data'));
+    }
+
+    /**
+     * Test 7: Owner can add a member with a valid role_key → 201; membership + role persisted.
+     */
+    public function test_owner_can_create_membership_with_valid_role_key(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+        $owner = $this->makeUser();
+        $newMember = $this->makeUser();
+
+        $createResponse = $this->actingAs($owner, 'web')
+            ->postJson('/api/v1/organizations', ['name' => 'Store Membership Org']);
+
+        $createResponse->assertStatus(201);
+        $orgId = $createResponse->json('data.id');
+
+        // Retrieve the owner role key that was auto-created for this org
+        $ownerRole = OrganizationRole::withoutGlobalScope('tenant')
+            ->where('organization_id', $orgId)
+            ->where('key', 'owner')
+            ->first();
+
+        $this->assertNotNull($ownerRole);
+
+        $response = $this->actingAs($owner, 'web')
+            ->withHeader('X-Organization-Id', $orgId)
+            ->postJson("/api/v1/organizations/{$orgId}/memberships", [
+                'external_user_id' => $newMember->id,
+                'role_keys' => ['owner'],
+            ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('organization_memberships', [
+            'organization_id' => $orgId,
+            'external_user_id' => $newMember->id,
+            'status' => 'active',
+        ]);
+
+        // Verify the role was attached
+        $membership = OrganizationMembership::withoutGlobalScope('tenant')
+            ->where('organization_id', $orgId)
+            ->where('external_user_id', $newMember->id)
+            ->first();
+
+        $this->assertNotNull($membership);
+        $roleIds = $membership->roles()->pluck('organization_roles.id')->toArray();
+        $this->assertContains($ownerRole->id, $roleIds);
+    }
+
+    /**
+     * Test 8: Membership store with unknown role_key → 422.
+     */
+    public function test_membership_store_with_unknown_role_key_returns_422(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+        $owner = $this->makeUser();
+        $newMember = $this->makeUser();
+
+        $createResponse = $this->actingAs($owner, 'web')
+            ->postJson('/api/v1/organizations', ['name' => 'Validation Org']);
+
+        $createResponse->assertStatus(201);
+        $orgId = $createResponse->json('data.id');
+
+        $response = $this->actingAs($owner, 'web')
+            ->withHeader('X-Organization-Id', $orgId)
+            ->postJson("/api/v1/organizations/{$orgId}/memberships", [
+                'external_user_id' => $newMember->id,
+                'role_keys' => ['nonexistent-role-xyz'],
+            ]);
+
+        $response->assertStatus(422);
+        // The app uses a custom exception renderer: validation errors land in error.details
+        $response->assertJsonPath('error.code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('role_keys', $response->json('error.details'));
     }
 
     /**

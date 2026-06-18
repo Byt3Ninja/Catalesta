@@ -103,6 +103,8 @@ final class OrganizationController extends Controller
         /** @var array{name?: string, branding?: array<string, mixed>|null} $data */
         $data = $request->validated();
 
+        $before = $org->only(['name', 'branding']);
+
         if (isset($data['name'])) {
             $org->name = $data['name'];
         }
@@ -113,16 +115,13 @@ final class OrganizationController extends Controller
 
         $org->save();
 
-        $after = array_filter([
-            'name' => $data['name'] ?? null,
-            'branding' => $data['branding'] ?? null,
-        ], fn (mixed $v): bool => $v !== null);
+        $after = $org->only(['name', 'branding']);
 
         $audit->record(
             'organization.updated',
             'organization',
             $org->id,
-            [],
+            $before,
             $after,
         );
 
