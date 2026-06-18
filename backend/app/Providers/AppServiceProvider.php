@@ -1,8 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Modules\Organizations\Domain\Models\Organization;
+use App\Modules\Organizations\Domain\Models\OrganizationMembership;
+use App\Modules\Organizations\Policies\MembershipPolicy;
+use App\Modules\Organizations\Policies\OrganizationPolicy;
 use App\Shared\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Organization::class, OrganizationPolicy::class);
+        Gate::policy(OrganizationMembership::class, MembershipPolicy::class);
     }
 }
