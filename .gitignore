@@ -32,3 +32,6 @@
 
 # Mock service
 /services/startup-gate-mock/node_modules
+
+# Local Claude Code plugins/skills/settings (not project source)
+/.claude/
