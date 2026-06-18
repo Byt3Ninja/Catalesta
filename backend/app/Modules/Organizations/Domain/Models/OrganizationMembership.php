@@ -20,10 +20,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Uses BelongsToTenant so membership queries are auto-scoped to the active tenant.
  *
  * Global-scope note for effectivePermissionKeys():
- * The method queries withoutGlobalScope('tenant') on OrganizationRole so that
- * it can traverse the role graph without relying on TenantContext being set at
- * call-time. This makes it safe to call from ResolveTenant (before the context
- * is populated) and from unit tests without setting up a tenant context.
+ * The method uses TenantContext::runAsSystem() to traverse the role graph
+ * without relying on TenantContext being set at call-time. This makes it safe
+ * to call from ResolveTenant (before the context is populated) and from unit
+ * tests without setting up a tenant context.
  *
  * @property string $organization_id
  * @property string $external_user_id
@@ -71,9 +71,9 @@ final class OrganizationMembership extends Model implements TenantMembership
     /**
      * Returns distinct permission keys from all roles assigned to this membership.
      *
-     * Queries withoutGlobalScope('tenant') on OrganizationRole so the traversal
-     * works regardless of whether TenantContext has been set (e.g. called from
-     * ResolveTenant before the context is populated, or from unit tests).
+     * Uses TenantContext::runAsSystem() to traverse OrganizationRole regardless
+     * of whether TenantContext has been set (e.g. called from ResolveTenant
+     * before the context is populated, or from unit tests).
      *
      * @return array<int,string>
      */
