@@ -140,3 +140,32 @@ Until Startup Gate OIDC is ready:
 - Keep authentication behind interfaces.
 - Do not spread mock-specific logic through domain modules.
 - The production integration must be replaceable by configuration and adapter changes only.
+
+
+## Graphify Knowledge Graph
+
+This project uses Graphify for codebase and architecture navigation.
+
+### Required workflow
+
+Before architecture analysis, dependency analysis, impact analysis, large
+refactoring, module discovery, or codebase-wide searching:
+
+1. Check whether `graphify-out/GRAPH_REPORT.md` exists.
+2. Read `graphify-out/GRAPH_REPORT.md` before using broad Glob, Grep, rg,
+   find, or repository-wide file searches.
+3. Use Graphify queries to identify relevant:
+   - modules
+   - files
+   - symbols
+   - dependencies
+   - communities
+   - highly connected nodes
+4. Inspect the actual source files before making conclusions or changes.
+5. Treat source code, database constraints, configuration, and tests as the
+   authoritative sources when they conflict with the generated graph.
+6. Perform blast-radius analysis before modifying shared services, models,
+   middleware, authorization logic, schemas, or public APIs.
+7. Regenerate the graph after substantial architectural or structural changes.
+
+
