@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Identity\Http\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,4 +16,13 @@ Route::prefix('v1')->group(function (): void {
 
     // Temporary stub – exercises 401 for ErrorEnvelopeTest; will be replaced by real resource.
     Route::middleware('auth:sanctum')->get('/organizations', fn () => response()->json([]));
+
+    // Authentication (OIDC authorization-code + PKCE)
+    Route::get('/auth/login', [AuthController::class, 'login'])->name('auth.login');
+    Route::post('/auth/callback', [AuthController::class, 'callback'])->name('auth.callback');
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/auth/session', [AuthController::class, 'session'])->name('auth.session');
+        Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+    });
 });
