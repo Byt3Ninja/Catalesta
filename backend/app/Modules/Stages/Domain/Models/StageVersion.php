@@ -11,6 +11,7 @@ use App\Shared\Versioning\VersionStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class StageVersion extends Model implements Versionable
 {
@@ -57,5 +58,13 @@ final class StageVersion extends Model implements Versionable
     public function programStage(): BelongsTo
     {
         return $this->belongsTo(ProgramStage::class);
+    }
+
+    /**
+     * @return HasMany<StageRule, $this>
+     */
+    public function stageRules(): HasMany
+    {
+        return $this->hasMany(StageRule::class);
     }
 }
