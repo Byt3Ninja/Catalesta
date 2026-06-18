@@ -1264,6 +1264,7 @@ final class AuthFlowTest extends TestCase
 - [ ] **Step 1: Failing test** — build org + role (with `members.manage`) + membership assigned that role; assert `effectivePermissionKeys()` contains `members.manage` and not others.
 - [ ] **Step 2: Run FAIL.**
 - [ ] **Step 3: Implement** migrations, models (OrganizationMembership implements `TenantMembership`), relationships, `effectivePermissionKeys()`, seeder.
+  - **Also remove** the temporary `ignoreErrors: trait.unused` entry for `app/Shared/Tenancy/BelongsToTenant.php` from `phpstan.neon` — once a model uses the trait the notice disappears and PHPStan must run clean without the suppression.
 - [ ] **Step 4: Implement `ResolveTenant` middleware** (exact body below) and register the alias:
 
 ```php
