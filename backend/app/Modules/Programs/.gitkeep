@@ -1,0 +1,2 @@
+# Programs module — scaffold only; no business logic yet (Phase 0 bootstrap).
+# Layout per CLAUDE.md: Domain/ Application/ Infrastructure/ Http/ Policies/ Events/ Jobs/ Tests/

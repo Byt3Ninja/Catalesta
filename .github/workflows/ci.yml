@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pipeline mirrors docs/13-devops.md.
+jobs:
+  backend:
+    name: Backend (lint, analyse, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, bcmath, intl, zip, redis
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Lint (Pint)
+        run: ./vendor/bin/pint --test
+
+      - name: Static analysis (PHPStan)
+        run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      - name: Unit & feature tests
+        run: php artisan test
+
+  frontend:
+    name: Frontend (typecheck, lint, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Tests (Vitest)
+        run: npm run test
+
+  containers:
+    name: Build & smoke-test containers
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Boot data + mock services
+        run: docker compose up -d postgres redis minio minio-setup mailpit startup-gate-mock
+
+      - name: Wait for and verify mock identity service
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8081/health; then echo " mock OK"; exit 0; fi
+            sleep 2
+          done
+          echo "mock service did not become healthy"; docker compose logs startup-gate-mock; exit 1
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

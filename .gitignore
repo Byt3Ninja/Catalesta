@@ -1,23 +1,34 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+# OS / editor
+.DS_Store
+/.idea
+/.vscode
+/.zed
+/.fleet
+/.nova
+
+# Secrets / env (never commit — CLAUDE.md rule 18)
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+*/.env
+
+# Backend (Laravel)
+/backend/vendor
+/backend/node_modules
+/backend/public/build
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+/backend/storage/phpstan
+/backend/.phpunit.cache
+/backend/.phpunit.result.cache
+/backend/auth.json
+
+# Frontend (Vite/React)
+/frontend/node_modules
+/frontend/dist
+/frontend/coverage
+/frontend/.vite
+
+# Mock service
+/services/startup-gate-mock/node_modules
