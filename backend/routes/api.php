@@ -11,6 +11,7 @@ use App\Modules\Organizations\Http\OrganizationController;
 use App\Modules\Programs\Http\ProgramController;
 use App\Modules\Programs\Http\ProgramPolicyController;
 use App\Modules\Programs\Http\ProgramRoleRequirementController;
+use App\Modules\Stages\Http\StageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -58,6 +59,15 @@ Route::prefix('v1')->group(function (): void {
         // Cohort direct routes (show/update by id)
         Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
         Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
+
+        // Stage sub-resource routes (nested under program)
+        Route::get('/programs/{program}/stages', [StageController::class, 'index'])->name('programs.stages.index');
+        Route::post('/programs/{program}/stages', [StageController::class, 'store'])->name('programs.stages.store');
+        Route::post('/programs/{program}/stages/reorder', [StageController::class, 'reorder'])->name('programs.stages.reorder');
+
+        // Stage direct routes (by id)
+        Route::patch('/stages/{id}', [StageController::class, 'update'])->name('stages.update');
+        Route::post('/stages/{id}/publish', [StageController::class, 'publish'])->name('stages.publish');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

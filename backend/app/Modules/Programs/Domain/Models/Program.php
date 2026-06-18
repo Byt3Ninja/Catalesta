@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Programs\Domain\Models;
 
+use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Shared\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 final class Program extends Model
@@ -31,5 +33,13 @@ final class Program extends Model
                 $program->slug = Str::slug($program->name);
             }
         });
+    }
+
+    /**
+     * @return HasMany<ProgramStage, $this>
+     */
+    public function stages(): HasMany
+    {
+        return $this->hasMany(ProgramStage::class);
     }
 }

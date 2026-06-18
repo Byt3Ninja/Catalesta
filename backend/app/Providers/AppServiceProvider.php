@@ -12,6 +12,8 @@ use App\Modules\Organizations\Policies\MembershipPolicy;
 use App\Modules\Organizations\Policies\OrganizationPolicy;
 use App\Modules\Programs\Domain\Models\Program;
 use App\Modules\Programs\Policies\ProgramPolicy;
+use App\Modules\Stages\Domain\Models\ProgramStage;
+use App\Modules\Stages\Policies\StagePolicy;
 use App\Shared\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -35,5 +37,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(OrganizationMembership::class, MembershipPolicy::class);
         Gate::policy(Program::class, ProgramPolicy::class);
         Gate::policy(Cohort::class, CohortPolicy::class);
+        Gate::policy(ProgramStage::class, StagePolicy::class);
     }
 }
