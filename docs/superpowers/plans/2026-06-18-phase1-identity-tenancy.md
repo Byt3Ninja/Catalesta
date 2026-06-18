@@ -1153,9 +1153,39 @@ final class OidcTokenContractTest extends TestCase
 - [ ] **Step 3: Implement** factory + signer (no HTTP delivery — deferred).
 - [ ] **Step 4: Run PASS; commit** `git commit -m "feat: mock webhook payload builders + HMAC signing (contract)"`
 
+### Task 4.5: Relocate mock profile API to a non-colliding prefix
+
+**Why:** The mock profile routes were mounted at `/api/v1/me*`, which collides with the
+platform's own `/api/v1/me*` routes (added in Task 5.3) when both load in the testing
+environment — Laravel registers both and the last one wins, breaking one suite. The mock's
+OAuth (`/oauth/*`) and well-known (`/.well-known/*`) routes do NOT collide. Fix: mount the
+mock PROFILE API under a distinct `sg/api/v1` prefix (the platform adapter is path-agnostic —
+it uses `config('identity.profile_api_base_url')`), and point that config at the new prefix.
+The path *suffix* under the base URL (`/me`, `/me/profile`, …) is the contract and is preserved.
+Platform feature tests reach the mock via `Http::fake` (the `startup-gate-mock` host is not
+resolvable in-process), so the absolute mount path is a local/test hosting detail only.
+
+**Files:**
+- Modify: `backend/routes/startup-gate-mock.php` (profile group prefix `api/v1` → `sg/api/v1`; leave oauth + well-known unchanged)
+- Modify: `backend/config/identity.php` (`profile_api_base_url` default → `http://startup-gate-mock:8080/sg/api/v1`)
+- Modify: `backend/.env.example` (`PROFILE_API_BASE_URL=http://startup-gate-mock:8080/sg/api/v1`)
+- Modify: `backend/tests/Contract/ProfileApiContractTest.php` (call `/sg/api/v1/me*`)
+
+- [ ] **Step 1:** Update the profile route group prefix to `sg/api/v1`; update config + .env.example defaults; update the contract test paths.
+- [ ] **Step 2:** Run `php artisan test` (full suite green — contract test now hits the new prefix), `pint --test`, `phpstan`.
+- [ ] **Step 3:** Commit `git commit -m "refactor(mock): mount profile API under sg/api/v1 to avoid platform route collision"`.
+
 ---
 
 ## Milestone M5 — Platform auth flow (login/callback/session/logout)
+
+> **Test strategy note (applies to M5.2/M5.3):** the `startup-gate-mock` issuer host is not
+> resolvable from inside the test process, so platform feature tests run in the default
+> `platform` role and use `Http::fake` to stand in for the mock's `/oauth/token`,
+> `/.well-known/jwks.json`, and profile endpoints. Sign the faked `id_token` with
+> `App\StartupGateMock\Support\MockKeys` (RS256 + kid) and return `MockKeys::jwks()` for the
+> JWKS fetch, so the platform's real `validateIdToken` (Task 3.2) verifies it end-to-end.
+> The mock's own endpoints are exercised separately by the M4 contract tests.
 
 ### Task 5.1: Sanctum SPA wiring + stateful api group
 
