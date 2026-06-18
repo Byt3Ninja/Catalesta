@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Identity\Domain\Models\ExternalUser;
 
 return [
 
@@ -64,7 +65,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => ExternalUser::class,
         ],
 
         // 'users' => [
