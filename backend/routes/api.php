@@ -7,6 +7,7 @@ use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
 use App\Modules\Organizations\Http\MembershipController;
 use App\Modules\Organizations\Http\OrganizationController;
+use App\Modules\Programs\Http\ProgramController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +31,15 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/organizations/{id}', [OrganizationController::class, 'update'])->name('organizations.update');
         Route::post('/organizations/{org}/memberships', [MembershipController::class, 'store'])->name('organizations.memberships.store');
         Route::get('/organizations/{org}/memberships', [MembershipController::class, 'index'])->name('organizations.memberships.index');
+    });
+
+    // Program routes — all require auth:sanctum + tenant middleware (program always belongs to a tenant)
+    Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+        Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
+        Route::post('/programs', [ProgramController::class, 'store'])->name('programs.store');
+        Route::get('/programs/{id}', [ProgramController::class, 'show'])->name('programs.show');
+        Route::patch('/programs/{id}', [ProgramController::class, 'update'])->name('programs.update');
+        Route::post('/programs/{id}/publish', [ProgramController::class, 'publish'])->name('programs.publish');
     });
 
     // Authentication (OIDC authorization-code + PKCE)
