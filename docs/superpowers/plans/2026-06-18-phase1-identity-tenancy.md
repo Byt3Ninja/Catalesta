@@ -62,11 +62,20 @@ interface ProfileProvider {
 ```
 
 ```php
+// app/Shared/Tenancy/Contracts/TenantMembership.php
+namespace App\Shared\Tenancy\Contracts;
+interface TenantMembership {
+    public function organizationId(): string;
+    /** @return array<int,string> */ public function effectivePermissionKeys(): array;
+}
+
 // app/Shared/Tenancy/TenantContext.php  (request-scoped singleton)
+// Depends only on the TenantMembership interface — NOT the concrete Eloquent
+// model — so Tenancy has no compile-time dependency on the Organizations module.
 final class TenantContext {
-    public function setOrganization(string $organizationId, OrganizationMembership $membership, array $permissionKeys): void;
+    public function setOrganization(string $organizationId, TenantMembership $membership, array $permissionKeys): void;
     public function organizationId(): ?string;           // null when no tenant resolved
-    public function membership(): ?OrganizationMembership;
+    public function membership(): ?TenantMembership;
     public function has(): bool;                          // true when an org is resolved
     public function can(string $permissionKey): bool;     // platform admin always true
     public function actingAsPlatformAdmin(bool $is): void;
@@ -447,18 +456,23 @@ final class AuditLogger
 git add -A && git commit -m "feat: audit log table, model, writer"
 ```
 
-### Task 1.3: TenantContext, BelongsToTenant trait, ResolveTenant middleware
+### Task 1.3: TenantMembership interface, TenantContext, BelongsToTenant trait
+
+> The `ResolveTenant` middleware is intentionally NOT built here — it needs the
+> `OrganizationMembership` model + `effectivePermissionKeys()`, which are created
+> in Task 6.2. Building it now would leave PHPStan referencing an unknown class.
+> `TenantContext` depends only on the `TenantMembership` interface, so Tenancy has
+> zero compile-time dependency on the Organizations module.
 
 **Files:**
+- Create: `backend/app/Shared/Tenancy/Contracts/TenantMembership.php` (interface)
 - Create: `backend/app/Shared/Tenancy/TenantContext.php`
 - Create: `backend/app/Shared/Tenancy/BelongsToTenant.php` (trait)
-- Create: `backend/app/Http/Middleware/ResolveTenant.php`
-- Modify: `backend/bootstrap/app.php` (bind `TenantContext` singleton; alias `tenant` middleware)
+- Modify: `backend/app/Providers/AppServiceProvider.php` (bind `TenantContext` scoped singleton)
 - Test: `backend/tests/Unit/TenantContextTest.php` (unit), tenant-isolation feature test added in M7.
 
 **Interfaces:**
-- Consumes: `OrganizationMembership` (Task 6.x) — for typing only; keep the property as the model once it exists.
-- Produces: signatures in the Shared interfaces block above; trait adds global scope + `creating` stamp using `organization_id`.
+- Produces: `TenantMembership` interface (`organizationId(): string`, `effectivePermissionKeys(): array`); `TenantContext` (signatures in the Shared interfaces block above); `BelongsToTenant` trait adds the global scope + `creating` stamp using `organization_id`.
 
 - [ ] **Step 1: Failing unit test**
 
@@ -489,26 +503,42 @@ final class TenantContextTest extends TestCase
 
 - [ ] **Step 2: Run, expect FAIL.** `php artisan test --filter=TenantContextTest`
 
-- [ ] **Step 3: Implement TenantContext**
+- [ ] **Step 3: Implement TenantMembership interface + TenantContext**
 
+`app/Shared/Tenancy/Contracts/TenantMembership.php`:
+```php
+<?php
+declare(strict_types=1);
+namespace App\Shared\Tenancy\Contracts;
+
+interface TenantMembership
+{
+    public function organizationId(): string;
+
+    /** @return array<int,string> */
+    public function effectivePermissionKeys(): array;
+}
+```
+
+`app/Shared/Tenancy/TenantContext.php`:
 ```php
 <?php
 declare(strict_types=1);
 namespace App\Shared\Tenancy;
-use App\Modules\Organizations\Domain\Models\OrganizationMembership;
+use App\Shared\Tenancy\Contracts\TenantMembership;
 
 final class TenantContext
 {
     private ?string $organizationId = null;
-    private ?OrganizationMembership $membership = null;
+    private ?TenantMembership $membership = null;
     /** @var array<int,string> */ private array $permissions = [];
     private bool $platformAdmin = false;
 
-    public function setOrganization(string $organizationId, OrganizationMembership $membership, array $permissionKeys): void
+    public function setOrganization(string $organizationId, TenantMembership $membership, array $permissionKeys): void
     { $this->organizationId = $organizationId; $this->membership = $membership; $this->permissions = $permissionKeys; }
 
     public function organizationId(): ?string { return $this->organizationId; }
-    public function membership(): ?OrganizationMembership { return $this->membership; }
+    public function membership(): ?TenantMembership { return $this->membership; }
     public function has(): bool { return $this->organizationId !== null; }
     public function actingAsPlatformAdmin(bool $is): void { $this->platformAdmin = $is; }
     public function can(string $permissionKey): bool
@@ -545,69 +575,20 @@ trait BelongsToTenant
 }
 ```
 
-- [ ] **Step 5: Implement ResolveTenant middleware**
+- [ ] **Step 5: Bind TenantContext as a scoped singleton**
 
-```php
-<?php
-declare(strict_types=1);
-namespace App\Http\Middleware;
-use App\Shared\Tenancy\TenantContext;
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-
-final class ResolveTenant
-{
-    public function __construct(private TenantContext $tenant) {}
-
-    public function handle(Request $request, Closure $next)
-    {
-        $user = $request->user();
-        if ($user && $user->is_platform_admin) { $this->tenant->actingAsPlatformAdmin(true); }
-
-        $orgId = $request->header(config('tenancy.header'));
-        if (! $orgId) {
-            if ($this->tenant->can('__noop__')) { return $next($request); } // platform admin w/o org
-            throw new BadRequestHttpException('Missing organization header.');
-        }
-
-        $membership = $user
-            ? \App\Modules\Organizations\Domain\Models\OrganizationMembership::withoutGlobalScope('tenant')
-                ->where('organization_id', $orgId)
-                ->where('external_user_id', $user->id)
-                ->where('status', 'active')
-                ->first()
-            : null;
-
-        if (! $membership && ! $this->tenant->can('__noop__')) {
-            throw new AccessDeniedHttpException('Not a member of this organization.');
-        }
-
-        if ($membership) {
-            $permissions = $membership->effectivePermissionKeys();
-            $this->tenant->setOrganization($orgId, $membership, $permissions);
-        }
-        return $next($request);
-    }
-}
-```
-
-- [ ] **Step 6: Bind singleton + alias in `bootstrap/app.php`**
-
-In a service provider (`app/Providers/AppServiceProvider.php` `register`):
+In `app/Providers/AppServiceProvider.php` `register()`:
 ```php
 $this->app->scoped(\App\Shared\Tenancy\TenantContext::class);
 ```
-In `bootstrap/app.php` `withMiddleware`:
-```php
-$middleware->alias(['tenant' => \App\Http\Middleware\ResolveTenant::class]);
-```
+> The `ResolveTenant` middleware + its `tenant` alias are built in Task 6.2 (after `OrganizationMembership` exists). Do not add them here.
 
-- [ ] **Step 7: Run PASS; pint; phpstan; commit**
+- [ ] **Step 6: Run PASS; pint; phpstan; commit**
 
 ```bash
-git add -A && git commit -m "feat: tenant context, scope trait, resolve-tenant middleware"
+php artisan test --filter=TenantContextTest
+./vendor/bin/pint --test && ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+git add -A && git commit -m "feat: tenant context + membership interface + belongs-to-tenant scope"
 ```
 
 ---
@@ -1272,17 +1253,67 @@ final class AuthFlowTest extends TestCase
 
 **Files:**
 - Migrations: `organization_permissions` (global catalog: `id`,`key` unique,`description`), `organization_roles` (`id`,`organization_id`,`key`,`name`,`is_system`; unique(org,key)), `role_permission_assignments` (`organization_role_id`,`organization_permission_id`; unique pair), `organization_memberships` (`id`,`organization_id`,`external_user_id`,`status`; unique(org,user)), `organization_membership_roles` (`membership_id`,`organization_role_id`; unique pair).
-- Models in `app/Modules/Organizations/Domain/Models/`: `OrganizationPermission`, `OrganizationRole` (uses `BelongsToTenant`), `OrganizationMembership` (uses `BelongsToTenant`; method `effectivePermissionKeys(): array`).
+- Models in `app/Modules/Organizations/Domain/Models/`: `OrganizationPermission`, `OrganizationRole` (uses `BelongsToTenant`), `OrganizationMembership` (uses `BelongsToTenant`; **implements `App\Shared\Tenancy\Contracts\TenantMembership`**; methods `organizationId(): string` and `effectivePermissionKeys(): array`).
+- Create: `backend/app/Http/Middleware/ResolveTenant.php` + register the `tenant` middleware alias in `bootstrap/app.php` (deferred here from Task 1.3 because it needs `OrganizationMembership`).
 - Seeder: `backend/database/seeders/PermissionCatalogSeeder.php` (keys: `organizations.manage`, `members.manage`, `members.invite`, `roles.manage`).
 - Test: `backend/tests/Unit/EffectivePermissionsTest.php`
 
 **Interfaces:**
-- Produces: `OrganizationMembership::effectivePermissionKeys(): array<int,string>` (distinct permission keys via the member's roles).
+- Produces: `OrganizationMembership::effectivePermissionKeys(): array<int,string>` (distinct permission keys via the member's roles); `OrganizationMembership::organizationId(): string`; the `tenant` route-middleware alias.
 
 - [ ] **Step 1: Failing test** — build org + role (with `members.manage`) + membership assigned that role; assert `effectivePermissionKeys()` contains `members.manage` and not others.
 - [ ] **Step 2: Run FAIL.**
-- [ ] **Step 3: Implement** migrations, models, relationships, `effectivePermissionKeys()`, seeder.
-- [ ] **Step 4: Run PASS; pint; phpstan; commit** `git commit -m "feat: org roles, permissions, memberships + effective permissions"`
+- [ ] **Step 3: Implement** migrations, models (OrganizationMembership implements `TenantMembership`), relationships, `effectivePermissionKeys()`, seeder.
+- [ ] **Step 4: Implement `ResolveTenant` middleware** (exact body below) and register the alias:
+
+```php
+<?php
+declare(strict_types=1);
+namespace App\Http\Middleware;
+use App\Modules\Organizations\Domain\Models\OrganizationMembership;
+use App\Shared\Tenancy\TenantContext;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+
+final class ResolveTenant
+{
+    public function __construct(private TenantContext $tenant) {}
+
+    public function handle(Request $request, Closure $next)
+    {
+        $user = $request->user();
+        $isPlatformAdmin = (bool) ($user?->is_platform_admin);
+        if ($isPlatformAdmin) { $this->tenant->actingAsPlatformAdmin(true); }
+
+        $orgId = $request->header((string) config('tenancy.header'));
+        if (! $orgId) {
+            if ($isPlatformAdmin) { return $next($request); }
+            throw new BadRequestHttpException('Missing organization header.');
+        }
+
+        $membership = $user
+            ? OrganizationMembership::withoutGlobalScope('tenant')
+                ->where('organization_id', $orgId)
+                ->where('external_user_id', $user->id)
+                ->where('status', 'active')
+                ->first()
+            : null;
+
+        if (! $membership) {
+            if ($isPlatformAdmin) { return $next($request); }
+            throw new AccessDeniedHttpException('Not a member of this organization.');
+        }
+
+        $this->tenant->setOrganization($orgId, $membership, $membership->effectivePermissionKeys());
+        return $next($request);
+    }
+}
+```
+In `bootstrap/app.php` `withMiddleware`: `$middleware->alias(['tenant' => \App\Http\Middleware\ResolveTenant::class]);`
+
+- [ ] **Step 5: Run PASS; pint; phpstan; commit** `git commit -m "feat: org roles, permissions, memberships, effective permissions + resolve-tenant middleware"`
 
 ### Task 6.3: Organization policy + membership policy (server authorization)
 
