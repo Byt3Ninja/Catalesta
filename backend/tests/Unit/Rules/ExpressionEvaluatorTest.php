@@ -61,4 +61,34 @@ final class ExpressionEvaluatorTest extends TestCase
         $this->assertTrue($e->evaluate(['all' => [['field' => 'ctx.x', 'operator' => 'is_null']]], ['ctx.x' => null]));
         $this->assertTrue($e->evaluate(['all' => [['field' => 'ctx.tags', 'operator' => 'contains', 'value' => 'a']]], ['ctx.tags' => ['a', 'b']]));
     }
+
+    public function test_non_numeric_field_with_less_than(): void
+    {
+        $tree = ['all' => [['field' => 'ctx.value', 'operator' => 'less_than', 'value' => 10]]];
+        $this->assertFalse($this->evaluator()->evaluate($tree, ['ctx.value' => 'abc']));
+    }
+
+    public function test_non_numeric_field_with_less_than_or_equal(): void
+    {
+        $tree = ['all' => [['field' => 'ctx.value', 'operator' => 'less_than_or_equal', 'value' => 10]]];
+        $this->assertFalse($this->evaluator()->evaluate($tree, ['ctx.value' => 'abc']));
+    }
+
+    public function test_non_numeric_field_with_greater_than(): void
+    {
+        $tree = ['all' => [['field' => 'ctx.value', 'operator' => 'greater_than', 'value' => 10]]];
+        $this->assertFalse($this->evaluator()->evaluate($tree, ['ctx.value' => 'abc']));
+    }
+
+    public function test_equals_non_numeric_strings_still_work(): void
+    {
+        $tree = ['all' => [['field' => 'ctx.role', 'operator' => 'equals', 'value' => 'abc']]];
+        $this->assertTrue($this->evaluator()->evaluate($tree, ['ctx.role' => 'abc']));
+    }
+
+    public function test_equals_decimal_strings_are_equivalent(): void
+    {
+        $tree = ['all' => [['field' => 'ctx.price', 'operator' => 'equals', 'value' => '0.3']]];
+        $this->assertTrue($this->evaluator()->evaluate($tree, ['ctx.price' => '0.30']));
+    }
 }

@@ -32,10 +32,10 @@ enum Operator: string
     public function apply(mixed $value, mixed $comparisonValue): bool
     {
         return match ($this) {
-            self::GREATER_THAN => self::decimalCompare($value, $comparisonValue) > 0,
-            self::GREATER_THAN_OR_EQUAL => self::decimalCompare($value, $comparisonValue) >= 0,
-            self::LESS_THAN => self::decimalCompare($value, $comparisonValue) < 0,
-            self::LESS_THAN_OR_EQUAL => self::decimalCompare($value, $comparisonValue) <= 0,
+            self::GREATER_THAN => ($c = self::decimalCompare($value, $comparisonValue)) !== null && $c > 0,
+            self::GREATER_THAN_OR_EQUAL => ($c = self::decimalCompare($value, $comparisonValue)) !== null && $c >= 0,
+            self::LESS_THAN => ($c = self::decimalCompare($value, $comparisonValue)) !== null && $c < 0,
+            self::LESS_THAN_OR_EQUAL => ($c = self::decimalCompare($value, $comparisonValue)) !== null && $c <= 0,
             self::EQUALS => self::scalarEquals($value, $comparisonValue),
             self::NOT_EQUALS => ! self::scalarEquals($value, $comparisonValue),
             self::IN => is_array($comparisonValue) && in_array($value, $comparisonValue, strict: false),
@@ -53,7 +53,7 @@ enum Operator: string
      *
      * Callers treat a null return as false (condition not satisfied).
      */
-    private static function decimalCompare(mixed $left, mixed $right): int
+    private static function decimalCompare(mixed $left, mixed $right): ?int
     {
         try {
             $result = BigDecimal::of((string) $left)->compareTo(BigDecimal::of((string) $right));
@@ -68,10 +68,8 @@ enum Operator: string
 
             return 0;
         } catch (MathException) {
-            // Non-numeric operand — treat as "not satisfied" by returning a value
-            // that will never match the comparison direction: use PHP_INT_MIN so
-            // every numeric check evaluates to false.
-            return PHP_INT_MIN;
+            // Non-numeric operand — return null so numeric comparisons evaluate to false
+            return null;
         }
     }
 
