@@ -19,4 +19,9 @@ final class CorrelationId
     {
         return self::$value ??= 'corr_'.Str::ulid();
     }
+
+    public static function reset(): void
+    {
+        self::$value = null;
+    }
 }

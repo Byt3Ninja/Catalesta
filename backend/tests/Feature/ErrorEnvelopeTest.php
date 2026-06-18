@@ -13,6 +13,19 @@ final class ErrorEnvelopeTest extends TestCase
         // /api/v1/organizations requires auth; unauthenticated => 401 envelope
         $res = $this->getJson('/api/v1/organizations');
         $res->assertStatus(401)
+            ->assertHeader('X-Correlation-Id')
             ->assertJsonStructure(['error' => ['code', 'message', 'correlation_id']]);
+    }
+
+    public function test_inbound_correlation_id_is_echoed_back_unchanged(): void
+    {
+        $inbound = 'corr_test_123';
+
+        $res = $this->withHeader('X-Correlation-Id', $inbound)
+            ->getJson('/api/v1/organizations');
+
+        $res->assertStatus(401)
+            ->assertHeader('X-Correlation-Id', $inbound)
+            ->assertJsonPath('error.correlation_id', $inbound);
     }
 }
