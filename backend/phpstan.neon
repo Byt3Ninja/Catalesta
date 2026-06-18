@@ -5,6 +5,8 @@ parameters:
     level: 6
     paths:
         - app
-    excludePaths:
-        - app/Shared/Tenancy/BelongsToTenant.php
+    ignoreErrors:
+        -
+            identifier: trait.unused
+            path: app/Shared/Tenancy/BelongsToTenant.php
     tmpDir: storage/phpstan
