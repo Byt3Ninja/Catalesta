@@ -8,6 +8,8 @@ use App\Modules\Identity\Http\MeController;
 use App\Modules\Organizations\Http\MembershipController;
 use App\Modules\Organizations\Http\OrganizationController;
 use App\Modules\Programs\Http\ProgramController;
+use App\Modules\Programs\Http\ProgramPolicyController;
+use App\Modules\Programs\Http\ProgramRoleRequirementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,6 +42,14 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/programs/{id}', [ProgramController::class, 'show'])->name('programs.show');
         Route::patch('/programs/{id}', [ProgramController::class, 'update'])->name('programs.update');
         Route::post('/programs/{id}/publish', [ProgramController::class, 'publish'])->name('programs.publish');
+
+        // Program policies sub-resource
+        Route::get('/programs/{program}/policies', [ProgramPolicyController::class, 'index'])->name('programs.policies.index');
+        Route::post('/programs/{program}/policies', [ProgramPolicyController::class, 'store'])->name('programs.policies.store');
+
+        // Program role requirements sub-resource
+        Route::get('/programs/{program}/role-requirements', [ProgramRoleRequirementController::class, 'index'])->name('programs.role-requirements.index');
+        Route::post('/programs/{program}/role-requirements', [ProgramRoleRequirementController::class, 'store'])->name('programs.role-requirements.store');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

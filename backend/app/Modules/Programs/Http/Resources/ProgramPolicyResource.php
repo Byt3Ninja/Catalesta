@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Programs\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property-read string $id
+ * @property-read string $program_id
+ * @property-read string $key
+ * @property-read mixed $value
+ * @property-read Carbon $created_at
+ * @property-read Carbon $updated_at
+ */
+final class ProgramPolicyResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'program_id' => $this->program_id,
+            'key' => $this->key,
+            'value' => $this->value,
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
+        ];
+    }
+}
