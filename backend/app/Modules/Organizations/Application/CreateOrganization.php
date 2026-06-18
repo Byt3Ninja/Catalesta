@@ -44,12 +44,16 @@ final class CreateOrganization
                 'is_system' => true,
             ]);
 
-            // Step 3: Attach all 4 permissions from the catalog to the owner role
+            // Step 3: Attach all permissions from the catalog to the owner role
             $permissionIds = OrganizationPermission::whereIn('key', [
                 'organizations.manage',
                 'members.manage',
                 'members.invite',
                 'roles.manage',
+                'programs.manage',
+                'programs.publish',
+                'cohorts.manage',
+                'stages.manage',
             ])->pluck('id')->toArray();
 
             $ownerRole->permissions()->sync($permissionIds);
