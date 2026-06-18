@@ -34,7 +34,7 @@ trait ImmutableWhenPublished
             // Currently published — only permit status→archived with no other dirty columns.
             $dirty = $model->getDirty();
 
-            if (array_keys($dirty) === ['status']) {
+            if (count($dirty) === 1 && array_key_exists('status', $dirty)) {
                 $newStatus = $dirty['status'];
 
                 // getDirty() may return the enum instance or its string value.

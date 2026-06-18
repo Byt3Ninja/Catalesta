@@ -82,4 +82,43 @@ final class VersioningTest extends TestCase
         $v->parent_id = 'p2';
         $v->save();
     }
+
+    public function test_published_version_can_be_archived(): void
+    {
+        $v = FakeVersion::create(['parent_id' => 'p1', 'status' => 'draft']);
+        (new VersionPublisher)->publish($v);
+        $v->refresh();
+        $v->status = VersionStatus::Archived;
+        $v->save();
+        $this->assertSame(VersionStatus::Archived, $v->fresh()->status);
+    }
+
+    public function test_archiving_with_another_dirty_column_still_throws(): void
+    {
+        $v = FakeVersion::create(['parent_id' => 'p1', 'status' => 'draft']);
+        (new VersionPublisher)->publish($v);
+        $v->refresh();
+        $v->status = VersionStatus::Archived;
+        $v->parent_id = 'p2';
+        $this->expectException(VersionStateException::class);
+        $v->save();
+    }
+
+    public function test_publish_rejects_already_published_version(): void
+    {
+        $v = FakeVersion::create(['parent_id' => 'p1', 'status' => 'draft']);
+        $publisher = new VersionPublisher;
+        $publisher->publish($v);
+        $this->expectException(VersionStateException::class);
+        $publisher->publish($v->fresh());
+    }
+
+    public function test_published_version_cannot_be_deleted(): void
+    {
+        $v = FakeVersion::create(['parent_id' => 'p1', 'status' => 'draft']);
+        (new VersionPublisher)->publish($v);
+        $v->refresh();
+        $this->expectException(VersionStateException::class);
+        $v->delete();
+    }
 }
