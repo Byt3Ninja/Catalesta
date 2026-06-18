@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
 use App\Modules\Organizations\Http\MembershipController;
@@ -50,6 +51,13 @@ Route::prefix('v1')->group(function (): void {
         // Program role requirements sub-resource
         Route::get('/programs/{program}/role-requirements', [ProgramRoleRequirementController::class, 'index'])->name('programs.role-requirements.index');
         Route::post('/programs/{program}/role-requirements', [ProgramRoleRequirementController::class, 'store'])->name('programs.role-requirements.store');
+
+        // Cohort sub-resource (nested under program for create)
+        Route::post('/programs/{program}/cohorts', [CohortController::class, 'store'])->name('programs.cohorts.store');
+
+        // Cohort direct routes (show/update by id)
+        Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
+        Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

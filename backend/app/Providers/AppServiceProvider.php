@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Cohorts\Domain\Models\Cohort;
+use App\Modules\Cohorts\Policies\CohortPolicy;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Policies\MembershipPolicy;
@@ -32,5 +34,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Organization::class, OrganizationPolicy::class);
         Gate::policy(OrganizationMembership::class, MembershipPolicy::class);
         Gate::policy(Program::class, ProgramPolicy::class);
+        Gate::policy(Cohort::class, CohortPolicy::class);
     }
 }
