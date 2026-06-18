@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Application Role
+    |--------------------------------------------------------------------------
+    |
+    | The application role determines the behavior of the platform.
+    | 'platform' (default) — production or staging with real identity/tenancy.
+    | 'mock' — development/testing with mock OIDC and identity services.
+    |
+    */
+
+    'role' => env('APP_ROLE', 'platform'),
+
 ];
