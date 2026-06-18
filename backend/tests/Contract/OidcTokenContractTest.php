@@ -38,5 +38,7 @@ final class OidcTokenContractTest extends TestCase
         $this->assertSame('sg_user_01', $claims['sub']);
         $this->assertArrayHasKey('email_verified', $claims);
         $this->assertArrayHasKey('profile_updated_at', $claims);
+        $this->assertSame((string) config('identity.oidc.issuer'), $claims['iss']);
+        $this->assertSame((string) config('identity.oidc.client_id'), $claims['aud']);
     }
 }

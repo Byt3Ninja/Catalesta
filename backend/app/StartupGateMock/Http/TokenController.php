@@ -49,12 +49,17 @@ final class TokenController extends Controller
         $code = (string) $request->input('code', '');
         $codeVerifier = (string) $request->input('code_verifier', '');
         $redirectUri = (string) $request->input('redirect_uri', '');
+        $clientId = (string) $request->input('client_id', '');
 
         if ($code === '' || $codeVerifier === '' || $redirectUri === '') {
             return response()->json([
                 'error' => 'invalid_request',
                 'error_description' => 'code, code_verifier, and redirect_uri are required',
             ], 400);
+        }
+
+        if ($clientId !== (string) config('identity.oidc.client_id', 'program-platform')) {
+            return response()->json(['error' => 'invalid_client', 'error_description' => 'Unknown client.'], 401);
         }
 
         $cacheKey = 'oidc_code:'.$code;

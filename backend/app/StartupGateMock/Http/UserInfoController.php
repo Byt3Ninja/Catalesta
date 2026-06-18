@@ -60,6 +60,7 @@ final class UserInfoController extends Controller
             'email_verified' => $persona['email_verified'],
             'name' => $persona['name'],
             'locale' => $persona['locale'],
+            'profile_updated_at' => $persona['profile_updated_at'],
         ]);
     }
 }
