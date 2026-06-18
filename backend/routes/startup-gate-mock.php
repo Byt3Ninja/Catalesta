@@ -55,15 +55,15 @@ Route::post('/oauth/logout', LogoutController::class)
 | Mock Profile API (Task 4.3)
 |--------------------------------------------------------------------------
 |
-| These routes mirror the Startup Gate profile API contract at /api/v1/*.
+| These routes mirror the Startup Gate profile API contract at /sg/api/v1/*.
 | They are mounted under the 'api' middleware group so they share the same
 | URL namespace as the platform routes but remain isolated in this file.
-| No platform module registers routes at /api/v1/me, so there is no
+| No platform module registers routes at /sg/api/v1/me, so there is no
 | collision in testing or mock mode.
 |
 */
 
-Route::middleware('api')->prefix('api/v1')->group(function (): void {
+Route::middleware('api')->prefix('sg/api/v1')->group(function (): void {
     // Identity summary
     Route::get('/me', [ProfileController::class, 'me'])
         ->name('mock.profile.me');

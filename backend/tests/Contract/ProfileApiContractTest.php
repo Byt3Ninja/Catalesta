@@ -57,18 +57,18 @@ final class ProfileApiContractTest extends TestCase
 
     public function test_me_without_token_returns_401(): void
     {
-        $this->getJson('/api/v1/me')->assertUnauthorized();
+        $this->getJson('/sg/api/v1/me')->assertUnauthorized();
     }
 
     public function test_unknown_token_returns_401(): void
     {
         $this->withToken('totally-unknown-token')
-            ->getJson('/api/v1/me')
+            ->getJson('/sg/api/v1/me')
             ->assertUnauthorized();
     }
 
     // -------------------------------------------------------------------------
-    // /api/v1/me  (sg_user_01 — founder only)
+    // /sg/api/v1/me  (sg_user_01 — founder only)
     // -------------------------------------------------------------------------
 
     public function test_me_returns_basic_identity(): void
@@ -76,7 +76,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me')
+            ->getJson('/sg/api/v1/me')
             ->assertOk();
 
         $response->assertJsonStructure(['sub', 'email', 'email_verified', 'name', 'locale']);
@@ -88,7 +88,7 @@ final class ProfileApiContractTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // /api/v1/me/profile
+    // /sg/api/v1/me/profile
     // -------------------------------------------------------------------------
 
     public function test_me_profile_returns_profile_for_consented_user(): void
@@ -96,7 +96,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/profile')
+            ->getJson('/sg/api/v1/me/profile')
             ->assertOk();
 
         // Should include profile fields since sg_user_01 has profile.basic.read and profile.founder.read
@@ -110,7 +110,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_08', 'openid');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/profile')
+            ->getJson('/sg/api/v1/me/profile')
             ->assertOk();
 
         // Should NOT contain bio/avatar_url/location (gated profile sections)
@@ -120,7 +120,7 @@ final class ProfileApiContractTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // /api/v1/me/role-profiles
+    // /sg/api/v1/me/role-profiles
     // -------------------------------------------------------------------------
 
     public function test_me_role_profiles_returns_roles_for_founder(): void
@@ -128,7 +128,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/role-profiles')
+            ->getJson('/sg/api/v1/me/role-profiles')
             ->assertOk();
 
         $roles = $response->json();
@@ -144,7 +144,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_10', 'openid profile.basic.read profile.mentor.read');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/role-profiles')
+            ->getJson('/sg/api/v1/me/role-profiles')
             ->assertOk();
 
         $roles = $response->json();
@@ -155,7 +155,7 @@ final class ProfileApiContractTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // /api/v1/me/startups
+    // /sg/api/v1/me/startups
     // -------------------------------------------------------------------------
 
     public function test_me_startups_returns_startups_for_founder(): void
@@ -163,7 +163,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/startups')
+            ->getJson('/sg/api/v1/me/startups')
             ->assertOk();
 
         $startups = $response->json();
@@ -178,14 +178,14 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_03', 'openid profile.basic.read profile.mentor.read');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/startups')
+            ->getJson('/sg/api/v1/me/startups')
             ->assertOk();
 
         $this->assertSame([], $response->json());
     }
 
     // -------------------------------------------------------------------------
-    // /api/v1/me/consents
+    // /sg/api/v1/me/consents
     // -------------------------------------------------------------------------
 
     public function test_me_consents_returns_granted_for_normal_user(): void
@@ -193,7 +193,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/consents')
+            ->getJson('/sg/api/v1/me/consents')
             ->assertOk();
 
         $consents = $response->json();
@@ -223,7 +223,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_08', 'openid');
 
         $response = $this->withToken($token)
-            ->getJson('/api/v1/me/consents')
+            ->getJson('/sg/api/v1/me/consents')
             ->assertOk();
 
         $consents = $response->json();
@@ -237,7 +237,7 @@ final class ProfileApiContractTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/v1/profile-update-proposals
+    // POST /sg/api/v1/profile-update-proposals
     // -------------------------------------------------------------------------
 
     public function test_profile_update_proposal_returns_202_with_proposal_id(): void
@@ -245,7 +245,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->postJson('/api/v1/profile-update-proposals', [
+            ->postJson('/sg/api/v1/profile-update-proposals', [
                 'bio' => 'Updated bio text.',
                 'location' => 'Nairobi, Kenya',
             ])
@@ -261,12 +261,12 @@ final class ProfileApiContractTest extends TestCase
 
     public function test_profile_update_proposal_requires_auth(): void
     {
-        $this->postJson('/api/v1/profile-update-proposals', ['bio' => 'test'])
+        $this->postJson('/sg/api/v1/profile-update-proposals', ['bio' => 'test'])
             ->assertUnauthorized();
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/v1/program-achievements
+    // POST /sg/api/v1/program-achievements
     // -------------------------------------------------------------------------
 
     public function test_program_achievement_returns_201_with_achievement_id(): void
@@ -274,7 +274,7 @@ final class ProfileApiContractTest extends TestCase
         $token = $this->obtainAccessToken('sg_user_01');
 
         $response = $this->withToken($token)
-            ->postJson('/api/v1/program-achievements', [
+            ->postJson('/sg/api/v1/program-achievements', [
                 'program_id' => 'prog_001',
                 'achievement_type' => 'graduation',
             ])
@@ -286,7 +286,7 @@ final class ProfileApiContractTest extends TestCase
 
     public function test_program_achievement_requires_auth(): void
     {
-        $this->postJson('/api/v1/program-achievements', ['program_id' => 'prog_001'])
+        $this->postJson('/sg/api/v1/program-achievements', ['program_id' => 'prog_001'])
             ->assertUnauthorized();
     }
 }

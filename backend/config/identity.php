@@ -16,7 +16,7 @@ return [
             'profile.documents.read',
         ],
     ],
-    'profile_api_base_url' => env('PROFILE_API_BASE_URL', 'http://startup-gate-mock:8080/api/v1'),
+    'profile_api_base_url' => env('PROFILE_API_BASE_URL', 'http://startup-gate-mock:8080/sg/api/v1'),
     // Mock signing keys (mock role only). In testing a fixed pair is injected.
     'mock' => [
         'private_key' => env('SG_MOCK_PRIVATE_KEY'),
