@@ -23,7 +23,7 @@ final class StoreProgramRoleRequirementRequest extends FormRequest
 
     private function checkAuthorization(): void
     {
-        $program = Program::query()->find($this->route('program'));
+        $program = Program::query()->withoutGlobalScope('tenant')->find($this->route('program'));
         if ($program === null) {
             return; // let the controller's findOrFail produce a clean 404
         }

@@ -8,6 +8,8 @@ use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Programs\Domain\Models\Program;
+use App\Modules\Programs\Domain\Models\ProgramPolicyRecord;
+use App\Modules\Programs\Domain\Models\ProgramRoleRequirement;
 use App\Modules\Programs\Domain\Models\ProgramStatus;
 use Database\Seeders\PermissionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -259,6 +261,104 @@ final class ProgramConfigApiTest extends TestCase
             ]);
 
         $response->assertStatus(403);
+    }
+
+    // -------------------------------------------------------------------------
+    // Regression: unauthorized member with DUPLICATE key → 403 before unique query
+    // -------------------------------------------------------------------------
+
+    public function test_unauthorized_member_gets_403_not_422_on_duplicate_policy_key(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        $org = $this->createBareOrg('Dup Key Org');
+
+        // Create program directly (bypassing tenant scope)
+        $program = Program::withoutGlobalScope('tenant')->create([
+            'name' => 'Restricted Program',
+            'status' => ProgramStatus::Draft,
+            'organization_id' => $org->id,
+        ]);
+
+        // Set up a policy directly in the database (so we can test the duplicate key scenario)
+        ProgramPolicyRecord::create([
+            'program_id' => $program->id,
+            'organization_id' => $org->id,
+            'key' => 'theme',
+            'value' => 'dark',
+        ]);
+
+        // Create a member of the org with NO permissions
+        $member = $this->makeExternalUser();
+        OrganizationMembership::create([
+            'organization_id' => $org->id,
+            'external_user_id' => $member->id,
+            'status' => 'active',
+        ]);
+
+        // This member attempts to POST the SAME key (duplicate)
+        // CRITICAL: Without authorize() before the unique rule, this would hit
+        // the unique-validation query and return 422. With the fix, it returns 403.
+        $response = $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/programs/{$program->id}/policies", [
+                'key' => 'theme',  // same key as above
+                'value' => 'light',
+            ]);
+
+        // Prove authz fires BEFORE the unique-validation query
+        $response->assertStatus(403);
+
+        // Confirm nothing was written (authz rejected it entirely)
+        $this->assertDatabaseCount('program_policies', 1); // only the initial policy
+    }
+
+    public function test_unauthorized_member_gets_403_not_422_on_duplicate_role_requirement_key(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        $org = $this->createBareOrg('Dup Role Key Org');
+
+        // Create program directly (bypassing tenant scope)
+        $program = Program::withoutGlobalScope('tenant')->create([
+            'name' => 'Restricted Program for Roles',
+            'status' => ProgramStatus::Draft,
+            'organization_id' => $org->id,
+        ]);
+
+        // Set up a role requirement directly in the database (so we can test the duplicate key scenario)
+        ProgramRoleRequirement::create([
+            'program_id' => $program->id,
+            'organization_id' => $org->id,
+            'role_key' => 'mentor',
+            'min_count' => 1,
+            'max_count' => 5,
+        ]);
+
+        // Create a member of the org with NO permissions
+        $member = $this->makeExternalUser();
+        OrganizationMembership::create([
+            'organization_id' => $org->id,
+            'external_user_id' => $member->id,
+            'status' => 'active',
+        ]);
+
+        // This member attempts to POST the SAME role_key (duplicate)
+        // CRITICAL: Without authorize() before the unique rule, this would hit
+        // the unique-validation query and return 422. With the fix, it returns 403.
+        $response = $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/programs/{$program->id}/role-requirements", [
+                'role_key' => 'mentor',  // same key as above
+                'min_count' => 2,
+                'max_count' => 4,
+            ]);
+
+        // Prove authz fires BEFORE the unique-validation query
+        $response->assertStatus(403);
+
+        // Confirm nothing was written (authz rejected it entirely)
+        $this->assertDatabaseCount('program_role_requirements', 1); // only the initial requirement
     }
 
     // -------------------------------------------------------------------------

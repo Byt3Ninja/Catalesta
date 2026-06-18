@@ -13,7 +13,7 @@ final class StoreProgramPolicyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $program = Program::query()->find($this->route('program'));
+        $program = Program::query()->withoutGlobalScope('tenant')->find($this->route('program'));
         if ($program === null) {
             return true; // let the controller's findOrFail produce a clean 404
         }
