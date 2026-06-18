@@ -8,7 +8,9 @@
     "require": {
         "php": "^8.3",
         "brick/math": "^0.17.2",
+        "firebase/php-jwt": "^6.10",
         "laravel/framework": "^13.8",
+        "laravel/sanctum": "^4",
         "laravel/tinker": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.34",
         "predis/predis": "^3.5"
@@ -86,6 +88,16 @@
         },
         "platform": {
             "php": "8.3.31"
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    },
+    "policy": {
+        "advisories": {
+            "block": false
         }
     },
     "minimum-stability": "stable",
