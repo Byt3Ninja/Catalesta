@@ -261,4 +261,66 @@ final class ParticipantStageStateTest extends TestCase
         // The instance must reference exactly the version that was current_published_version_id at entry
         $this->assertSame($publishedVersionId, $instance->stage_version_id);
     }
+
+    // -------------------------------------------------------------------------
+    // Test 7: Complete on Blocked status is a no-op
+    // -------------------------------------------------------------------------
+
+    public function test_complete_on_blocked_status_is_a_noop(): void
+    {
+        $stage = $this->makePublishedStage(
+            entryExpression: [
+                'field' => 'cohort.is_open',
+                'operator' => 'equals',
+                'value' => true,
+            ]
+        );
+
+        /** @var AdvanceParticipantStage $service */
+        $service = $this->app->make(AdvanceParticipantStage::class);
+
+        // Enter with a failing entry rule → status is Blocked
+        $status = $service->enter($this->cohort, $this->participant, $stage, [
+            'cohort.is_open' => false,
+        ]);
+
+        $this->assertSame(ParticipantStageState::Blocked, $status->status);
+
+        // Attempt to complete → should be a no-op
+        $completed = $service->complete($status);
+
+        $this->assertSame(ParticipantStageState::Blocked, $completed->status);
+        $this->assertNull($completed->completed_at);
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 8: Complete with failing exit rule stays in progress
+    // -------------------------------------------------------------------------
+
+    public function test_complete_with_failing_exit_rule_stays_in_progress(): void
+    {
+        // Exit rule: cohort.is_open must be true — we will pass false in context
+        $stage = $this->makePublishedStage(
+            exitExpression: [
+                'field' => 'cohort.is_open',
+                'operator' => 'equals',
+                'value' => true,
+            ]
+        );
+
+        /** @var AdvanceParticipantStage $service */
+        $service = $this->app->make(AdvanceParticipantStage::class);
+
+        // Enter successfully (no entry rule to block)
+        $status = $service->enter($this->cohort, $this->participant, $stage);
+        $this->assertSame(ParticipantStageState::InProgress, $status->status);
+
+        // Try to complete with failing exit rule context
+        $completed = $service->complete($status, [
+            'cohort.is_open' => false,
+        ]);
+
+        $this->assertSame(ParticipantStageState::InProgress, $completed->status);
+        $this->assertNull($completed->completed_at);
+    }
 }

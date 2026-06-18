@@ -89,6 +89,7 @@ final class AdvanceParticipantStage
     /**
      * Attempt to complete a stage for a participant.
      *
+     * - Requires the participant status to be InProgress.
      * - Evaluates the exit rule (if any) for the stage version the instance is bound to.
      * - If exit rule passes (or none): sets status=Completed + completed_at.
      * - If exit rule fails: keeps status=InProgress.
@@ -99,6 +100,11 @@ final class AdvanceParticipantStage
         ParticipantStageStatus $status,
         array $context = [],
     ): ParticipantStageStatus {
+        // Guard: only InProgress participants may complete
+        if ($status->status !== ParticipantStageState::InProgress) {
+            return $status;
+        }
+
         // Load the stage and most-recent instance to get the bound version
         $stage = $status->programStage;
         $cohort = $status->cohort;
