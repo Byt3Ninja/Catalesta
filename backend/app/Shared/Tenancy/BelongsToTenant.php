@@ -18,7 +18,13 @@ trait BelongsToTenant
             $ctx = app(TenantContext::class);
             if ($ctx->has()) {
                 $builder->where($builder->getModel()->getTable().'.organization_id', $ctx->organizationId());
+
+                return;
             }
+            if ($ctx->isSystem()) {
+                return; // explicit cross-tenant access
+            }
+            // (fail-closed branch added in Task 3)
         });
         static::creating(function (Model $model): void {
             $ctx = app(TenantContext::class);

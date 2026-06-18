@@ -17,6 +17,8 @@ final class TenantContext
 
     private bool $platformAdmin = false;
 
+    private bool $system = false;
+
     /** @param array<int,string> $permissionKeys */
     public function setOrganization(string $organizationId, TenantMembership $membership, array $permissionKeys): void
     {
@@ -48,5 +50,30 @@ final class TenantContext
     public function can(string $permissionKey): bool
     {
         return $this->platformAdmin || in_array($permissionKey, $this->permissions, true);
+    }
+
+    public function isSystem(): bool
+    {
+        return $this->system;
+    }
+
+    /**
+     * Run $fn with cross-tenant (system) access. The ONLY sanctioned way to span
+     * tenants when no specific tenant is resolved. Re-entrant; restores prior state.
+     *
+     * @template T
+     *
+     * @param  callable():T  $fn
+     * @return T
+     */
+    public function runAsSystem(callable $fn): mixed
+    {
+        $previous = $this->system;
+        $this->system = true;
+        try {
+            return $fn();
+        } finally {
+            $this->system = $previous;
+        }
     }
 }
