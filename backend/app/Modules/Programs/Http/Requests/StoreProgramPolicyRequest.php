@@ -13,9 +13,12 @@ final class StoreProgramPolicyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $program = Program::query()->withoutGlobalScope('tenant')->find($this->route('program'));
+        $program = Program::query()->find($this->route('program'));
+        // Tenant-scoped: a foreign-org (or nonexistent) program resolves to null here.
+        // Return false → 403 BEFORE any unique-validation query runs, so neither an
+        // unauthorized in-tenant caller nor a cross-tenant caller can probe key existence.
         if ($program === null) {
-            return true; // let the controller's findOrFail produce a clean 404
+            return false;
         }
 
         return $this->user() !== null && Gate::forUser($this->user())->allows('update', $program);

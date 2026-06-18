@@ -362,7 +362,7 @@ final class ProgramConfigApiTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Cross-tenant: program of Org B, header Org A → 404
+    // Cross-tenant: program of Org B, header Org A → 403 (tenant-scoped null→403)
     // -------------------------------------------------------------------------
 
     public function test_cross_tenant_cannot_set_policy_on_other_orgs_program(): void
@@ -380,7 +380,9 @@ final class ProgramConfigApiTest extends TestCase
         // Create Org A user
         [$userA, $orgA] = $this->bootUserWithOrg('Org A Config');
 
-        // Org A user sends Org A header but targets Org B's program
+        // Org A user sends Org A header but targets Org B's program.
+        // Tenant-scoped authorize() finds null → returns false → 403 BEFORE any
+        // unique-validation query runs. 404 is also acceptable (defense in depth).
         $response = $this->actingAs($userA, 'web')
             ->withHeader('X-Organization-Id', $orgA->id)
             ->postJson("/api/v1/programs/{$programBId}/policies", [
@@ -388,7 +390,6 @@ final class ProgramConfigApiTest extends TestCase
                 'value' => 'injected',
             ]);
 
-        // BelongsToTenant global scope makes Org B's program invisible → 404
         $this->assertContains($response->status(), [403, 404]);
 
         // Confirm nothing was written for Org B's program
@@ -424,5 +425,91 @@ final class ProgramConfigApiTest extends TestCase
             'program_id' => $programBId,
             'role_key' => 'cross_role',
         ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cross-tenant key-existence leak: Org B has a key → Org A probes it → 403 not 422
+    // -------------------------------------------------------------------------
+
+    public function test_cross_tenant_duplicate_policy_key_returns_403_not_422(): void
+    {
+        // Org B creates a program and sets a policy key
+        [$ownerB, $orgB] = $this->bootUserWithOrg('Org B Leak Policy');
+
+        $createResp = $this->actingAs($ownerB, 'web')
+            ->withHeader('X-Organization-Id', $orgB->id)
+            ->postJson('/api/v1/programs', ['name' => 'Org B Leak Program'])
+            ->assertStatus(201);
+
+        $programBId = $createResp->json('data.id');
+
+        // Org B already has this key set
+        $this->actingAs($ownerB, 'web')
+            ->withHeader('X-Organization-Id', $orgB->id)
+            ->postJson("/api/v1/programs/{$programBId}/policies", [
+                'key' => 'secret_key',
+                'value' => 'secret_value',
+            ])
+            ->assertStatus(201);
+
+        // Org A user with programs.manage in Org A tries the SAME key against Org B's program.
+        // If withoutGlobalScope were used, authorize() would resolve the program and Gate would
+        // succeed (Org A admin has programs.manage), then the unique-validation query would
+        // expose whether 'secret_key' exists in Org B (422 vs pass) — information leak.
+        // With tenant-scoped query: program → null → authorize returns false → 403, no query.
+        [$userA, $orgA] = $this->bootUserWithOrg('Org A Leak Policy');
+
+        $response = $this->actingAs($userA, 'web')
+            ->withHeader('X-Organization-Id', $orgA->id)
+            ->postJson("/api/v1/programs/{$programBId}/policies", [
+                'key' => 'secret_key',  // same key that already exists in Org B
+                'value' => 'probed',
+            ]);
+
+        // Must be 403 — not 422 (which would reveal the key exists in Org B)
+        $response->assertStatus(403);
+        $this->assertNotEquals(422, $response->status(), 'Cross-tenant key-existence leak detected: got 422 instead of 403');
+
+        // Nothing was written for Org B's program
+        $this->assertDatabaseCount('program_policies', 1);
+    }
+
+    public function test_cross_tenant_duplicate_role_key_returns_403_not_422(): void
+    {
+        // Org B creates a program and sets a role requirement
+        [$ownerB, $orgB] = $this->bootUserWithOrg('Org B Leak Role');
+
+        $createResp = $this->actingAs($ownerB, 'web')
+            ->withHeader('X-Organization-Id', $orgB->id)
+            ->postJson('/api/v1/programs', ['name' => 'Org B Leak Role Program'])
+            ->assertStatus(201);
+
+        $programBId = $createResp->json('data.id');
+
+        $this->actingAs($ownerB, 'web')
+            ->withHeader('X-Organization-Id', $orgB->id)
+            ->postJson("/api/v1/programs/{$programBId}/role-requirements", [
+                'role_key' => 'secret_role',
+                'min_count' => 1,
+            ])
+            ->assertStatus(201);
+
+        // Org A user probes Org B's program with the same role_key.
+        // tenant-scoped authorize() → program null → false → 403, no unique query.
+        [$userA, $orgA] = $this->bootUserWithOrg('Org A Leak Role');
+
+        $response = $this->actingAs($userA, 'web')
+            ->withHeader('X-Organization-Id', $orgA->id)
+            ->postJson("/api/v1/programs/{$programBId}/role-requirements", [
+                'role_key' => 'secret_role',  // same role_key that already exists in Org B
+                'min_count' => 2,
+            ]);
+
+        // Must be 403 — not 422 (which would reveal the role_key exists in Org B)
+        $response->assertStatus(403);
+        $this->assertNotEquals(422, $response->status(), 'Cross-tenant role-key existence leak detected: got 422 instead of 403');
+
+        // Nothing was written for Org B's program
+        $this->assertDatabaseCount('program_role_requirements', 1);
     }
 }
