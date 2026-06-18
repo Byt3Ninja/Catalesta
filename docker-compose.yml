@@ -1,4 +1,4 @@
-# Catalesta local development stack (docs/13-devops.md).
+# Catalesta local development stack (docs/06-devops.md).
 # Bring up: docker compose up -d --build
 # API:   http://localhost:8080        Web: http://localhost:3000
 # MinIO: http://localhost:9001        Mail: http://localhost:8025
