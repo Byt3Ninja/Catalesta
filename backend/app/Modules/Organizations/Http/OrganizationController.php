@@ -12,6 +12,7 @@ use App\Modules\Organizations\Http\Requests\StoreOrganizationRequest;
 use App\Modules\Organizations\Http\Requests\UpdateOrganizationRequest;
 use App\Modules\Organizations\Http\Resources\OrganizationResource;
 use App\Shared\Audit\AuditLogger;
+use App\Shared\Tenancy\TenantContext;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,11 +37,11 @@ final class OrganizationController extends Controller
         if ($user->is_platform_admin) {
             $orgs = Organization::all();
         } else {
-            $orgIds = OrganizationMembership::withoutGlobalScope('tenant')
+            $orgIds = app(TenantContext::class)->runAsSystem(fn () => OrganizationMembership::query()
                 ->where('external_user_id', $user->id)
                 ->where('status', 'active')
                 ->pluck('organization_id')
-                ->toArray();
+                ->toArray());
 
             $orgs = Organization::whereIn('id', $orgIds)->get();
         }

@@ -7,6 +7,7 @@ namespace App\Modules\Organizations\Domain\Models;
 use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Shared\Tenancy\BelongsToTenant;
 use App\Shared\Tenancy\Contracts\TenantMembership;
+use App\Shared\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -79,7 +80,7 @@ final class OrganizationMembership extends Model implements TenantMembership
     public function effectivePermissionKeys(): array
     {
         /** @var array<int, OrganizationRole> $roles */
-        $roles = OrganizationRole::withoutGlobalScope('tenant')
+        $roles = app(TenantContext::class)->runAsSystem(fn () => OrganizationRole::query()
             ->whereHas('memberships', function ($q): void {
                 $q->where('organization_memberships.id', $this->id);
             })
@@ -87,7 +88,7 @@ final class OrganizationMembership extends Model implements TenantMembership
                 $q->select('organization_permissions.id', 'organization_permissions.key');
             }])
             ->get()
-            ->all();
+            ->all());
 
         $keys = [];
         foreach ($roles as $role) {
