@@ -12,4 +12,7 @@ use Illuminate\Support\Facades\Route;
  */
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', [HealthController::class, 'show'])->name('health');
+
+    // Temporary stub – exercises 401 for ErrorEnvelopeTest; will be replaced by real resource.
+    Route::middleware('auth:sanctum')->get('/organizations', fn () => response()->json([]));
 });
