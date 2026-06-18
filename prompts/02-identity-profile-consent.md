@@ -13,6 +13,7 @@ Implement OIDC client integration, subject mapping, local projections, role prof
 - `docs/03-data-ownership.md`
 - `docs/04-security-baseline.md`
 - `docs/05-testing-strategy.md`
+- `docs/10-shared-contracts.md`
 
 ## Required Deliverables
 
@@ -26,7 +27,7 @@ Implement OIDC client integration, subject mapping, local projections, role prof
 - Unit tests
 - Feature tests
 - Authorization tests
-- Tenant-isolation tests
+- Tenant-isolation tests where tenant-owned data exists
 - Contract or integration tests where required
 - Documentation updates
 - Migration and rollback notes
@@ -36,7 +37,7 @@ Implement OIDC client integration, subject mapping, local projections, role prof
 
 - Follow module boundaries.
 - Do not place business logic in controllers.
-- Do not bypass tenant isolation.
+- Do not bypass tenant isolation for tenant-owned data (identity, profiles, and consent are global Startup Gate data and are not tenant-scoped).
 - Do not duplicate Startup Gate-owned data unnecessarily.
 - Keep integrations behind interfaces.
 - Use idempotency for retryable commands.

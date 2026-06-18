@@ -13,6 +13,7 @@ Implement discovery, JWKS, authorization code flow, PKCE, token issuance, revoca
 - `docs/03-data-ownership.md`
 - `docs/04-security-baseline.md`
 - `docs/05-testing-strategy.md`
+- `docs/10-shared-contracts.md`
 
 ## Required Deliverables
 
@@ -26,7 +27,7 @@ Implement discovery, JWKS, authorization code flow, PKCE, token issuance, revoca
 - Unit tests
 - Feature tests
 - Authorization tests
-- Tenant-isolation tests
+- Tenant-isolation tests where tenant-owned data exists
 - Contract or integration tests where required
 - Documentation updates
 - Migration and rollback notes
@@ -36,8 +37,7 @@ Implement discovery, JWKS, authorization code flow, PKCE, token issuance, revoca
 
 - Follow module boundaries.
 - Do not place business logic in controllers.
-- Do not bypass tenant isolation.
-- Do not duplicate Startup Gate-owned data unnecessarily.
+- Do not bypass tenant isolation for tenant-owned data (this mock provider owns global identity, profile, and consent data, which is not tenant-scoped).
 - Keep integrations behind interfaces.
 - Use idempotency for retryable commands.
 - Use transactions for multi-record operations.
