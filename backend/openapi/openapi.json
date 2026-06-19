@@ -2094,10 +2094,11 @@
                         "type": "string"
                     },
                     "description": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "blueprint": {
-                        "type": "string"
+                        "type": "object"
                     },
                     "created_at": {
                         "type": "string"
@@ -2110,7 +2111,6 @@
                     "id",
                     "name",
                     "slug",
-                    "description",
                     "blueprint",
                     "created_at",
                     "updated_at"
