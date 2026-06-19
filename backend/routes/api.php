@@ -13,6 +13,7 @@ use App\Modules\Programs\Http\ProgramPolicyController;
 use App\Modules\Programs\Http\ProgramRoleRequirementController;
 use App\Modules\Programs\Http\ProgramTemplateController;
 use App\Modules\Stages\Http\StageController;
+use App\Modules\Stages\Http\StageDependencyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,6 +71,11 @@ Route::prefix('v1')->group(function (): void {
         // Stage direct routes (by id)
         Route::patch('/stages/{id}', [StageController::class, 'update'])->name('stages.update');
         Route::post('/stages/{id}/publish', [StageController::class, 'publish'])->name('stages.publish');
+
+        // Stage dependency sub-resource
+        Route::get('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'index'])->name('programs.stages.dependencies.index');
+        Route::post('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'store'])->name('programs.stages.dependencies.store');
+        Route::delete('/stage-dependencies/{id}', [StageDependencyController::class, 'destroy'])->name('stage-dependencies.destroy');
 
         // Program template routes
         Route::post('/program-templates', [ProgramTemplateController::class, 'store'])->name('program-templates.store');

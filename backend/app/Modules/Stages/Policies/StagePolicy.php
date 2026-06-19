@@ -66,4 +66,12 @@ final class StagePolicy
     {
         return app(TenantContext::class)->can('stages.manage');
     }
+
+    /**
+     * Managing stage dependencies (add/view/remove) requires stages.manage.
+     */
+    public function manageDependencies(ExternalUser $user, ProgramStage $stage): bool
+    {
+        return app(TenantContext::class)->can('stages.manage');
+    }
 }
