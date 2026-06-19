@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation Report — Catalesta PRD (rev 2)</title>
+<style>
+  :root{--good:#2e7d32;--crit:#b00020;--high:#d9534f;--med:#e0a800;--low:#6c757d;--ok:#2e7d32;--bg:#fbfbfa;--ink:#1d1d1f;--mut:#666;--line:#e6e6e6}
+  *{box-sizing:border-box}
+  body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);margin:0;padding:0 0 4rem}
+  .wrap{max-width:880px;margin:0 auto;padding:0 1.25rem}
+  header.banner{padding:2rem 0 1.25rem;border-bottom:1px solid var(--line);margin-bottom:1.5rem}
+  .grade{display:inline-block;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.8rem;padding:.3rem .7rem;border-radius:999px;color:#fff;background:var(--good)}
+  .delta{display:inline-block;margin-left:.5rem;font-size:.78rem;color:var(--mut)}
+  h1{font-size:1.7rem;margin:.6rem 0 .3rem}
+  .meta{color:var(--mut);font-size:.85rem}
+  .meta code{background:#f0f0ee;padding:.1rem .35rem;border-radius:4px}
+  h2{font-size:1.2rem;margin:2rem 0 .6rem;padding-bottom:.3rem;border-bottom:1px solid var(--line)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem;margin:1rem 0}
+  .card{border:1px solid var(--line);border-radius:8px;padding:.7rem .8rem;background:#fff}
+  .card .d{font-size:.8rem;color:var(--mut)}
+  .card .v{font-weight:700;text-transform:capitalize}
+  .v.strong{color:var(--ok)}.v.adequate{color:#b8860b}
+  .sev{font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;padding:.12rem .45rem;border-radius:4px;color:#fff;margin-right:.4rem}
+  .sev.high{background:var(--high)}.sev.medium{background:var(--med);color:#222}.sev.low{background:var(--low)}
+  ul.findings{list-style:none;padding:0;margin:.5rem 0}
+  ul.findings li{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:6px;padding:.6rem .8rem;margin:.45rem 0;background:#fff}
+  ul.findings li.high{border-left-color:var(--high)}
+  ul.findings li.medium{border-left-color:var(--med)}
+  ul.findings li.low{border-left-color:var(--low)}
+  .fix{color:var(--ok);font-style:italic}
+  .closed{background:#eef7ee;border:1px solid #cfe6cf;border-radius:8px;padding:.8rem 1rem;margin:1rem 0}
+  .closed b{color:var(--ok)}
+  details{border:1px solid var(--line);border-radius:8px;margin:.6rem 0;background:#fff}
+  summary{cursor:pointer;padding:.7rem .9rem;font-weight:600}
+  details>div{padding:0 .9rem .9rem}
+  .src{color:var(--mut);font-size:.8rem;font-weight:400}
+  footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--mut);font-size:.8rem}
+  p.lead{font-size:1.02rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="banner">
+  <span class="grade">Grade: Good</span><span class="delta">▲ improved from Fair</span>
+  <h1>Validation Report — Catalesta PRD <span class="src">(revision 2)</span></h1>
+  <div class="meta">
+    PRD: <code>_bmad-output/planning-artifacts/prds/prd-Catalesta-2026-06-20/prd.md</code><br>
+    Reviewers: rubric-walker (PASS, borderline Strong) · adversarial (Fair → bottom of Good) · Re-run 2026-06-20
+  </div>
+</header>
+
+<h2>Synthesis</h2>
+<p class="lead">The revision <strong>closes all 11 prior critical/high findings with real mechanism, not cosmetics</strong> — both reviewers independently agree the grade moved <strong>Fair → Good</strong>. The 1a/1b split (instrument-first selection, billing gated on a quantified World-A band), the entitlement socket-vs-policy distinction, the "done = vs mock, not production-validated" scoping, the enumerated audit set and event taxonomy, and the residency-before-pilot move are genuine structural fixes. 6 of 7 rubric dimensions are now <strong>strong</strong> (Done-ness adequate).</p>
+<p>It is <strong>bottom-of-Good, not solid-Good</strong>: the fixes introduced second-order issues the revision didn't close — a <strong>strategic hole (no World-B monetization path)</strong>, <strong>P1a exit criteria that depend on still-unratified values</strong> (recreating the deadlock inside the gate), and a residual band of untestable predicates (RTL oracle, "band evaluable," FR-080 completeness, the 1a payment-callback contract). None is a regression; they are consequences of the new structure.</p>
+
+<div class="closed"><b>✓ All 11 prior critical/high findings closed</b> — seam-vs-thesis · North Star · metric thresholds · World&nbsp;A/B band · entitlement-vs-packaging · "slice depth" · identity/consent-mocked · FR-020 fields · FR-040 decimal · residency · RTL. Verified with mechanism by both reviewers.</div>
+
+<h2>Dimension verdicts</h2>
+<div class="cards">
+  <div class="card"><div class="d">Decision-readiness</div><div class="v strong">strong</div></div>
+  <div class="card"><div class="d">Substance over theater</div><div class="v strong">strong</div></div>
+  <div class="card"><div class="d">Strategic coherence</div><div class="v strong">strong</div></div>
+  <div class="card"><div class="d">Done-ness clarity</div><div class="v adequate">adequate</div></div>
+  <div class="card"><div class="d">Scope honesty</div><div class="v strong">strong</div></div>
+  <div class="card"><div class="d">Downstream usability</div><div class="v strong">strong</div></div>
+  <div class="card"><div class="d">Shape fit</div><div class="v strong">strong</div></div>
+</div>
+
+<h2>Remaining findings</h2>
+<ul class="findings">
+  <li class="high"><span class="sev high">High</span><strong>No World-B monetization path</strong> (§3 band / §7 1b / G4) — if the thesis fails, "1b not built on selection" deletes the revenue mechanism with no replacement; G4 has no implementation under World-B. <span class="fix">Fix: define a World-B fallback, or explicitly accept "thesis fails → pivot."</span> <em>(new second-order, not a regression)</em></li>
+  <li class="high"><span class="sev high">High</span><strong>P1a exit criteria depend on unratified values</strong> (§7; NFR-010/013/014; M3 baseline) — the gate hinges on [Proposed]/[ASSUMPTION] numbers that don't exist yet, recreating the deadlock inside the gate. <span class="fix">Fix: ratify before they gate, or demote them from exit gates.</span></li>
+
+  <li class="medium"><span class="sev medium">Medium</span><strong>FR-062 limit-blocking is really 1b, not 1a</strong> — nothing produces a limit in 1a (allow-all), so "writes BLOCKED" is untestable there yet NFR-008 treats it as a P1a guarantee. <span class="fix">Fix: phase-tag FR-062.</span></li>
+  <li class="medium"><span class="sev medium">Medium</span><strong>§7 roadmap NOTE-PM is an unresolved self-reconciliation TODO</strong> — reconcile the roadmap's "Selection MVP + billing" entry with the 1a/1b split, or cite the delta; don't park it in the spec.</li>
+  <li class="medium"><span class="sev medium">Medium</span><strong>Validation chain has zero design partners</strong> (§3/OQ6) — single point of failure for every gated decision. <span class="fix">Fix: make 1a start contingent on ≥1 signed partner, or state 1a builds at risk.</span></li>
+  <li class="medium"><span class="sev medium">Medium</span><strong>Unratified thresholds presented as spec</strong> (NFR-009/010/014, FR-040) — give each an owner + ratification trigger (as the metrics got).</li>
+  <li class="medium"><span class="sev medium">Medium</span><strong>Residual untestable predicates</strong> — NFR-011 RTL has no rendering oracle; §7 "band evaluable"/"instrumentation live" aren't pass/fail; FR-080 "queryable" lacks a completeness assertion; the 1a payment-callback (FR-051/070) has no contract to test against.</li>
+
+  <li class="low"><span class="sev low">Low</span><strong>Hidden costs smoothed</strong> — FR-100 "generalize" hides a multi-consumer-outbox rebuild; FR-031 "content-addressed file refs" implies blob-store infra; NFR-009 key-rotation premature in 1a; NFR-014 100k-application perf bar is gold-plating pre-partner.</li>
+  <li class="low"><span class="sev low">Low</span><strong>Residual hedge-adjectives + open core params</strong> — G2 "trustworthy/defensible", World-B "decide-in-seconds", "data not silently altered"; FR-030 cohort-binding + FR-040 precision still [ASSUMPTION-CONFIRM] (confirm before 1a schema freeze); "provisionally ratified" (OQ3 gate) needs a defined sign-off artifact.</li>
+</ul>
+
+<h2>Reviewer detail</h2>
+<details><summary>Rubric walker <span class="src">— review-rubric.md (PASS, borderline Strong)</span></summary>
+<div><p>6/7 dimensions strong, Done-ness adequate. Audited all 11 prior issues as genuinely resolved with mechanism. Remaining: design-partner single-point-of-failure (medium), unratified thresholds presented as spec (medium), residual hedge-adjectives + FR-030/OQ3 underspecification (low).</p></div>
+</details>
+<details><summary>Adversarial (PM + architect) <span class="src">— review-adversarial.md (Fair → bottom of Good)</span></summary>
+<div><p>"Real work, not just motion." Four of five critical/high substantively fixed (identity/consent scoping exemplary; entitlement split is the right architecture; North Star is an outcome; OQ deadlock broken). Holds it at bottom-of-Good for: no World-B monetization path (G4 stranded if thesis fails); P1a exit criteria depending on unratified values; residual untestable band (RTL oracle, "band evaluable", FR-080 completeness, 1a callback contract); and hidden costs ("generalize" = a distributed-systems rebuild; content-addressed storage; premature key rotation; 100k-app perf bar pre-partner).</p></div>
+</details>
+
+<h2>Mechanical notes</h2>
+<ul>
+  <li>ID continuity clean; cross-refs resolve; no dangling references.</li>
+  <li>A forward-ref from §0 (World A/B) to §3 (decision band) would help first-time readers.</li>
+</ul>
+
+<footer>
+  Rubric: <code>.claude/skills/bmad-prd/assets/prd-validation-checklist.md</code> · Re-validated 2026-06-20 · Catalesta PRD revision 2 (post-fix gate).
+</footer>
+</div>
+</body>
+</html>
