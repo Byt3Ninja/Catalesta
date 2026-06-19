@@ -14,7 +14,7 @@ final class StageInstance extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['participant_stage_status_id', 'stage_version_id', 'started_at'];
 
     /**
      * @return array<string, string|class-string>

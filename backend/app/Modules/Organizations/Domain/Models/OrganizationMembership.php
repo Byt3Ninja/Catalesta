@@ -34,7 +34,7 @@ final class OrganizationMembership extends Model implements TenantMembership
     use BelongsToTenant;
     use HasUlids;
 
-    protected $fillable = ['organization_id', 'external_user_id', 'status'];
+    protected $fillable = ['external_user_id', 'status'];
 
     /** @return BelongsTo<Organization, $this> */
     public function organization(): BelongsTo

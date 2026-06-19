@@ -16,7 +16,7 @@ final class Program extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['name', 'slug', 'status', 'description', 'settings', 'template_id'];
 
     /**
      * @return array<string, string>

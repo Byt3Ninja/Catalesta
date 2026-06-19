@@ -19,7 +19,7 @@ final class StageVersion extends Model implements Versionable
     use HasUlids;
     use ImmutableWhenPublished;
 
-    protected $guarded = [];
+    protected $fillable = ['program_stage_id', 'version_number', 'status', 'config', 'published_at'];
 
     /**
      * @var array<string, mixed>

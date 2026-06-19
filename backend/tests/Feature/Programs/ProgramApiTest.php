@@ -173,11 +173,9 @@ final class ProgramApiTest extends TestCase
 
         // Add a bare member with no roles (no permissions)
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -198,21 +196,17 @@ final class ProgramApiTest extends TestCase
         $org = $this->createBareOrg('Publish Perm Org');
 
         // Create a draft program directly in the DB under this org
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'To Be Published',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'To Be Published', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $programId = $program->id;
 
         // Create a bare member with no roles (no programs.publish permission)
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         // Bare member attempts to publish — must 403
         $response = $this->actingAs($member, 'web')

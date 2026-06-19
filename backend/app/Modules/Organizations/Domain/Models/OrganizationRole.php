@@ -23,7 +23,7 @@ final class OrganizationRole extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $fillable = ['organization_id', 'key', 'name', 'is_system'];
+    protected $fillable = ['key', 'name', 'is_system'];
 
     /**
      * @return array<string, string>

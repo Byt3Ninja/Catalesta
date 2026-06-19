@@ -7,6 +7,7 @@ namespace Tests;
 use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
+use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Shared\Support\CorrelationId;
 use App\Shared\Tenancy\TenantContext;
 use Database\Seeders\PermissionCatalogSeeder;
@@ -76,6 +77,31 @@ abstract class TestCase extends BaseTestCase
         $service = $this->app->make(CreateOrganization::class);
 
         return $this->withoutTenantContext(fn () => $service->handle($owner, $name));
+    }
+
+    /**
+     * Set TenantContext to $org on behalf of $user (resolves their membership).
+     * Mirrors the pattern used in feature tests that need a resolved-tenant context
+     * without going through HTTP middleware.
+     */
+    protected function actingAsTenant(
+        ExternalUser $user,
+        Organization $org,
+    ): void {
+        $this->actingAs($user, 'web');
+
+        $membership = OrganizationMembership::withoutGlobalScope('tenant')
+            ->where('organization_id', $org->id)
+            ->where('external_user_id', $user->id)
+            ->firstOrFail();
+
+        /** @var TenantContext $ctx */
+        $ctx = $this->app->make(TenantContext::class);
+        $ctx->setOrganization(
+            $org->id,
+            $membership,
+            $membership->effectivePermissionKeys(),
+        );
     }
 
     /**

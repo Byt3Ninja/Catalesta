@@ -23,7 +23,11 @@ final class FailClosedTenancyTest extends TestCase
         // Seed a program under a real tenant (system context bypasses the create-guard).
         $ctx = app(TenantContext::class);
         [, $org] = $this->bootUserWithOrg();
-        $ctx->runAsSystem(fn () => Program::query()->create(['name' => 'A', 'organization_id' => $org->id]));
+        $ctx->runAsSystem(function () use ($org): void {
+            $p = new Program(['name' => 'A']);
+            $p->organization_id = $org->id;
+            $p->save();
+        });
 
         // Drop the resolved scoped instance so the next resolution is a fresh context
         // with no tenant set and not in system mode.
@@ -52,9 +56,17 @@ final class FailClosedTenancyTest extends TestCase
     {
         $ctx = app(TenantContext::class);
         [, $a] = $this->bootUserWithOrg('Org A');
-        $ctx->runAsSystem(fn () => Program::query()->create(['name' => 'PA', 'organization_id' => $a->id]));
+        $ctx->runAsSystem(function () use ($a): void {
+            $p = new Program(['name' => 'PA']);
+            $p->organization_id = $a->id;
+            $p->save();
+        });
         $b = $this->createBareOrg('Org B');
-        $ctx->runAsSystem(fn () => Program::query()->create(['name' => 'PB', 'organization_id' => $b->id]));
+        $ctx->runAsSystem(function () use ($b): void {
+            $p = new Program(['name' => 'PB']);
+            $p->organization_id = $b->id;
+            $p->save();
+        });
 
         $count = $ctx->runAsSystem(fn () => Program::query()->count());
         $this->assertSame(2, $count);

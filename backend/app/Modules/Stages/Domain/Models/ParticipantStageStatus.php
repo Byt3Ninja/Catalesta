@@ -16,7 +16,7 @@ final class ParticipantStageStatus extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['cohort_id', 'external_user_id', 'program_stage_id', 'status', 'entered_at', 'completed_at'];
 
     /**
      * @return array<string, string|class-string>

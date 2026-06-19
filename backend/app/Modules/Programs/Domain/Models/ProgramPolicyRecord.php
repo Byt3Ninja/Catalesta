@@ -20,7 +20,7 @@ final class ProgramPolicyRecord extends Model
 
     protected $table = 'program_policies';
 
-    protected $guarded = [];
+    protected $fillable = ['program_id', 'key', 'value'];
 
     /**
      * @return array<string, string>

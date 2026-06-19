@@ -211,18 +211,14 @@ final class ProgramConfigApiTest extends TestCase
         $org = $this->createBareOrg('Policy Perm Org');
 
         // Create a program directly, bypassing tenant scope
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Restricted Program',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Restricted Program', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -240,18 +236,14 @@ final class ProgramConfigApiTest extends TestCase
 
         $org = $this->createBareOrg('Role Req Perm Org');
 
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Restricted Program 2',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Restricted Program 2', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership2 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership2->organization_id = $org->id;
+        $memberMembership2->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -274,27 +266,20 @@ final class ProgramConfigApiTest extends TestCase
         $org = $this->createBareOrg('Dup Key Org');
 
         // Create program directly (bypassing tenant scope)
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Restricted Program',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Restricted Program', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         // Set up a policy directly in the database (so we can test the duplicate key scenario)
-        ProgramPolicyRecord::create([
-            'program_id' => $program->id,
-            'organization_id' => $org->id,
-            'key' => 'theme',
-            'value' => 'dark',
-        ]);
+        $policy = new ProgramPolicyRecord(['program_id' => $program->id, 'key' => 'theme', 'value' => 'dark']);
+        $policy->organization_id = $org->id;
+        $policy->save();
 
         // Create a member of the org with NO permissions
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership3 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership3->organization_id = $org->id;
+        $memberMembership3->save();
 
         // This member attempts to POST the SAME key (duplicate)
         // CRITICAL: Without authorize() before the unique rule, this would hit
@@ -320,28 +305,20 @@ final class ProgramConfigApiTest extends TestCase
         $org = $this->createBareOrg('Dup Role Key Org');
 
         // Create program directly (bypassing tenant scope)
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Restricted Program for Roles',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Restricted Program for Roles', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         // Set up a role requirement directly in the database (so we can test the duplicate key scenario)
-        ProgramRoleRequirement::create([
-            'program_id' => $program->id,
-            'organization_id' => $org->id,
-            'role_key' => 'mentor',
-            'min_count' => 1,
-            'max_count' => 5,
-        ]);
+        $roleReq = new ProgramRoleRequirement(['program_id' => $program->id, 'role_key' => 'mentor', 'min_count' => 1, 'max_count' => 5]);
+        $roleReq->organization_id = $org->id;
+        $roleReq->save();
 
         // Create a member of the org with NO permissions
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership4 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership4->organization_id = $org->id;
+        $memberMembership4->save();
 
         // This member attempts to POST the SAME role_key (duplicate)
         // CRITICAL: Without authorize() before the unique rule, this would hit
