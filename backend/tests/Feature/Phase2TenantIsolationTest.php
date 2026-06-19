@@ -47,15 +47,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->getJson("/api/v1/programs/{$programA->id}");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant GET program must not return 200 — data leak detected (got {$response->status()})",
-        );
+            ->getJson("/api/v1/programs/{$programA->id}")
+            ->assertStatus(404);
     }
 
     public function test_matrix1_cross_tenant_patch_program_returns_404_or_403(): void
@@ -63,15 +58,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->patchJson("/api/v1/programs/{$programA->id}", ['name' => 'Hijacked']);
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant PATCH program must not return 200 (got {$response->status()})",
-        );
+            ->patchJson("/api/v1/programs/{$programA->id}", ['name' => 'Hijacked'])
+            ->assertStatus(404);
 
         $this->assertDatabaseHas('programs', ['id' => $programA->id, 'name' => 'Org A Program']);
     }
@@ -81,15 +71,12 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->postJson("/api/v1/programs/{$programA->id}/publish");
+            ->postJson("/api/v1/programs/{$programA->id}/publish")
+            ->assertStatus(404);
 
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant POST publish must not return 200 (got {$response->status()})",
-        );
+        $this->assertDatabaseHas('programs', ['id' => $programA->id, 'status' => ProgramStatus::Draft->value]);
     }
 
     public function test_matrix1_cross_tenant_clone_program_returns_404_or_403(): void
@@ -97,15 +84,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->postJson("/api/v1/programs/{$programA->id}/clone", ['name' => 'Stolen Clone']);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST clone must not return 200/201 (got {$response->status()})",
-        );
+            ->postJson("/api/v1/programs/{$programA->id}/clone", ['name' => 'Stolen Clone'])
+            ->assertStatus(404);
     }
 
     // -------------------------------------------------------------------------
@@ -117,15 +99,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->getJson("/api/v1/programs/{$programA->id}/policies");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant GET policies must not return 200 (got {$response->status()})",
-        );
+            ->getJson("/api/v1/programs/{$programA->id}/policies")
+            ->assertStatus(404);
     }
 
     public function test_matrix1_cross_tenant_post_program_policy_returns_404_or_403(): void
@@ -133,18 +110,13 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/policies", [
                 'key' => 'injected_policy',
                 'value' => true,
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST policy must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(403);
     }
 
     // -------------------------------------------------------------------------
@@ -156,15 +128,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->getJson("/api/v1/programs/{$programA->id}/role-requirements");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant GET role-requirements must not return 200 (got {$response->status()})",
-        );
+            ->getJson("/api/v1/programs/{$programA->id}/role-requirements")
+            ->assertStatus(404);
     }
 
     public function test_matrix1_cross_tenant_post_program_role_requirement_returns_404_or_403(): void
@@ -172,20 +139,15 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/role-requirements", [
                 'role_key' => 'hacker',
                 'min_count' => 1,
                 'max_count' => 10,
                 'is_required' => true,
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST role-requirement must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(403);
     }
 
     // -------------------------------------------------------------------------
@@ -197,19 +159,14 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/cohorts", [
                 'name' => 'Injected Cohort',
                 'starts_at' => '2027-01-01',
                 'ends_at' => '2027-06-30',
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST cohort must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(403);
     }
 
     // -------------------------------------------------------------------------
@@ -221,15 +178,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , $cohortA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->getJson("/api/v1/cohorts/{$cohortA->id}");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant GET cohort must not return 200 (got {$response->status()})",
-        );
+            ->getJson("/api/v1/cohorts/{$cohortA->id}")
+            ->assertStatus(404);
     }
 
     public function test_matrix1_cross_tenant_patch_cohort_returns_404_or_403(): void
@@ -237,15 +189,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , $cohortA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->patchJson("/api/v1/cohorts/{$cohortA->id}", ['name' => 'Hijacked Cohort']);
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant PATCH cohort must not return 200 (got {$response->status()})",
-        );
+            ->patchJson("/api/v1/cohorts/{$cohortA->id}", ['name' => 'Hijacked Cohort'])
+            ->assertStatus(403);
 
         $this->assertDatabaseHas('cohorts', ['id' => $cohortA->id, 'name' => 'Org A Cohort']);
     }
@@ -259,15 +206,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->getJson("/api/v1/programs/{$programA->id}/stages");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant GET stages must not return 200 (got {$response->status()})",
-        );
+            ->getJson("/api/v1/programs/{$programA->id}/stages")
+            ->assertStatus(404);
     }
 
     public function test_matrix1_cross_tenant_post_program_stage_returns_404_or_403(): void
@@ -275,19 +217,14 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/stages", [
                 'key' => 'injected',
                 'name' => 'Injected Stage',
                 'type' => 'application',
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST stage must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(403);
     }
 
     public function test_matrix1_cross_tenant_reorder_program_stages_returns_404_or_403(): void
@@ -295,17 +232,12 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA, , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/stages/reorder", [
                 'stage_ids' => [$stageA->id],
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST reorder must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(403);
     }
 
     // -------------------------------------------------------------------------
@@ -317,15 +249,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->patchJson("/api/v1/stages/{$stageA->id}", ['name' => 'Hijacked Stage']);
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant PATCH stage must not return 200 (got {$response->status()})",
-        );
+            ->patchJson("/api/v1/stages/{$stageA->id}", ['name' => 'Hijacked Stage'])
+            ->assertStatus(403);
     }
 
     public function test_matrix1_cross_tenant_publish_stage_returns_404_or_403(): void
@@ -333,15 +260,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
-            ->postJson("/api/v1/stages/{$stageA->id}/publish");
-
-        $this->assertNotEquals(
-            200,
-            $response->status(),
-            "Cross-tenant POST stage publish must not return 200 (got {$response->status()})",
-        );
+            ->postJson("/api/v1/stages/{$stageA->id}/publish")
+            ->assertStatus(404);
 
         $this->assertDatabaseHas('program_stages', [
             'id' => $stageA->id,
@@ -358,17 +280,12 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , , , $templateA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
-        $response = $this->actingAs($userB, 'web')
+        $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/program-templates/{$templateA->id}/instantiate", [
                 'name' => 'Stolen Program',
-            ]);
-
-        $this->assertNotContains(
-            $response->status(),
-            [200, 201],
-            "Cross-tenant POST instantiate must not return 200/201 (got {$response->status()})",
-        );
+            ])
+            ->assertStatus(404);
     }
 
     // =========================================================================
@@ -380,11 +297,10 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB List');
 
-        // Create an Org B program so the list is non-empty
-        $this->actingAs($userB, 'web')
-            ->withHeader('X-Organization-Id', $orgB->id)
-            ->postJson('/api/v1/programs', ['name' => 'Org B Own Program'])
-            ->assertStatus(201);
+        // Create Org B program directly in DB — no HTTP session bleed-over risk
+        $programB = new Program(['name' => 'Org B Own Program', 'status' => ProgramStatus::Draft]);
+        $programB->organization_id = $orgB->id;
+        $programB->save();
 
         $response = $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
@@ -401,6 +317,12 @@ final class Phase2TenantIsolationTest extends TestCase
             $returnedIds,
             'GET /programs must NOT return Org A programs when acting as Org B — global-scope leak detected',
         );
+
+        $this->assertContains(
+            $programB->id,
+            $returnedIds,
+            'GET /programs must return Org B own programs when acting as Org B',
+        );
     }
 
     public function test_matrix2_stages_list_does_not_include_other_org_stages(): void
@@ -408,20 +330,21 @@ final class Phase2TenantIsolationTest extends TestCase
         [, , , , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB Stages List');
 
-        // Org B needs its own program to list stages against (route is /programs/{program}/stages)
+        // Org B program — direct DB creation, no HTTP session bleed-over risk
         $programB = new Program(['name' => 'Org B Program', 'status' => ProgramStatus::Draft]);
         $programB->organization_id = $orgB->id;
         $programB->save();
 
-        // Create an Org B stage so the list is non-empty
-        $this->actingAs($userB, 'web')
-            ->withHeader('X-Organization-Id', $orgB->id)
-            ->postJson("/api/v1/programs/{$programB->id}/stages", [
-                'key' => 'orgb-stage',
-                'name' => 'Org B Stage',
-                'type' => 'application',
-            ])
-            ->assertStatus(201);
+        // Org B stage — direct DB creation, no HTTP session bleed-over risk
+        $stageB = new ProgramStage([
+            'program_id' => $programB->id,
+            'key' => 'orgb-stage',
+            'name' => 'Org B Stage',
+            'type' => 'application',
+            'order_index' => 0,
+        ]);
+        $stageB->organization_id = $orgB->id;
+        $stageB->save();
 
         // List stages for Org B's own program — must NOT include Org A's stage
         $response = $this->actingAs($userB, 'web')
@@ -438,6 +361,12 @@ final class Phase2TenantIsolationTest extends TestCase
             $stageA->id,
             $returnedIds,
             'GET /programs/{program}/stages must NOT return Org A stages when acting as Org B',
+        );
+
+        $this->assertContains(
+            $stageB->id,
+            $returnedIds,
+            'GET /programs/{program}/stages must return Org B own stages when acting as Org B',
         );
     }
 
@@ -597,13 +526,14 @@ final class Phase2TenantIsolationTest extends TestCase
 
     public function test_matrix3_member_without_manage_cannot_create_template(): void
     {
-        [$member, $orgB] = $this->setupOrgBMemberData();
+        [$member, $orgB, $programB] = $this->setupOrgBMemberData();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson('/api/v1/program-templates', [
                 'name' => 'Unauthorized Template',
-                'blueprint' => [],
+                'program_id' => $programB->id,
+                'blueprint' => ['stages' => []],
             ]);
 
         $response->assertStatus(403);
