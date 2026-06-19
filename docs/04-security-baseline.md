@@ -9,6 +9,6 @@ Tenant isolation is enforced fail-closed at the data-access layer via `App\Share
 - **Every tenant-owned model** (with `organization_id` column) must use `BelongsToTenant`. An architecture test (`tests/Architecture/TenantIsolationArchTest.php`) enforces this on every commit.
 - **Read queries without a resolved tenant** return no rows (not an error). Queries in queue jobs, console commands, or system contexts run against all tenants only inside `TenantContext::runAsSystem(callable)`.
 - **Writes without a resolved tenant** throw `TenantContextMissingException`, making cross-tenant access explicit and auditable.
-- **`organization_id` is never mass-assignable** (`$fillable` excludes it); the column is assigned server-side from `TenantContext::tenantId()` at create time.
+- **`organization_id` is never mass-assignable** (`$fillable` excludes it); the column is assigned server-side from `app(\App\Shared\Tenancy\TenantContext::class)->organizationId()` at create time.
 
 This model is documented in `docs/tenancy.md`.
