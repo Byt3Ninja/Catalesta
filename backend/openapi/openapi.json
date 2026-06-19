@@ -1831,6 +1831,367 @@
                     }
                 }
             }
+        },
+        "/v1/programs/{program}/stages/{stage}/dependencies": {
+            "get": {
+                "operationId": "programs.stages.dependencies.index",
+                "description": "List all prerequisite dependencies for a stage.\nBelongsToTenant global scope ensures cross-tenant program/stage \u2192 404.",
+                "summary": "GET /api/v1/programs/{program}/stages/{stage}/dependencies",
+                "tags": [
+                    "StageDependency"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "stage",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `StageDependencyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StageDependencyResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "programs.stages.dependencies.store",
+                "description": "Add a prerequisite dependency to a stage.\nRejects self-edges, cross-program edges, and cycles with 422.",
+                "summary": "POST /api/v1/programs/{program}/stages/{stage}/dependencies",
+                "tags": [
+                    "StageDependency"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "stage",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreStageDependencyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`StageDependencyResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StageDependencyResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/stage-dependencies/{id}": {
+            "delete": {
+                "operationId": "stage-dependencies.destroy",
+                "description": "Remove a stage dependency.\nBelongsToTenant global scope ensures cross-tenant ids 404.",
+                "summary": "DELETE /api/v1/stage-dependencies/{id}",
+                "tags": [
+                    "StageDependency"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/programs/{program}/tracks": {
+            "get": {
+                "operationId": "programs.tracks.index",
+                "description": "List all tracks for a program. BelongsToTenant scope on Program ensures\ncross-tenant {program} ids result in findOrFail throwing 404.",
+                "summary": "GET /api/v1/programs/{program}/tracks",
+                "tags": [
+                    "Track"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `TrackResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TrackResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "programs.tracks.store",
+                "description": "Create a new track under a program.\norganization_id is auto-stamped by BelongsToTenant creating hook.",
+                "summary": "POST /api/v1/programs/{program}/tracks",
+                "tags": [
+                    "Track"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreTrackRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`TrackResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TrackResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/tracks/{id}": {
+            "patch": {
+                "operationId": "tracks.update",
+                "description": "Update a track's name, description, and/or order_index.\nBelongsToTenant global scope on Track ensures cross-tenant ids 404.",
+                "summary": "PATCH /api/v1/tracks/{id}",
+                "tags": [
+                    "Track"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateTrackRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`TrackResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TrackResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "tracks.destroy",
+                "description": "Delete a track (and cascade \u2014 see DeleteTrack service for Tasks 4/5 extensions).\nBelongsToTenant global scope on Track ensures cross-tenant ids 404.",
+                "summary": "DELETE /api/v1/tracks/{id}",
+                "tags": [
+                    "Track"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -2094,11 +2455,10 @@
                         "type": "string"
                     },
                     "description": {
-                        "type": "string",
-                        "nullable": true
+                        "type": "string"
                     },
                     "blueprint": {
-                        "type": "object"
+                        "type": "string"
                     },
                     "created_at": {
                         "type": "string"
@@ -2111,6 +2471,7 @@
                     "id",
                     "name",
                     "slug",
+                    "description",
                     "blueprint",
                     "created_at",
                     "updated_at"
@@ -2132,6 +2493,34 @@
                     "stage_ids"
                 ],
                 "title": "ReorderStagesRequest"
+            },
+            "StageDependencyResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "program_stage_id": {
+                        "type": "string"
+                    },
+                    "depends_on_program_stage_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "program_stage_id",
+                    "depends_on_program_stage_id",
+                    "created_at"
+                ],
+                "title": "StageDependencyResource"
             },
             "StageResource": {
                 "type": "object",
@@ -2356,6 +2745,18 @@
                 ],
                 "title": "StoreProgramRoleRequirementRequest"
             },
+            "StoreStageDependencyRequest": {
+                "type": "object",
+                "properties": {
+                    "depends_on_program_stage_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "depends_on_program_stage_id"
+                ],
+                "title": "StoreStageDependencyRequest"
+            },
             "StoreStageRequest": {
                 "type": "object",
                 "properties": {
@@ -2406,6 +2807,74 @@
                     "type"
                 ],
                 "title": "StoreStageRequest"
+            },
+            "StoreTrackRequest": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "order_index": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "key",
+                    "name"
+                ],
+                "title": "StoreTrackRequest"
+            },
+            "TrackResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "program_id": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "order_index": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "program_id",
+                    "key",
+                    "name",
+                    "description",
+                    "order_index",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "TrackResource"
             },
             "UpdateCohortRequest": {
                 "type": "object",
@@ -2533,6 +3002,26 @@
                     }
                 },
                 "title": "UpdateStageRequest"
+            },
+            "UpdateTrackRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "order_index": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "title": "UpdateTrackRequest"
             }
         },
         "responses": {

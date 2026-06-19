@@ -12,7 +12,9 @@ use App\Modules\Programs\Http\ProgramController;
 use App\Modules\Programs\Http\ProgramPolicyController;
 use App\Modules\Programs\Http\ProgramRoleRequirementController;
 use App\Modules\Programs\Http\ProgramTemplateController;
+use App\Modules\Programs\Http\TrackController;
 use App\Modules\Stages\Http\StageController;
+use App\Modules\Stages\Http\StageDependencyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,6 +72,19 @@ Route::prefix('v1')->group(function (): void {
         // Stage direct routes (by id)
         Route::patch('/stages/{id}', [StageController::class, 'update'])->name('stages.update');
         Route::post('/stages/{id}/publish', [StageController::class, 'publish'])->name('stages.publish');
+
+        // Stage dependency sub-resource
+        Route::get('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'index'])->name('programs.stages.dependencies.index');
+        Route::post('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'store'])->name('programs.stages.dependencies.store');
+        Route::delete('/stage-dependencies/{id}', [StageDependencyController::class, 'destroy'])->name('stage-dependencies.destroy');
+
+        // Track sub-resource routes (nested under program for create/list)
+        Route::get('/programs/{program}/tracks', [TrackController::class, 'index'])->name('programs.tracks.index');
+        Route::post('/programs/{program}/tracks', [TrackController::class, 'store'])->name('programs.tracks.store');
+
+        // Track direct routes (by id for update/delete)
+        Route::patch('/tracks/{id}', [TrackController::class, 'update'])->name('tracks.update');
+        Route::delete('/tracks/{id}', [TrackController::class, 'destroy'])->name('tracks.destroy');
 
         // Program template routes
         Route::post('/program-templates', [ProgramTemplateController::class, 'store'])->name('program-templates.store');

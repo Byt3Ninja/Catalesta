@@ -69,4 +69,13 @@ final class ProgramPolicy
     {
         return app(TenantContext::class)->can('programs.manage');
     }
+
+    /**
+     * Managing tracks (create, update, delete, list) requires the `programs.manage` permission.
+     * Accepts both Program and Track model instances — the policy method is model-agnostic.
+     */
+    public function manageTracks(ExternalUser $user): bool
+    {
+        return app(TenantContext::class)->can('programs.manage');
+    }
 }
