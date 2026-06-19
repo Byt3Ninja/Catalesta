@@ -8,10 +8,10 @@ Implement platform and organization settings, branding, taxonomies, skills, sect
 
 - `CLAUDE.md`
 - `docs/00-master-scope.md`
-- `docs/01-architecture.md`
-- `docs/02-domain-boundaries.md`
-- `docs/03-data-ownership.md`
-- `docs/04-security-baseline.md`
+- `docs/architecture/overview.md`
+- `docs/architecture/domain-boundaries.md`
+- `docs/architecture/data-ownership.md`
+- `docs/architecture/security-baseline.md`
 - `docs/05-testing-strategy.md`
 
 ## Required Deliverables

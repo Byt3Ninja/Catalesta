@@ -1,5 +1,7 @@
 # Tenant Isolation Model
 
+> Owner: Architecture · Last-updated: 2026-06-19 · Source-of-truth: docs/product/scope-register.md (scope), docs/plan/roadmap.md (sequence)
+
 ## Overview
 
 Catalesta enforces **fail-closed tenant isolation** at the data-access layer. Every tenant-owned model must use the `BelongsToTenant` trait; queries without a resolved tenant return no rows, and writes throw an exception.

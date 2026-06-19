@@ -8,12 +8,12 @@ Implement OIDC client integration, subject mapping, local projections, role prof
 
 - `CLAUDE.md`
 - `docs/00-master-scope.md`
-- `docs/01-architecture.md`
-- `docs/02-domain-boundaries.md`
-- `docs/03-data-ownership.md`
-- `docs/04-security-baseline.md`
+- `docs/architecture/overview.md`
+- `docs/architecture/domain-boundaries.md`
+- `docs/architecture/data-ownership.md`
+- `docs/architecture/security-baseline.md`
 - `docs/05-testing-strategy.md`
-- `docs/10-shared-contracts.md`
+- `docs/architecture/shared-contracts.md`
 
 ## Required Deliverables
 

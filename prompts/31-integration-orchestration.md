@@ -7,9 +7,9 @@ Integrate all implemented modules into coherent end-to-end workflows.
 ## Required Reading
 
 - `CLAUDE.md`
-- `docs/08-integration-strategy.md`
+- `docs/architecture/integration-strategy.md`
 - `docs/09-dependency-graph.md`
-- `docs/10-shared-contracts.md`
+- `docs/architecture/shared-contracts.md`
 - `docs/11-integration-testing.md`
 - `docs/12-release-gates.md`
 

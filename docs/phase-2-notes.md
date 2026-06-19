@@ -2,7 +2,7 @@
 
 Phase 2 (M0–M4) delivered Programs, Cohorts, and Stages with a shared rule-evaluation kernel and versioning/immutability layer. This note covers the internals engineers need to extend or maintain those features.
 
-See also: `docs/tenancy.md` (fail-closed tenant isolation), `docs/03-data-ownership.md` (Phase 2 tables), `docs/02-domain-boundaries.md` (module status).
+See also: `docs/architecture/tenancy-isolation.md` (fail-closed tenant isolation), `docs/architecture/data-ownership.md` (Phase 2 tables), `docs/architecture/domain-boundaries.md` (module status).
 
 ---
 
@@ -183,4 +183,4 @@ Transitions reference **stage keys** (not ids), making the blueprint id-independ
 
 Materialization behavior mirrors clone: new `Draft` program, fresh `Draft` `StageVersion` per stage, no cohorts or participant state, slug uniqued within tenant, `organization_id` stamped by `BelongsToTenant`.
 
-Both operations require the `programs.manage` permission and resolve all ids tenant-scoped (see `docs/tenancy.md`).
+Both operations require the `programs.manage` permission and resolve all ids tenant-scoped (see `docs/architecture/tenancy-isolation.md`).

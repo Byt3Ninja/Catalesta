@@ -1,5 +1,7 @@
 # Shared Contracts
 
+> Owner: Architecture · Last-updated: 2026-06-19 · Source-of-truth: docs/product/scope-register.md (scope), docs/plan/roadmap.md (sequence)
+
 ## Contract Versioning
 
 All shared DTOs and events must include a version.
