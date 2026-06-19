@@ -111,7 +111,7 @@ The four-lens pass validated the *plan*; the architecture review verified the *c
 **CRITICAL — fix before building more modules:**
 - **C1. Tenant isolation is opt-in and fails OPEN.** ✅ **RESOLVED (2026-06-19).** Implemented fail-closed isolation: `BelongsToTenant` trait enforces global scope always-on (queries without resolved tenant return no rows; writes throw `TenantContextMissingException`). Architecture test `tests/Architecture/TenantIsolationArchTest.php` enforces the trait on every tenant-owned model. Cross-tenant access explicit via `TenantContext::runAsSystem(callable)`. See `docs/tenancy.md`.
 - **C2. Hostname tenant resolution / unknown-host rejection is absent.** `ResolveTenant.php:27` resolves only from the `X-Organization-Id` header; `config/tenancy.php` defines nothing else. Rule 10 makes "reject unknown hosts" non-negotiable — treat as a release-gate **security** item, not a late custom-domain prompt.
-- **C3. `$guarded = []` (full mass-assignment) on `Program` and `Cohort`** ✅ **RESOLVED (2026-06-19).** Explicit `$fillable` lists implemented; `organization_id` never mass-assignable. Assigned server-side from `TenantContext::tenantId()` on model create. See `docs/tenancy.md`.
+- **C3. `$guarded = []` (full mass-assignment) on `Program` and `Cohort`** ✅ **RESOLVED (2026-06-19).** Explicit `$fillable` lists implemented; `organization_id` never mass-assignable. Assigned server-side from `app(\App\Shared\Tenancy\TenantContext::class)->organizationId()` on model create. See `docs/tenancy.md`.
 
 **IMPORTANT:**
 - **Reliability + entitlement seams are docs-only** — see Lens 3 substrates 4 & 5. Highest cross-cutting rework risk.

@@ -24,7 +24,7 @@ The trait registers a global scope that filters all queries by the current tenan
 
 ### 2. Fail-Closed Read Behavior
 
-- **With resolved tenant** (normal HTTP request): queries return only rows matching `organization_id = $context->tenantId()`.
+- **With resolved tenant** (normal HTTP request): queries return only rows matching `organization_id = $context->organizationId()`.
 - **Without resolved tenant** (queue job, console command, API token with no org context): queries return **no rows**. No exception; the resultset is simply empty.
 
 This prevents silent cross-tenant leaks in background jobs and adhoc commands.
@@ -38,7 +38,7 @@ This prevents silent cross-tenant leaks in background jobs and adhoc commands.
 
 The `organization_id` column **must never appear in `$fillable`**. Instead:
 
-- **Request creates** (controllers, form requests): `organization_id` is assigned directly from `TenantContext::tenantId()` after validation, before persistence.
+- **Request creates** (controllers, form requests): `organization_id` is assigned directly from `app(\App\Shared\Tenancy\TenantContext::class)->organizationId()` after validation, before persistence.
 - **System/bootstrap paths** (seeders, queue jobs with cross-tenant scope): use `TenantContext::runAsSystem(fn)` and assign `organization_id` directly.
 
 Example:
@@ -119,7 +119,7 @@ TenantContext::runAsSystem(function () {
 4. **Assign `organization_id` server-side** in the service/action that creates the model:
    ```php
    $model = MyModel::create($validated); // $validated does NOT contain organization_id
-   $model->organization_id = TenantContext::tenantId();
+   $model->organization_id = app(\App\Shared\Tenancy\TenantContext::class)->organizationId();
    $model->save();
    ```
    Or use an observer/boot hook to automate this.
