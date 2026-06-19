@@ -11,6 +11,7 @@ use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Policies\MembershipPolicy;
 use App\Modules\Organizations\Policies\OrganizationPolicy;
 use App\Modules\Programs\Domain\Models\Program;
+use App\Modules\Programs\Domain\Models\Track;
 use App\Modules\Programs\Policies\ProgramPolicy;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Policies\StagePolicy;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Organization::class, OrganizationPolicy::class);
         Gate::policy(OrganizationMembership::class, MembershipPolicy::class);
         Gate::policy(Program::class, ProgramPolicy::class);
+        Gate::policy(Track::class, ProgramPolicy::class);
         Gate::policy(Cohort::class, CohortPolicy::class);
         Gate::policy(ProgramStage::class, StagePolicy::class);
     }
