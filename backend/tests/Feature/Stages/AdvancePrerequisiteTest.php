@@ -59,9 +59,9 @@ final class AdvancePrerequisiteTest extends TestCase
         ]);
     }
 
-    private function makePublishedStage(): ProgramStage
+    private function makePublishedStage(?Program $program = null): ProgramStage
     {
-        $program = Program::create(['name' => 'Stage Program '.uniqid()]);
+        $program ??= Program::create(['name' => 'Stage Program '.uniqid()]);
 
         $stage = ProgramStage::create([
             'program_id' => $program->id,
@@ -88,8 +88,9 @@ final class AdvancePrerequisiteTest extends TestCase
 
     public function test_entering_stage_with_unmet_prerequisite_throws_and_writes_no_status(): void
     {
-        $stageA = $this->makePublishedStage();
-        $stageB = $this->makePublishedStage();
+        $program = Program::create(['name' => 'Prereq Program']);
+        $stageA = $this->makePublishedStage($program);
+        $stageB = $this->makePublishedStage($program);
 
         // B depends on A — A is NOT completed yet
         StageDependency::create([
@@ -100,16 +101,22 @@ final class AdvancePrerequisiteTest extends TestCase
         /** @var AdvanceParticipantStage $service */
         $service = $this->app->make(AdvanceParticipantStage::class);
 
-        $this->expectException(StagePrerequisiteNotMetException::class);
+        // Use try/catch (not expectException) so the no-side-effects assertion
+        // actually runs after the throw — proving zero rows were written.
+        try {
+            $service->enter($this->cohort, $this->participant, $stageB);
+            $this->fail('Expected StagePrerequisiteNotMetException to be thrown.');
+        } catch (StagePrerequisiteNotMetException) {
+            // expected
+        }
 
-        $service->enter($this->cohort, $this->participant, $stageB);
-
-        // If the exception is thrown, no ParticipantStageStatus for B should exist
         $this->assertDatabaseMissing('participant_stage_statuses', [
             'cohort_id' => $this->cohort->id,
             'external_user_id' => $this->participant->id,
             'program_stage_id' => $stageB->id,
         ]);
+        $this->assertSame(0, ParticipantStageStatus::query()
+            ->where('program_stage_id', $stageB->id)->count());
     }
 
     // -------------------------------------------------------------------------
@@ -118,8 +125,9 @@ final class AdvancePrerequisiteTest extends TestCase
 
     public function test_entering_stage_after_prerequisite_completed_succeeds_with_in_progress(): void
     {
-        $stageA = $this->makePublishedStage();
-        $stageB = $this->makePublishedStage();
+        $program = Program::create(['name' => 'Prereq Program']);
+        $stageA = $this->makePublishedStage($program);
+        $stageB = $this->makePublishedStage($program);
 
         // B depends on A
         StageDependency::create([
