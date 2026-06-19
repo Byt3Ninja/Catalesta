@@ -50,3 +50,21 @@ Support:
 - bank transfer
 - manual payment reconciliation
 - negotiated entitlements
+
+## Subscription status: "restricted" (definition)
+
+> Status: **Proposed — pending owner ratification.** Defines the previously-undefined
+> `restricted` status relative to its neighbors.
+
+Status order: `trialing → active → past_due → grace_period → restricted →
+suspended → cancelled → expired`.
+
+| Status | Tenant access | Trigger |
+|---|---|---|
+| `grace_period` | full access | payment failed, within grace window |
+| **`restricted`** | **read-only + export; in-progress critical workflows allowed to finish; no new programs/cohorts/writes** | grace window elapsed without payment |
+| `suspended` | no access except billing/export | restricted period elapsed |
+
+`restricted` exists so a lapsed tenant **never loses data and can always export**
+(CLAUDE.md SaaS rule 4) while write access is paused to prompt payment. Restoring
+payment returns the tenant directly to `active`.

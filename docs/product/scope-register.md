@@ -186,9 +186,9 @@ Files live in `../plan/build-specs/`. Cross-cutting (✦) specs are infra/integr
 ## Reconciliation notes
 
 - **Module count reconciled to 24** (CLAUDE.md Required Modules), confirmed by the
-  owner 2026-06-19. An earlier figure of "20" referred to how many folders had been
-  scaffolded — a build detail, not intended scope. What is built vs. pending is
-  recorded in `../status/implementation-status.md`, never here.
+  owner 2026-06-19. An earlier figure of "20" came from a partial folder count — a
+  build detail, not intended scope. What is built vs. pending is recorded in
+  `../status/implementation-status.md`, never here.
 - **Single numbering:** the prior three numbering schemes (prompt index,
   dependency-graph, brief catalog) are collapsed onto the build-spec IDs `00`–`68`
   above. The brief no longer restates the catalog; it references this register.

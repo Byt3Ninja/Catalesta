@@ -14,3 +14,16 @@ Tenant isolation is enforced fail-closed at the data-access layer via `App\Share
 - **`organization_id` is never mass-assignable** (`$fillable` excludes it); the column is assigned server-side from `app(\App\Shared\Tenancy\TenantContext::class)->organizationId()` at create time.
 
 This model is documented in `tenancy-isolation.md`.
+
+## Secrets management & rotation
+
+> Status: **Proposed — pending owner ratification** (Phase 5 sale-readiness).
+
+- Secrets (DB, S3/MinIO, OIDC client secret, Geidea keys, signing keys) are never
+  committed (CLAUDE.md rule 15); they live in the environment / a secrets manager.
+- **Rotation:** documented rotation cadence per secret class (proposed: signing
+  keys ≤ 90 d, provider API keys ≤ 180 d or on incident); rotation is zero-downtime
+  via overlapping validity where supported (e.g. JWKS key rollover).
+- **No raw card data / CVV** is ever stored (CLAUDE.md SaaS rule 8); Geidea holds
+  card data behind its HPP.
+- Access to secrets is least-privilege and audited.

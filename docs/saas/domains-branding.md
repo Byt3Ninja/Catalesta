@@ -116,3 +116,16 @@ Possible plan controls:
 - custom email branding
 - custom certificate branding
 - advanced theme controls
+
+## Email deliverability for branded senders
+
+> Status: **Proposed — pending owner ratification.**
+
+When a tenant sets a custom email sender (per `white-label-levels.md` Pro/White-label):
+
+- The tenant's sending domain must pass **SPF** and **DKIM** (and ideally DMARC)
+  before branded sending is enabled — verified like custom-domain ownership.
+- Until verified, mail is sent from the platform's default authenticated domain
+  with the tenant name as display only (no spoofed envelope).
+- Bounce/complaint handling and sender-reputation monitoring apply per sending
+  domain; abusive patterns disable branded sending.
