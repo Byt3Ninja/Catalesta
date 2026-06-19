@@ -7,9 +7,11 @@ namespace App\Modules\Stages\Application;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Stages\Domain\Exceptions\StageNotPublishedException;
+use App\Modules\Stages\Domain\Exceptions\StagePrerequisiteNotMetException;
 use App\Modules\Stages\Domain\Models\ParticipantStageState;
 use App\Modules\Stages\Domain\Models\ParticipantStageStatus;
 use App\Modules\Stages\Domain\Models\ProgramStage;
+use App\Modules\Stages\Domain\Models\StageDependency;
 use App\Modules\Stages\Domain\Models\StageInstance;
 use App\Modules\Stages\Domain\Models\StageRuleType;
 use App\Shared\Rules\ExpressionEvaluator;
@@ -40,6 +42,23 @@ final class AdvanceParticipantStage
         ProgramStage $stage,
         array $context = [],
     ): ParticipantStageStatus {
+        $unmet = StageDependency::query()
+            ->where('program_stage_id', $stage->id)
+            ->pluck('depends_on_program_stage_id');
+
+        if ($unmet->isNotEmpty()) {
+            $completed = ParticipantStageStatus::query()
+                ->where('cohort_id', $cohort->id)
+                ->where('external_user_id', $participant->id)
+                ->whereIn('program_stage_id', $unmet)
+                ->where('status', ParticipantStageState::Completed->value)
+                ->pluck('program_stage_id');
+
+            if ($completed->count() < $unmet->unique()->count()) {
+                throw StagePrerequisiteNotMetException::forStage($stage->id);
+            }
+        }
+
         if ($stage->current_published_version_id === null) {
             throw StageNotPublishedException::forStage($stage->id);
         }
