@@ -1,7 +1,9 @@
 # Bootstrap (Phase 0) — Repository Foundation
 
+> Owner: Status · Last-updated: 2026-06-19 · Source-of-truth: docs/product/scope-register.md (scope), docs/plan/roadmap.md (sequence)
+
 This document records what the Phase 0 bootstrap created and how to run it.
-See `prompts/00-bootstrap.md` for the task spec and `docs/plan/roadmap.md`
+See `docs/plan/build-specs/00-repository-bootstrap.md` for the task spec and `docs/plan/roadmap.md`
 for the phase plan.
 
 ## Layout
