@@ -76,7 +76,7 @@ Hard dependencies and parallelizable bands live in `dependency-graph.md` — thi
 roadmap does not restate them. Release increments and their exit criteria live in
 `release-gates.md`.
 
-## As-built status
+## Where build progress lives
 
-Tracked only in `../status/implementation-status.md`. This roadmap states intent
-and order, not what is built.
+What is built vs. pending is tracked only in `../status/implementation-status.md`.
+This roadmap states intent and order, not progress.
