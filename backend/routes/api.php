@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/programs/{id}', [ProgramController::class, 'show'])->name('programs.show');
         Route::patch('/programs/{id}', [ProgramController::class, 'update'])->name('programs.update');
         Route::post('/programs/{id}/publish', [ProgramController::class, 'publish'])->name('programs.publish');
+        Route::post('/programs/{id}/clone', [ProgramController::class, 'clone'])->name('programs.clone');
 
         // Program policies sub-resource
         Route::get('/programs/{program}/policies', [ProgramPolicyController::class, 'index'])->name('programs.policies.index');

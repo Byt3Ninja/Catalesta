@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Programs\Domain\Models;
 
 use App\Modules\Stages\Domain\Models\ProgramStage;
+use App\Modules\Stages\Domain\Models\StageTransition;
 use App\Shared\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -41,5 +42,29 @@ final class Program extends Model
     public function stages(): HasMany
     {
         return $this->hasMany(ProgramStage::class);
+    }
+
+    /**
+     * @return HasMany<ProgramPolicyRecord, $this>
+     */
+    public function policies(): HasMany
+    {
+        return $this->hasMany(ProgramPolicyRecord::class);
+    }
+
+    /**
+     * @return HasMany<ProgramRoleRequirement, $this>
+     */
+    public function roleRequirements(): HasMany
+    {
+        return $this->hasMany(ProgramRoleRequirement::class);
+    }
+
+    /**
+     * @return HasMany<StageTransition, $this>
+     */
+    public function transitions(): HasMany
+    {
+        return $this->hasMany(StageTransition::class);
     }
 }

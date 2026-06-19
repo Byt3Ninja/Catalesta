@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Programs\Http;
 
+use App\Modules\Programs\Application\CloneProgram;
 use App\Modules\Programs\Application\PublishProgram;
 use App\Modules\Programs\Domain\Models\Program;
 use App\Modules\Programs\Domain\Models\ProgramStatus;
@@ -140,5 +141,29 @@ final class ProgramController extends Controller
         $program = $service->handle($program);
 
         return new ProgramResource($program);
+    }
+
+    /**
+     * POST /api/v1/programs/{id}/clone
+     *
+     * Deep-copy a program into a new DRAFT program.
+     * Requires programs.manage permission.
+     */
+    public function clone(Request $request, CloneProgram $service, string $id): JsonResponse
+    {
+        $program = Program::query()->findOrFail($id);
+
+        $this->authorize('clone', $program);
+
+        $request->validate(['name' => ['required', 'string', 'max:255']]);
+
+        /** @var string $name */
+        $name = $request->input('name');
+
+        $clone = $service->handle($program, $name);
+
+        return (new ProgramResource($clone))
+            ->response()
+            ->setStatusCode(201);
     }
 }
