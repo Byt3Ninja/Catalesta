@@ -21,8 +21,23 @@ use Tests\TestCase;
  *
  * Three security matrices:
  *
- *   Matrix 1 — Cross-tenant 404/403 (Org B user + header → accessing Org A resource IDs).
- *              Any status other than 200/201 is a pass. A 200 with Org A data is a real leak.
+ *   Matrix 1 — Cross-tenant isolation via a manage-capable Org B owner (actor has full
+ *              permissions within Org B, so the ONLY thing that can block access is isolation).
+ *              Two legitimate isolation mechanisms surface, depending on the endpoint:
+ *
+ *              404-by-scope (10 endpoints): the controller or route model binding resolves the
+ *              resource via a GLOBAL-SCOPE findOrFail scoped to the current tenant (via
+ *              X-Organization-Id middleware); the record is not found → 404.
+ *
+ *              403-by-authorize (7 endpoints): these endpoints perform a TENANT-SCOPED lookup
+ *              inside their FormRequest authorize() method (e.g.
+ *              `Cohort::query()->find($this->route('id'))` — no global scope), which returns
+ *              null for a foreign-org ID → authorize() returns false → Laravel responds 403.
+ *              This is the deliberate no-existence-leak pattern: 403 reveals nothing about
+ *              whether the resource exists in another tenant.
+ *
+ *              Both outcomes prove a manage-capable foreign actor cannot reach Org A data.
+ *              A 200 with Org A data is a real leak — stop and report.
  *
  *   Matrix 2 — List-endpoint global-scope invisibility (Org B owner lists, must not see Org A data).
  *
@@ -42,7 +57,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Programs (by ID)
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_get_program_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_get_program_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -53,7 +68,7 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(404);
     }
 
-    public function test_matrix1_cross_tenant_patch_program_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_patch_program_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -66,7 +81,7 @@ final class Phase2TenantIsolationTest extends TestCase
         $this->assertDatabaseHas('programs', ['id' => $programA->id, 'name' => 'Org A Program']);
     }
 
-    public function test_matrix1_cross_tenant_publish_program_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_publish_program_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -79,7 +94,7 @@ final class Phase2TenantIsolationTest extends TestCase
         $this->assertDatabaseHas('programs', ['id' => $programA->id, 'status' => ProgramStatus::Draft->value]);
     }
 
-    public function test_matrix1_cross_tenant_clone_program_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_clone_program_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -94,7 +109,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Program sub-resources: policies
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_get_program_policies_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_get_program_policies_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -105,11 +120,14 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(404);
     }
 
-    public function test_matrix1_cross_tenant_post_program_policy_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_post_program_policy_returns_403(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Program::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/policies", [
@@ -123,7 +141,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Program sub-resources: role-requirements
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_get_program_role_requirements_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_get_program_role_requirements_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -134,11 +152,14 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(404);
     }
 
-    public function test_matrix1_cross_tenant_post_program_role_requirement_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_post_program_role_requirement_returns_403(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Program::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/role-requirements", [
@@ -154,11 +175,14 @@ final class Phase2TenantIsolationTest extends TestCase
     // Program sub-resource: cohorts
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_post_program_cohort_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_post_program_cohort_returns_403(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Program::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/cohorts", [
@@ -173,7 +197,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Cohorts (by ID)
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_get_cohort_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_get_cohort_returns_404(): void
     {
         [, , , $cohortA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -184,11 +208,14 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(404);
     }
 
-    public function test_matrix1_cross_tenant_patch_cohort_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_patch_cohort_returns_403(): void
     {
         [, , , $cohortA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Cohort::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->patchJson("/api/v1/cohorts/{$cohortA->id}", ['name' => 'Hijacked Cohort'])
@@ -201,7 +228,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Stage sub-resources (nested under program)
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_get_program_stages_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_get_program_stages_returns_404(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -212,11 +239,14 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(404);
     }
 
-    public function test_matrix1_cross_tenant_post_program_stage_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_post_program_stage_returns_403(): void
     {
         [, , $programA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Program::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/stages", [
@@ -227,11 +257,14 @@ final class Phase2TenantIsolationTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_matrix1_cross_tenant_reorder_program_stages_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_reorder_program_stages_returns_403(): void
     {
         [, , $programA, , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (Program::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->postJson("/api/v1/programs/{$programA->id}/stages/reorder", [
@@ -244,18 +277,21 @@ final class Phase2TenantIsolationTest extends TestCase
     // Stages (by ID)
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_patch_stage_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_patch_stage_returns_403(): void
     {
         [, , , , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
 
+        // 403-by-authorize: this endpoint's FormRequest authorize() performs a tenant-scoped
+        // lookup (ProgramStage::query()->find($id) → null for a foreign-org ID → returns false → 403).
+        // This is the deliberate no-existence-leak pattern; it still proves isolation.
         $this->actingAs($userB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
             ->patchJson("/api/v1/stages/{$stageA->id}", ['name' => 'Hijacked Stage'])
             ->assertStatus(403);
     }
 
-    public function test_matrix1_cross_tenant_publish_stage_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_publish_stage_returns_404(): void
     {
         [, , , , $stageA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
@@ -275,7 +311,7 @@ final class Phase2TenantIsolationTest extends TestCase
     // Program templates
     // -------------------------------------------------------------------------
 
-    public function test_matrix1_cross_tenant_instantiate_template_returns_404_or_403(): void
+    public function test_matrix1_cross_tenant_instantiate_template_returns_404(): void
     {
         [, , , , , $templateA] = $this->setupOrgAData();
         [$userB, $orgB] = $this->bootUserWithOrg('OrgB');
