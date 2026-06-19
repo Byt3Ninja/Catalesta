@@ -1,17 +1,9 @@
-# Resilience, Support, and In-Product Guidance
+# Support Case Management & In-Product Guidance
 
-## Startup Gate Outage
+> Owner: Product · Last-updated: 2026-06-19 · Source-of-truth: docs/product/scope-register.md (scope), docs/plan/roadmap.md (sequence)
 
-Support:
-
-- existing-session continuation policy
-- cached profile validity
-- deferred synchronization
-- deferred achievement publication
-- retry queues
-- reconciliation
-- outage status
-- manual recovery
+Split from the former `28-resilience-support-guidance` doc. Resilience/DR moved
+to `../../architecture/resilience-dr.md`.
 
 ## Case Management
 
