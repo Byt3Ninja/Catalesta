@@ -1371,6 +1371,142 @@
                 }
             }
         },
+        "/v1/program-templates": {
+            "post": {
+                "operationId": "program-templates.store",
+                "description": "Save an existing program as a reusable template.\nReuses programs.manage permission (checked via 'create' gate on Program).",
+                "summary": "POST /api/v1/program-templates",
+                "tags": [
+                    "ProgramTemplate"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "program_id": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "required": [
+                                    "program_id",
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProgramTemplateResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProgramTemplateResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/program-templates/{templateId}/instantiate": {
+            "post": {
+                "operationId": "program-templates.instantiate",
+                "description": "Materialize a new DRAFT program from a template blueprint.\n\nUses an explicit tenant-scoped lookup rather than implicit route model binding\nbecause SubstituteBindings runs before the 'tenant' middleware in the API group,\nmeaning BelongsToTenant scope is not yet active when bindings resolve.\nCross-tenant template ids \u2192 404 via BelongsToTenant scope on the explicit query.",
+                "summary": "POST /api/v1/program-templates/{templateId}/instantiate",
+                "tags": [
+                    "ProgramTemplate"
+                ],
+                "parameters": [
+                    {
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProgramResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProgramResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/programs/{program}/stages": {
             "get": {
                 "operationId": "programs.stages.index",
@@ -1944,6 +2080,42 @@
                     "updated_at"
                 ],
                 "title": "ProgramRoleRequirementResource"
+            },
+            "ProgramTemplateResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "blueprint": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "description",
+                    "blueprint",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ProgramTemplateResource"
             },
             "ReorderStagesRequest": {
                 "type": "object",
