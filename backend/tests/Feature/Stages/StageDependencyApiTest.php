@@ -216,6 +216,42 @@ final class StageDependencyApiTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // Validation: multi-node cycle → 422 (A→B, B→C, then C→A closes the loop)
+    // -------------------------------------------------------------------------
+
+    public function test_three_node_cycle_dependency_returns_422(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        [$program, $stageA, $stageB, $stageC] = $this->createProgramWithStages($org->id);
+
+        // A depends on B (valid)
+        $this->actingAs($user, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/programs/{$program->id}/stages/{$stageA->id}/dependencies", [
+                'depends_on_program_stage_id' => $stageB->id,
+            ])
+            ->assertStatus(201);
+
+        // B depends on C (valid)
+        $this->actingAs($user, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/programs/{$program->id}/stages/{$stageB->id}/dependencies", [
+                'depends_on_program_stage_id' => $stageC->id,
+            ])
+            ->assertStatus(201);
+
+        // C tries to depend on A → would close the cycle A→B→C→A → 422
+        $response = $this->actingAs($user, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/programs/{$program->id}/stages/{$stageC->id}/dependencies", [
+                'depends_on_program_stage_id' => $stageA->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('error.code', 'invalid_stage_dependency');
+    }
+
+    // -------------------------------------------------------------------------
     // Authorization: member without stages.manage → 403
     // -------------------------------------------------------------------------
 
