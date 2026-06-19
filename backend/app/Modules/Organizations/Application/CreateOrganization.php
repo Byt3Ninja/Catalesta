@@ -36,13 +36,11 @@ final class CreateOrganization
 
             $org = Organization::create($orgData);
 
-            // Step 2: Create the owner role — organization_id set EXPLICITLY
-            $ownerRole = OrganizationRole::create([
-                'organization_id' => $org->id,
-                'key' => 'owner',
-                'name' => 'Owner',
-                'is_system' => true,
-            ]);
+            // Step 2: Create the owner role — organization_id set via direct assignment
+            // (organization_id is intentionally excluded from $fillable; must be set directly)
+            $ownerRole = new OrganizationRole(['key' => 'owner', 'name' => 'Owner', 'is_system' => true]);
+            $ownerRole->organization_id = $org->id;
+            $ownerRole->save();
 
             // Step 3: Attach all permissions from the catalog to the owner role
             $permissionIds = OrganizationPermission::whereIn('key', [
@@ -58,12 +56,11 @@ final class CreateOrganization
 
             $ownerRole->permissions()->sync($permissionIds);
 
-            // Step 4: Create the creator's active membership — organization_id set EXPLICITLY
-            $membership = OrganizationMembership::create([
-                'organization_id' => $org->id,
-                'external_user_id' => $creator->id,
-                'status' => 'active',
-            ]);
+            // Step 4: Create the creator's active membership — organization_id set via direct assignment
+            // (organization_id is intentionally excluded from $fillable; must be set directly)
+            $membership = new OrganizationMembership(['external_user_id' => $creator->id, 'status' => 'active']);
+            $membership->organization_id = $org->id;
+            $membership->save();
 
             // Step 5: Attach the owner role to the membership
             $membership->roles()->attach($ownerRole->id);

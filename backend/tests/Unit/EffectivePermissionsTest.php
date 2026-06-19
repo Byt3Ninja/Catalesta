@@ -43,20 +43,16 @@ final class EffectivePermissionsTest extends TestCase
             'description' => 'Manage members',
         ]);
 
-        $role = OrganizationRole::create([
-            'organization_id' => $org->id,
-            'key' => 'admin',
-            'name' => 'Admin',
-        ]);
+        $role = new OrganizationRole(['key' => 'admin', 'name' => 'Admin']);
+        $role->organization_id = $org->id;
+        $role->save();
 
         // Attach the permission to the role via the pivot table
         $role->permissions()->attach($permission->id);
 
-        $membership = OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $user->id,
-            'status' => 'active',
-        ]);
+        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership->organization_id = $org->id;
+        $membership->save();
 
         // Assign the role to the membership
         $membership->roles()->attach($role->id);
@@ -79,27 +75,21 @@ final class EffectivePermissionsTest extends TestCase
         $perm1 = OrganizationPermission::create(['key' => 'members.invite']);
         $perm2 = OrganizationPermission::create(['key' => 'roles.manage']);
 
-        $role1 = OrganizationRole::create([
-            'organization_id' => $org->id,
-            'key' => 'inviter',
-            'name' => 'Inviter',
-        ]);
+        $role1 = new OrganizationRole(['key' => 'inviter', 'name' => 'Inviter']);
+        $role1->organization_id = $org->id;
+        $role1->save();
         $role1->permissions()->attach($perm1->id);
 
-        $role2 = OrganizationRole::create([
-            'organization_id' => $org->id,
-            'key' => 'role-manager',
-            'name' => 'Role Manager',
-        ]);
+        $role2 = new OrganizationRole(['key' => 'role-manager', 'name' => 'Role Manager']);
+        $role2->organization_id = $org->id;
+        $role2->save();
         $role2->permissions()->attach($perm2->id);
         // Also attach perm1 to role2 to test DISTINCT
         $role2->permissions()->attach($perm1->id);
 
-        $membership = OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $user->id,
-            'status' => 'active',
-        ]);
+        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership->organization_id = $org->id;
+        $membership->save();
 
         $membership->roles()->attach([$role1->id, $role2->id]);
 
@@ -121,11 +111,9 @@ final class EffectivePermissionsTest extends TestCase
             'email' => 'carol@example.com',
         ]);
 
-        $membership = OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $user->id,
-            'status' => 'active',
-        ]);
+        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership->organization_id = $org->id;
+        $membership->save();
 
         $this->assertSame($org->id, $membership->organizationId());
         $this->assertIsArray($membership->effectivePermissionKeys());

@@ -69,10 +69,10 @@ final class MembershipController extends Controller
         // Use the TenantContext org (the authorized one) as the authoritative org id.
         $authorizedOrgId = $tenantContext->organizationId() ?? $orgId;
 
-        $memberships = OrganizationMembership::withoutGlobalScope('tenant')
+        $memberships = $tenantContext->runAsSystem(fn () => OrganizationMembership::query()
             ->where('organization_id', $authorizedOrgId)
             ->with('roles')
-            ->get();
+            ->get());
 
         return MembershipResource::collection($memberships);
     }
@@ -101,10 +101,10 @@ final class MembershipController extends Controller
 
         // Validate role_keys against known roles for this org before writing anything
         if (! empty($data['role_keys'])) {
-            $knownKeys = OrganizationRole::withoutGlobalScope('tenant')
+            $knownKeys = $tenantContext->runAsSystem(fn () => OrganizationRole::query()
                 ->where('organization_id', $authorizedOrgId)
                 ->pluck('key')
-                ->all();
+                ->all());
 
             $unknownKeys = array_diff($data['role_keys'], $knownKeys);
 
@@ -115,7 +115,7 @@ final class MembershipController extends Controller
             }
         }
 
-        $membership = DB::transaction(function () use ($authorizedOrgId, $data, $audit): OrganizationMembership {
+        $membership = DB::transaction(function () use ($authorizedOrgId, $data, $audit, $tenantContext): OrganizationMembership {
             // Create the membership using the TenantContext-authorized org id.
             $membership = OrganizationMembership::create([
                 'organization_id' => $authorizedOrgId,
@@ -125,10 +125,10 @@ final class MembershipController extends Controller
 
             // Attach roles if role_keys provided
             if (! empty($data['role_keys'])) {
-                $roles = OrganizationRole::withoutGlobalScope('tenant')
+                $roles = $tenantContext->runAsSystem(fn () => OrganizationRole::query()
                     ->where('organization_id', $authorizedOrgId)
                     ->whereIn('key', $data['role_keys'])
-                    ->get();
+                    ->get());
 
                 $membership->roles()->attach($roles->pluck('id')->toArray());
             }

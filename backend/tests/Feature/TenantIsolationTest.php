@@ -162,11 +162,9 @@ final class TenantIsolationTest extends TestCase
 
         // Add the test member as active but with NO roles (empty permission set)
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $membershipForTest = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $membershipForTest->organization_id = $org->id;
+        $membershipForTest->save();
 
         // Tenant middleware will resolve the membership and set an empty permission list.
         // OrganizationPolicy::update() requires organizations.manage → must 403.

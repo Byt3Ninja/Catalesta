@@ -17,7 +17,7 @@ final class StageTransition extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['program_id', 'from_program_stage_id', 'to_program_stage_id', 'condition', 'order_index'];
 
     /**
      * @return array<string, string|class-string>

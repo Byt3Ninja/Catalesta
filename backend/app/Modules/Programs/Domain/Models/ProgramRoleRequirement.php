@@ -16,7 +16,7 @@ final class ProgramRoleRequirement extends Model
 
     protected $table = 'program_role_requirements';
 
-    protected $guarded = [];
+    protected $fillable = ['program_id', 'role_key', 'min_count', 'max_count', 'is_required'];
 
     /**
      * @return array<string, string>

@@ -130,11 +130,9 @@ final class OrganizationApiTest extends TestCase
         // Create org + creator membership directly (no API call, so no session is set)
         $org = Organization::create(['name' => 'Private Org']);
         $creator = $this->makeUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $creator->id,
-            'status' => 'active',
-        ]);
+        $creatorMembership = new OrganizationMembership(['external_user_id' => $creator->id, 'status' => 'active']);
+        $creatorMembership->organization_id = $org->id;
+        $creatorMembership->save();
 
         // outsider has no membership — tenant middleware must reject with 403
         $response = $this->actingAs($outsider, 'web')
@@ -257,11 +255,9 @@ final class OrganizationApiTest extends TestCase
         $org = Organization::create(['name' => 'Target Org']);
 
         // Add $member as an active member with NO roles (no permissions)
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         // Tenant middleware will resolve $member's membership; TenantContext will have
         // empty permissions. OrganizationPolicy::update() checks organizations.manage → false → 403.

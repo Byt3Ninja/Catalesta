@@ -39,11 +39,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Test Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Test Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $response = $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -85,11 +83,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Test Program 2',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Test Program 2', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -121,11 +117,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Reorder Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Reorder Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $r1 = $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -166,11 +160,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Publish Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Publish Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $createResponse = $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -207,11 +199,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Immutable Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Immutable Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $createResponse = $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -252,11 +242,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'Parallel Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Parallel Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         // Create two stages with the same parallel_group
         $r1 = $this->actingAs($user, 'web')
@@ -284,13 +272,15 @@ final class StageApiTest extends TestCase
         $this->assertDatabaseHas('program_stages', ['id' => $stageBId, 'parallel_group' => 'track-1']);
 
         // Create a transition between them directly (represents conditional parallel flow)
-        $transition = StageTransition::create([
-            'organization_id' => $org->id,
+        // organization_id is set via direct assignment (not mass-assignable)
+        $transition = new StageTransition([
             'program_id' => $program->id,
             'from_program_stage_id' => $stageAId,
             'to_program_stage_id' => $stageBId,
             'condition' => null,
         ]);
+        $transition->organization_id = $org->id;
+        $transition->save();
 
         $this->assertDatabaseHas('stage_transitions', [
             'id' => $transition->id,
@@ -309,18 +299,14 @@ final class StageApiTest extends TestCase
 
         $org = $this->createBareOrg('No-Perm Org');
 
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Restricted Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Restricted Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -339,35 +325,33 @@ final class StageApiTest extends TestCase
 
         [, $org] = $this->bootUserWithOrg('Publish Perm Org');
 
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Publish Test Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Publish Test Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
-        // Create stage as owner
-        $stage = ProgramStage::withoutGlobalScope('tenant')->create([
-            'organization_id' => $org->id,
+        // Create stage as owner — direct assignment for organization_id
+        $stage = new ProgramStage([
             'program_id' => $program->id,
             'key' => 'to-publish',
             'name' => 'To Publish',
             'type' => 'evaluation',
             'order_index' => 0,
         ]);
+        $stage->organization_id = $org->id;
+        $stage->save();
 
-        StageVersion::withoutGlobalScope('tenant')->create([
-            'organization_id' => $org->id,
+        $stageVersion = new StageVersion([
             'program_stage_id' => $stage->id,
             'status' => 'draft',
             'version_number' => 0,
         ]);
+        $stageVersion->organization_id = $org->id;
+        $stageVersion->save();
 
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership2 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership2->organization_id = $org->id;
+        $memberMembership2->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -385,11 +369,9 @@ final class StageApiTest extends TestCase
         // Org B creates a stage
         [$ownerB, $orgB] = $this->bootUserWithOrg('Org B');
 
-        $programB = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Org B Program',
-            'status' => 'draft',
-            'organization_id' => $orgB->id,
-        ]);
+        $programB = new Program(['name' => 'Org B Program', 'status' => 'draft']);
+        $programB->organization_id = $orgB->id;
+        $programB->save();
 
         $createResponse = $this->actingAs($ownerB, 'web')
             ->withHeader('X-Organization-Id', $orgB->id)
@@ -480,11 +462,9 @@ final class StageApiTest extends TestCase
     {
         [$user, $org] = $this->bootUserWithOrg();
 
-        $program = Program::create([
-            'name' => 'List Stages Program',
-            'status' => 'draft',
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'List Stages Program', 'status' => 'draft']);
+        $program->organization_id = $org->id;
+        $program->save();
 
         $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)

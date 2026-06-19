@@ -16,7 +16,7 @@ final class StageRule extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['stage_version_id', 'type', 'expression'];
 
     /**
      * @return array<string, string|class-string>

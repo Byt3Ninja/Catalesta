@@ -16,7 +16,7 @@ final class ProgramStage extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['program_id', 'key', 'name', 'type', 'order_index', 'parallel_group', 'current_published_version_id'];
 
     /**
      * @return array<string, string|class-string>

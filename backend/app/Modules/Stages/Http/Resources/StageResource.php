@@ -6,7 +6,6 @@ namespace App\Modules\Stages\Http\Resources;
 
 use App\Modules\Stages\Domain\Models\StageType;
 use App\Modules\Stages\Domain\Models\StageVersion;
-use App\Shared\Versioning\VersionStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;

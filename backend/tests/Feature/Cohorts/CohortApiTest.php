@@ -165,26 +165,20 @@ final class CohortApiTest extends TestCase
         $org = $this->createBareOrg('Managed Org');
 
         $owner = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $owner->id,
-            'status' => 'active',
-        ]);
+        $ownerMembership = new OrganizationMembership(['external_user_id' => $owner->id, 'status' => 'active']);
+        $ownerMembership->organization_id = $org->id;
+        $ownerMembership->save();
 
         // Create program without API (bypass to avoid needing programs.manage for owner)
-        $program = Program::withoutGlobalScope('tenant')->create([
-            'name' => 'Auth Test Program',
-            'status' => ProgramStatus::Draft,
-            'organization_id' => $org->id,
-        ]);
+        $program = new Program(['name' => 'Auth Test Program', 'status' => ProgramStatus::Draft]);
+        $program->organization_id = $org->id;
+        $program->save();
 
         // Add a bare member with no roles (no permissions)
         $member = $this->makeExternalUser();
-        OrganizationMembership::create([
-            'organization_id' => $org->id,
-            'external_user_id' => $member->id,
-            'status' => 'active',
-        ]);
+        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
 
         $response = $this->actingAs($member, 'web')
             ->withHeader('X-Organization-Id', $org->id)

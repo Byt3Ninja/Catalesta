@@ -14,7 +14,7 @@ final class Cohort extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $guarded = [];
+    protected $fillable = ['program_id', 'name', 'slug', 'status', 'enrollment_opens_at', 'enrollment_closes_at', 'starts_at', 'ends_at', 'capacity', 'timeline'];
 
     /**
      * @return array<string, string>
