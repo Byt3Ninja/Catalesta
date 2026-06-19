@@ -11,6 +11,7 @@ use App\Modules\Organizations\Http\OrganizationController;
 use App\Modules\Programs\Http\ProgramController;
 use App\Modules\Programs\Http\ProgramPolicyController;
 use App\Modules\Programs\Http\ProgramRoleRequirementController;
+use App\Modules\Programs\Http\ProgramTemplateController;
 use App\Modules\Stages\Http\StageController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/programs/{id}', [ProgramController::class, 'show'])->name('programs.show');
         Route::patch('/programs/{id}', [ProgramController::class, 'update'])->name('programs.update');
         Route::post('/programs/{id}/publish', [ProgramController::class, 'publish'])->name('programs.publish');
+        Route::post('/programs/{id}/clone', [ProgramController::class, 'clone'])->name('programs.clone');
 
         // Program policies sub-resource
         Route::get('/programs/{program}/policies', [ProgramPolicyController::class, 'index'])->name('programs.policies.index');
@@ -68,6 +70,10 @@ Route::prefix('v1')->group(function (): void {
         // Stage direct routes (by id)
         Route::patch('/stages/{id}', [StageController::class, 'update'])->name('stages.update');
         Route::post('/stages/{id}/publish', [StageController::class, 'publish'])->name('stages.publish');
+
+        // Program template routes
+        Route::post('/program-templates', [ProgramTemplateController::class, 'store'])->name('program-templates.store');
+        Route::post('/program-templates/{templateId}/instantiate', [ProgramTemplateController::class, 'instantiate'])->name('program-templates.instantiate');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

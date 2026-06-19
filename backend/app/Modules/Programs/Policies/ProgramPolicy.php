@@ -61,4 +61,12 @@ final class ProgramPolicy
     {
         return app(TenantContext::class)->can('programs.publish');
     }
+
+    /**
+     * Cloning a program requires the `programs.manage` permission.
+     */
+    public function clone(ExternalUser $user, Program $program): bool
+    {
+        return app(TenantContext::class)->can('programs.manage');
+    }
 }
