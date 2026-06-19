@@ -46,12 +46,18 @@ Example:
 ```php
 // In CreateOrganizationService (system context):
 TenantContext::runAsSystem(function () {
+    // Organization is the tenant root — it has no organization_id of its own
     $org = Organization::create([
         'name' => 'Acme Inc',
-        // organization_id NOT in input — assigned directly:
     ]);
-    $org->organization_id = $org->id; // Set before save or in boot hook
-    $org->save();
+    
+    // For tenant-owned records created during bootstrap, assign organization_id directly
+    $profile = Profile::create([
+        'user_id' => $user->id,
+        // organization_id NOT in mass-assignment:
+    ]);
+    $profile->organization_id = $org->id; // Direct assignment, then save
+    $profile->save();
 });
 ```
 
@@ -154,18 +160,32 @@ Route::get('/admin/organizations/{id}/members', function (Request $request, $id)
 
 ### Pattern 3: Queue Job Scoped to One Org (Preferred)
 
+For a job that must operate within a single tenant's context, resolve the organization's membership and set the tenant context before running work:
+
 ```php
-// Job resolves tenant before dispatching
+// Job receives and stores the organization ID
 dispatch(new ProcessCohortGraduations($cohort->organization_id));
 
 // In the job:
 public function handle()
 {
-    TenantContext::resolveUsing($this->organizationId);
-    // Queries are now scoped; no system context needed
+    // Load the organization and its membership
+    $org = Organization::findOrFail($this->organizationId);
+    $membership = TenantMembership::where('organization_id', $org->id)->first();
+    
+    // Set the scoped tenant context with the org's effective permissions
+    app(TenantContext::class)->setOrganization(
+        $org->id,
+        $membership,
+        $membership->effectivePermissionKeys()
+    );
+    
+    // Queries are now scoped to this tenant; global scope filters automatically
     Cohort::whereStatus('active')->each(fn ($c) => $c->graduate());
 }
 ```
+
+If the job legitimately needs to span multiple tenants, use `TenantContext::runAsSystem()` instead and explicitly load each org.
 
 ## Enforcement & Monitoring
 
@@ -179,7 +199,7 @@ public function handle()
 A: The trait enforces isolation. A base class would be convention-only and wouldn't prevent accidental omissions. The architecture test is the real guard.
 
 **Q: Can I bypass the scope for a read?**  
-A: Yes, explicitly: `Model::withoutGlobalScope('tenant')->where(...)->get()`. This is logged for audit (via the scope hook) and must never appear in request handlers. Only system context or documented allowlist exceptions use this.
+A: The architecture test (`tests/Architecture/TenantIsolationArchTest.php`) forbids `withoutGlobalScope('tenant')` anywhere in `app/` outside `app/Shared/Tenancy/`. The sanctioned way to span tenants is `TenantContext::runAsSystem()`, which is explicit and auditable. There is no audit hook on scope bypass — use system context instead.
 
 **Q: What if a job needs multiple tenants?**  
 A: Use `TenantContext::runAsSystem()` and loop. The pattern is explicit and auditable.
@@ -190,7 +210,7 @@ A: No — it's a *diagnostic* to know if you're in system context. Authorization
 ## References
 
 - `App\Shared\Tenancy\BelongsToTenant` — the trait and global scope
-- `App\Shared\Tenancy\TenantContext` — `runAsSystem()`, `resolveUsing()`, `tenantId()`, `isSystem()`
+- `App\Shared\Tenancy\TenantContext` — `setOrganization()`, `organizationId()`, `membership()`, `has()`, `actingAsPlatformAdmin()`, `can()`, `isSystem()`, `runAsSystem()`
 - `App\Shared\Tenancy\TenantContextMissingException` — thrown on scoped writes without context
 - `tests/Architecture/TenantIsolationArchTest.php` — the architecture test
 - Project rule #7 (non-negotiable): "Every tenant-owned record must include `organization_id`."
