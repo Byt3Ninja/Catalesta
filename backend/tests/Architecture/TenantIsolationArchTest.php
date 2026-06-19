@@ -40,6 +40,9 @@ final class TenantIsolationArchTest extends TestCase
         $this->assertNotEmpty($classes, 'No model classes discovered — the architecture test would pass vacuously; check the Finder path.');
 
         foreach ($classes as $class) {
+            if (in_array($class, self::GLOBAL_ALLOWLIST, true)) {
+                continue;
+            }
             $model = new $class;
             $table = $model->getTable();
             if (! Schema::hasColumn($table, 'organization_id')) {
@@ -84,7 +87,7 @@ final class TenantIsolationArchTest extends TestCase
     /** @return list<class-string<Model>> */
     private function modelClasses(): array
     {
-        $finder = (new Finder)->files()->in(app_path())->name('*.php')->path('Domain/Models');
+        $finder = (new Finder)->files()->in(app_path())->name('*.php');
         $classes = [];
         foreach ($finder as $file) {
             /** @var SplFileInfo $file */
