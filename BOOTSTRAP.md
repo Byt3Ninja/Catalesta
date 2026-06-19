@@ -1,7 +1,7 @@
 # Bootstrap (Phase 0) — Repository Foundation
 
 This document records what the Phase 0 bootstrap created and how to run it.
-See `prompts/00-bootstrap.md` for the task spec and `docs/14-delivery-roadmap.md`
+See `prompts/00-bootstrap.md` for the task spec and `docs/plan/roadmap.md`
 for the phase plan.
 
 ## Layout

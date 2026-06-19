@@ -7,12 +7,12 @@ Startup Gate is the future identity provider, profile owner, role-profile owner,
 ## Read Order
 
 1. `CLAUDE.md`
-2. `docs/00-master-scope.md`
+2. `docs/product/scope-register.md`
 3. `docs/architecture/overview.md`
 4. `docs/architecture/domain-boundaries.md`
 5. `docs/architecture/data-ownership.md`
 6. `docs/architecture/security-baseline.md`
-7. `docs/05-testing-strategy.md`
+7. `docs/quality/testing-strategy.md`
 8. `docs/architecture/devops-observability.md`
-9. `docs/07-delivery-roadmap.md`
+9. `docs/plan/roadmap.md`
 10. All files in `prompts/` in numeric order
