@@ -68,7 +68,7 @@ development_status:
   2-5-enumerated-audit-trail: review
   2-6-application-submission-record-and-immutable-snapshot: review
   2-7-public-idempotent-submit-flow-and-receipt: review  # backend submit slice done; UI/telemetry blocked-by 1.0
-  2-8-operator-submission-list-and-funnel: backlog
+  2-8-operator-submission-list-and-funnel: review  # FR-034 read API done; funnel(telemetry)/UI blocked-by FR-080 + 1.0
   epic-2-retrospective: optional
 
   # ── Epic 3: Score & Decide (gated on Epic 2 evidence) ──

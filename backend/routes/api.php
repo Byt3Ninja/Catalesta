@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Applications\Http\SubmissionController;
 use App\Modules\Applications\Http\SubmitController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
@@ -73,6 +74,10 @@ Route::prefix('v1')->group(function (): void {
         // Cohort direct routes (show/update by id)
         Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
         Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
+
+        // Operator submission read API (Story 2.8, FR-034) — tenant-scoped list + detail.
+        Route::get('/cohorts/{cohort}/submissions', [SubmissionController::class, 'index'])->name('cohorts.submissions.index');
+        Route::get('/cohorts/{cohort}/submissions/{submission}', [SubmissionController::class, 'show'])->name('cohorts.submissions.show');
 
         // Stage sub-resource routes (nested under program)
         Route::get('/programs/{program}/stages', [StageController::class, 'index'])->name('programs.stages.index');
