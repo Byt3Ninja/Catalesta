@@ -37,4 +37,20 @@ final class Cohort extends Model
             }
         });
     }
+
+    /**
+     * True only while the cohort is open AND within its enrollment window. The
+     * single source of truth for "can this cohort take an application right now?"
+     * — used by the public apply view (1.4) and the submit guard (2.7). Pass the
+     * comparison instant so the close-race re-check inside the submit transaction
+     * evaluates against one consistent "now".
+     */
+    public function isAcceptingSubmissions(?\DateTimeInterface $now = null): bool
+    {
+        $now ??= now();
+
+        return $this->status === CohortStatus::Open
+            && ($this->enrollment_opens_at === null || $now >= $this->enrollment_opens_at)
+            && ($this->enrollment_closes_at === null || $now <= $this->enrollment_closes_at);
+    }
 }

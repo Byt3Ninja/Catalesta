@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Cohorts\Http;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Cohorts\Domain\Models\CohortStatus;
 use App\Shared\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -26,13 +25,8 @@ final class ApplyController
             throw new NotFoundHttpException('Cohort not found.');
         }
 
-        $now = now();
-        $open = $resolved->status === CohortStatus::Open
-            && ($resolved->enrollment_opens_at === null || $now->greaterThanOrEqualTo($resolved->enrollment_opens_at))
-            && ($resolved->enrollment_closes_at === null || $now->lessThanOrEqualTo($resolved->enrollment_closes_at));
-
         return response()->json([
-            'open' => $open,
+            'open' => $resolved->isAcceptingSubmissions(),
             'cohort_id' => $resolved->id,
             'form_version_id' => $resolved->form_version_id,
         ]);

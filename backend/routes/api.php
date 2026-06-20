@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Applications\Http\SubmitController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Identity\Http\AuthController;
@@ -28,6 +29,11 @@ Route::prefix('v1')->group(function (): void {
 
     // Public application URL (FR-021) — no auth/tenant; a cohort is public once opened.
     Route::get('/apply/{cohort}', [ApplyController::class, 'show'])->name('apply.show');
+
+    // Public submit (Story 2.7) — authenticated applicant (`sub`), NO tenant
+    // middleware (the applicant has no org; the submission inherits the cohort's).
+    Route::post('/apply/{cohort}/submit', [SubmitController::class, 'store'])
+        ->middleware('auth:sanctum')->name('apply.submit');
 
     // Organization routes — NO tenant middleware for store + index
     // (no org context exists yet when creating; index lists across orgs)
