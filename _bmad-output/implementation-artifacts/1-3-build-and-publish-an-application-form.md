@@ -3,7 +3,7 @@ baseline_commit: a300e61
 ---
 # Story 1.3: Build and publish an application form (content-addressed version)
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,19 +30,19 @@ From epics.md (Story 1.3) + FR-020/012/022 + NFR-005 + the ★ Edge-Case Hardeni
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Schema** (AC: 1, 3, 4)
-  - [ ] `forms` table (the parent, org-scoped): `id` ulid PK, `organization_id`, `program_id` (ulid, indexed — the owning program), `name`, `created_at`. Mirror the **Stages parent** (`program_stages`).
-  - [ ] `form_versions` table (the versionable): `id` ulid PK, `form_id` (ulid, indexed — the version parent), `version_number` (unsigned int), `status` (string: draft/published/archived), `content_hash` (string(64), the sha256 version id), `definition` (jsonb — the field list), `published_at` (timestampTz nullable), `created_at`. **`unique(['form_id','content_hash'])`** so identical content can't duplicate (AC-5). Mirror `stage_versions`.
-  - [ ] Migrations date-ordered after `2026_06_20_000600` → `…000700`/`…000710`.
-- [ ] **Task 2 — Models** (AC: 1, 3, 4) — `app/Modules/Forms/Domain/Models/`:
-  - [ ] `Form` — `final`, `HasUlids`, **`BelongsToTenant`** (org-scoped, AR-6), `hasMany(FormVersion)`. Mirror `ProgramStage`.
-  - [ ] `FormVersion` — `final`, `HasUlids`, implements **`App\Shared\Versioning\Versionable`** (`versionParentColumn()` → `'form_id'`; `validateForPublish()` → assert definition valid), uses **`App\Shared\Versioning\ImmutableWhenPublished`** (blocks update/delete once published). Casts `definition => 'array'`, `published_at => 'datetime'`, status enum. **Read `app/Modules/Stages/Domain/Models/StageVersion.php` and mirror it exactly** — it is the working precedent for Versionable + ImmutableWhenPublished + VersionPublisher. [Source hint]
-- [ ] **Task 3 — Field-type validator** (AC: 2) — `app/Modules/Forms/Domain/FieldType.php` (enum of the 8 types) + a `FormDefinitionValidator` that:
-  - [ ] Accepts only a list of fields each with a `type` in the `FieldType` enum + declarative props (label, required, options for selects). **Rejects** any field with an unknown type, or any node carrying code/expression keys (e.g. `expr`, `code`, `formula`, `script`) — declarative data only (NFR-005). Throws a domain `InvalidFormDefinitionException` with a test that an embedded PHP/SQL/JS/expression fails validation.
-- [ ] **Task 4 — `PublishForm` service** (AC: 1, 3, 5) — `app/Modules/Forms/Application/PublishForm.php`, `final`, mirror `PublishStageVersion` + `CreateOrganization`:
-  - [ ] `handle(Form $form, array $definition): FormVersion` — within `DB::transaction`: validate the definition (Task 3) → compute `content_hash = sha256(canonicalJson($definition))` where `canonicalJson` recursively ksorts keys (stable, AC-5) → if a `form_versions` row already exists for `(form_id, content_hash)`, **return it** (idempotent republish, AC-5) → else create a draft FormVersion and **publish it via `App\Shared\Versioning\VersionPublisher`** (assigns the next `version_number`, sets status Published + `published_at`). The returned version's `content_hash` is the **content-addressed version id**.
-  - [ ] `@param array<string, mixed> $definition` and annotate every `array` param (CI runs PHPStan L6 — this red-failed CI on 2.2/2.3; do not repeat). No `@template` generics.
-- [ ] **Task 5 — Tests** (AC: all) — see Testing Requirements.
+- [x] **Task 1 — Schema** (AC: 1, 3, 4)
+  - [x] `forms` table (the parent, org-scoped): `id` ulid PK, `organization_id`, `program_id` (ulid, indexed — the owning program), `name`, `created_at`. Mirror the **Stages parent** (`program_stages`).
+  - [x] `form_versions` table (the versionable): `id` ulid PK, `form_id` (ulid, indexed — the version parent), `version_number` (unsigned int), `status` (string: draft/published/archived), `content_hash` (string(64), the sha256 version id), `definition` (jsonb — the field list), `published_at` (timestampTz nullable), `created_at`. **`unique(['form_id','content_hash'])`** so identical content can't duplicate (AC-5). Mirror `stage_versions`.
+  - [x] Migrations date-ordered after `2026_06_20_000600` → `…000700`/`…000710`.
+- [x] **Task 2 — Models** (AC: 1, 3, 4) — `app/Modules/Forms/Domain/Models/`:
+  - [x] `Form` — `final`, `HasUlids`, **`BelongsToTenant`** (org-scoped, AR-6), `hasMany(FormVersion)`. Mirror `ProgramStage`.
+  - [x] `FormVersion` — `final`, `HasUlids`, implements **`App\Shared\Versioning\Versionable`** (`versionParentColumn()` → `'form_id'`; `validateForPublish()` → assert definition valid), uses **`App\Shared\Versioning\ImmutableWhenPublished`** (blocks update/delete once published). Casts `definition => 'array'`, `published_at => 'datetime'`, status enum. **Read `app/Modules/Stages/Domain/Models/StageVersion.php` and mirror it exactly** — it is the working precedent for Versionable + ImmutableWhenPublished + VersionPublisher. [Source hint]
+- [x] **Task 3 — Field-type validator** (AC: 2) — `app/Modules/Forms/Domain/FieldType.php` (enum of the 8 types) + a `FormDefinitionValidator` that:
+  - [x] Accepts only a list of fields each with a `type` in the `FieldType` enum + declarative props (label, required, options for selects). **Rejects** any field with an unknown type, or any node carrying code/expression keys (e.g. `expr`, `code`, `formula`, `script`) — declarative data only (NFR-005). Throws a domain `InvalidFormDefinitionException` with a test that an embedded PHP/SQL/JS/expression fails validation.
+- [x] **Task 4 — `PublishForm` service** (AC: 1, 3, 5) — `app/Modules/Forms/Application/PublishForm.php`, `final`, mirror `PublishStageVersion` + `CreateOrganization`:
+  - [x] `handle(Form $form, array $definition): FormVersion` — within `DB::transaction`: validate the definition (Task 3) → compute `content_hash = sha256(canonicalJson($definition))` where `canonicalJson` recursively ksorts keys (stable, AC-5) → if a `form_versions` row already exists for `(form_id, content_hash)`, **return it** (idempotent republish, AC-5) → else create a draft FormVersion and **publish it via `App\Shared\Versioning\VersionPublisher`** (assigns the next `version_number`, sets status Published + `published_at`). The returned version's `content_hash` is the **content-addressed version id**.
+  - [x] `@param array<string, mixed> $definition` and annotate every `array` param (CI runs PHPStan L6 — this red-failed CI on 2.2/2.3; do not repeat). No `@template` generics.
+- [x] **Task 5 — Tests** (AC: all) — see Testing Requirements.
 
 ## Dev Notes
 
@@ -94,8 +94,33 @@ claude-opus-4-8[1m] (Claude Opus 4.8, 1M context)
 
 ### Debug Log References
 
+- `php artisan test --filter PublishFormTest` → 6 passed (first run). Full suite → **321 passed, 0 failures** (+6). Pint clean. All `array` params annotated for PHPStan L6.
+
 ### Completion Notes List
 
-- Ultimate context engine analysis completed — comprehensive developer guide created (2026-06-20).
+- Built the net-new `App\Modules\Forms`: `Form` (parent, BelongsToTenant) + `FormVersion` (Versionable + ImmutableWhenPublished, mirrors `StageVersion`) + `FormDefinitionValidator` + `FieldType` enum + `PublishForm` service (mirrors `PublishStageVersion`).
+- **Content-addressed version id (AC-1):** `content_hash = sha256(canonicalJson(definition))`, canonicalJson recursively ksorts keys → stable. Publishes via the reused `VersionPublisher`. Audited `form.published`.
+- **Declarative-only (AC-2/NFR-005):** rejects unknown field types AND any node carrying code/expression keys (recursive).
+- **Edit → new version, prior resolvable + immutable (AC-3):** new id/version_number; prior still resolvable; published update throws `VersionStateException`.
+- **★ Idempotent republish (AC-5):** `unique(form_id, content_hash)` + pre-check return the existing version; key-reordered identical content hashes the same.
+- **★ Org-scoped (AC-4):** `BelongsToTenant` on both models; a content hash from org A returns 0 rows under org B.
+- **Unblocks Story 2.7** (with 1.4) — `form_version.content_hash` is the `form_version_id` 2.6's snapshot binds.
+
+### Change Log
+
+| Date | Change |
+|---|---|
+| 2026-06-20 | Implemented Story 1.3 — Forms module: published immutable form + content-addressed version id, declarative validation, org-scoped, idempotent republish. 6 tests. Status → review. |
 
 ### File List
+
+**New:**
+- `backend/database/migrations/2026_06_20_000700_create_forms_table.php`
+- `backend/database/migrations/2026_06_20_000710_create_form_versions_table.php`
+- `backend/app/Modules/Forms/Domain/FieldType.php`
+- `backend/app/Modules/Forms/Domain/FormDefinitionValidator.php`
+- `backend/app/Modules/Forms/Domain/Exceptions/InvalidFormDefinitionException.php`
+- `backend/app/Modules/Forms/Domain/Models/Form.php`
+- `backend/app/Modules/Forms/Domain/Models/FormVersion.php`
+- `backend/app/Modules/Forms/Application/PublishForm.php`
+- `backend/tests/Feature/Forms/PublishFormTest.php`
