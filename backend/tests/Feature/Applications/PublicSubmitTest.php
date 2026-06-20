@@ -173,6 +173,16 @@ final class PublicSubmitTest extends TestCase
         $this->assertTrue(app(ContentAddressedStore::class)->exists($refs[0]), 'uploaded blob is stored');
     }
 
+    public function test_too_many_files_is_rejected_422(): void // memory-exhaustion guard
+    {
+        $files = array_map(static fn (int $i) => File::fake()->create("f{$i}.pdf", 1, 'application/pdf'), range(1, 21));
+
+        $this->submit('key-many', ['answers' => ['a' => 1]], files: $files)
+            ->assertStatus(422)
+            ->assertJsonPath('error.details.files.0', 'The files field must not have more than 20 items.');
+        $this->assertDatabaseCount('application_submissions', 0);
+    }
+
     public function test_unknown_cohort_is_404(): void
     {
         $this->withoutTenantContext(fn () => $this->actingAs($this->makeExternalUser(), 'web')
