@@ -1,6 +1,6 @@
 # Story 1.0: Frontend foundation (design tokens, component set, a11y gate)
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -142,3 +142,17 @@ Per CLAUDE.md (frontend checks) + Per-story DoD:
 - a11y **CI gate** — Storybook `addon-a11y`/`addon-vitest` axe checks (contrast + missing-label + lang/dir) failing the build on regression.
 - `.stories.tsx` per component.
 - `input-border` contrast verification with a tool.
+
+## Implementation Status — Slice 3 (2026-06-20) — completes Story 1.0
+
+**Done (frontend CI-clean: typecheck + lint + 28 Vitest tests, 12 files):**
+- **a11y CI gate (Task 4, AC-3)** — `src/tests/a11y.test.tsx`: runs `axe-core` over every primitive (Button/Field/FormLayout/Banner/Loading/StateBlock/Link/AppShell) and **fails on structural violations** (missing form label, accessible name, invalid ARIA). Runs in the existing jsdom Vitest project → the already-green **"Frontend (typecheck, lint, test)"** CI lane, so the gate actually runs in CI.
+- **Storybook stories (Task 2 / AC-2)** — `*.stories.tsx` for all 8 primitives (CSF3), feeding the Storybook a11y panel; `.storybook/preview.tsx` `a11y.test` flipped `todo → error` so the Storybook browser path also fails on violations wherever it's run.
+- **Contrast verification (Task 5, AC-1/3)** — `src/styles/contrast.ts` (WCAG luminance/ratio math) + `src/tests/contrast.test.ts` assert the documented floors in BOTH modes. **Measured ratios:** light — btn-text/accentBtn **6.68:1**, input-border/surface **4.59:1**, ink **17.70:1**, muted **7.13:1**; dark — btn-text **6.68:1**, input-border/surface **3.16:1** (tightest, ≥3 ✓), ink **14.04:1**, muted **6.90:1**. All ≥ their floors.
+- **Remaining component tests** — added `FormLayout`/`Link`/`StateBlock` tests (every primitive now has a `*.test.tsx`). `lang`/`dir` already asserted in `DirectionProvider.test.tsx`.
+
+**DECISION — a11y gate runs in jsdom, not Playwright browser mode.** Task 4 named Storybook `addon-vitest` browser mode; that runs on Playwright — the same stack as the **currently-failing E2E CI lane** — so a gate built on it would not reliably run. The authoritative gate is therefore the jsdom `axe-core` run (structural rules) plus the arithmetic contrast test (jsdom can't compute rendered colour, so browser mode buys nothing for contrast here). `a11y.test: 'error'` is still set so the Storybook browser path enforces too if/when that lane is fixed. Net: AC-3 is enforced in a lane that is green today.
+
+**DECISION (re-affirmed) — dark mode:** both token sets + the `data-theme` surface mechanism ship now; the user-facing toggle is gated to a later operator-settings story.
+
+**Story 1.0 status: all ACs met → review.**
