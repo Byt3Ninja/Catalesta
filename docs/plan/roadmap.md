@@ -12,12 +12,14 @@ dependency bands in `dependency-graph.md`.
 
 ## MVP cut line — first sellable slice
 
-**Selection MVP + billing:**
-`signup → publish program → applications → selection/scoring → Geidea billing`.
+**Selection MVP, then billing — split into 1a → 1b (per PRD §7):**
+- **1a (Selection MVP, no billing):** `signup → publish program → applications → selection/scoring → export`.
+- **1b (Billing seam):** `→ Geidea billing`, **gated on the World-A result** (§3 band) and OQ3 packaging ratification.
 
-This proves the product's core differentiator (trustworthy, defensible
-selection) and carries a revenue path. Everything outside it is sequenced
-*after* the MVP, not dropped (see Deferred backlog).
+The 1a slice proves the product's core differentiator (trustworthy, defensible
+selection); 1b adds the revenue path once World-A is confirmed. Everything outside
+this is sequenced *after* the MVP, not dropped (see Deferred backlog). *(Reconciles
+PRD OQ9 — the two SSOT docs no longer disagree on the 1a/1b split.)*
 
 ---
 

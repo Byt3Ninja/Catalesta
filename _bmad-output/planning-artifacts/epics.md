@@ -116,6 +116,7 @@ Complete epic and story breakdown for **Catalesta — Phase 1a (Selection MVP)**
 - FR-030, 031, 032, 033, 034, 050, 051, 052 → **Epic 2** (Receive Applications; substrate in the E2.0 gate).
 - FR-040, 041, 042, 043, 081 → **Epic 3** (Score & Decide).
 - FR-080 → **Epics 2 + 3** via the cross-cutting **Learning Telemetry** deliverable (events emitted by their surfaces).
+- FR-062 → **UX surface only in P1a** (limit banner designed in Epic 1 via UX-DR3); **enforcement deferred to P1b** — entitlement is allow-all in 1a (FR-060 socket), so the block has no live trigger until the FR-061 counter lands. Surface built now, wired in P1b.
 - FR-070 → **Deferred to the billing epic (P1b)** — not in these P1a epics (design constraint kept in Epic 2).
 
 ## Epic List

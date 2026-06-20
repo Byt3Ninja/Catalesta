@@ -137,7 +137,7 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 - **FR-062** Reaching a limit never deletes or hides existing tenant data: at the threshold the operator sees an in-product banner on the affected create action and on the org billing page; **write actions that would exceed the limit are blocked**, while all **reads and exports remain available**.
 
 ### 6.8 Billing Seam — `[P1b]` (gated on World-A; see §7)
-- **FR-070** `[P1a]` (foundational, payment-agnostic) A `PaymentProvider` interface exists; the **signature-verified, idempotent callback primitive** (FR-051) is built provider-agnostically.
+- **FR-070** `[P1a` primitive `/ P1b` interface`]` (foundational, payment-agnostic) The **signature-verified, idempotent callback primitive** is built provider-agnostically in **P1a as part of FR-051** (consumer-agnostic by design, so the Geidea callback adopts it for free). The `PaymentProvider` **interface stub itself is deferred to P1b** (the billing epic) — it has no live exerciser in a no-billing P1a. *(Reconciles the epics' FR-070 placement; the primitive ships 1a, the interface 1b.)*
 - **FR-071** `[P1b]` Integrate the **Geidea sandbox** end-to-end behind `PaymentProvider`. **No real money is charged in Phase 1a/1b sandbox**; first partners run free until a production charging decision.
 - **FR-072** `[P1b]` Payment callbacks are signature-verified and processed idempotently; browser returns are never authoritative.
 - **FR-073** `[P1b]` No raw card numbers or CVV are ever stored.
