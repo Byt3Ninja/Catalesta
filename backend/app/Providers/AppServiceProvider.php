@@ -22,6 +22,7 @@ use App\Shared\Entitlement\EntitlementService;
 use App\Shared\Outbox\Consumers\LogOutboxConsumer;
 use App\Shared\Outbox\Contracts\OutboxConsumer;
 use App\Shared\Tenancy\TenantContext;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,5 +54,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Cohort::class, CohortPolicy::class);
         Gate::policy(ProgramStage::class, StagePolicy::class);
         Gate::policy(ApplicationSubmission::class, ApplicationSubmissionPolicy::class);
+
+        // Scramble's RestrictedDocsAccess always allows `local`; this widens the
+        // /docs/api viewer to `staging` too, while production stays 403.
+        // ponytail: env gate; require an admin role here if staging docs must be locked down.
+        // Nullable user param so the gate runs for unauthenticated docs requests (guests).
+        Gate::define('viewApiDocs', fn (?Authenticatable $user) => $this->app->environment('staging'));
     }
 }
