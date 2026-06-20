@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalesta — Design Directions (pick one)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap');
+*{box-sizing:border-box}
+body{margin:0;background:#f4f5f7;color:#111;font-family:Inter,system-ui,sans-serif;padding:1.5rem}
+h1.page{font:700 1.5rem Inter;margin:0 0 .25rem}
+p.page{color:#555;margin:0 0 1.5rem;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.25rem}
+.dir{border-radius:16px;overflow:hidden;border:1px solid #e3e3e6;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.hd{padding:1rem 1.1rem;color:#fff}
+.hd .tag{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.hd .nm{font-size:1.2rem;font-weight:700;margin-top:.15rem}
+.hd .ds{font-size:.82rem;opacity:.9;margin-top:.2rem}
+.body{padding:1.1rem}
+.swatches{display:flex;gap:.4rem;margin:.2rem 0 1rem}
+.sw{flex:1;height:42px;border-radius:8px;display:flex;align-items:flex-end;justify-content:center;font-size:.6rem;color:#fff;padding-bottom:3px;font-weight:600}
+.sw.l{color:#333}
+.lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:#999;margin:.9rem 0 .3rem}
+.spec .big{font-size:1.35rem;font-weight:700;line-height:1.15}
+.spec .sm{font-size:.85rem;color:#555;margin-top:.2rem}
+.ar{direction:rtl;text-align:right}
+.btn{display:inline-block;padding:.55rem 1rem;border-radius:10px;color:#fff;font-weight:600;font-size:.85rem;border:none;margin-top:.2rem}
+.row{display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border:1px solid #eee;border-radius:10px;margin-top:.5rem;font-size:.82rem}
+.row .av{width:26px;height:26px;border-radius:50%;flex:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
+.row .score{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.pill{font-size:.68rem;padding:.12rem .5rem;border-radius:999px;font-weight:600}
+.field{margin-top:.55rem}
+.field label{display:block;font-size:.78rem;margin-bottom:.25rem;color:#444}
+.field input{width:100%;padding:.5rem .6rem;border:1.5px solid #ddd;border-radius:9px;font:inherit;font-size:.85rem}
+.field input:focus{outline:none}
+
+/* A — Institutional Trust */
+.A{font-family:'IBM Plex Sans',sans-serif}.A .ar,.A .ar *{font-family:'IBM Plex Sans Arabic',sans-serif}
+.A .hd{background:#0f2a47}.A .btn{background:#0e7c86}.A .av{background:#0e7c86}
+.A .field input:focus{border-color:#0e7c86}
+.A .pill{background:#e6f4f1;color:#0a5c63}
+/* B — Growth Momentum */
+.B{font-family:Inter,sans-serif}.B .ar,.B .ar *{font-family:Cairo,sans-serif}
+.B .hd{background:#0f1f17}.B .btn{background:#0f9d58}.B .av{background:#0f9d58}
+.B .field input:focus{border-color:#0f9d58}
+.B .pill{background:#e7f6ec;color:#0a6b3b}
+/* C — Modern Editorial */
+.C .big,.C .hd .nm{font-family:'Space Grotesk',sans-serif}.C{font-family:Inter,sans-serif}.C .ar,.C .ar *{font-family:Tajawal,sans-serif}
+.C .hd{background:#241a47}.C .btn{background:#6d4aff}.C .av{background:#6d4aff}
+.C .field input:focus{border-color:#6d4aff}
+.C .pill{background:#efeaff;color:#4a32b3}
+</style>
+</head>
+<body>
+<h1 class="page">Catalesta — three design directions</h1>
+<p class="page">Same product, three personalities. Each card shows the palette, the Latin + Arabic type, a primary action, an <b>operator console</b> row (submission + score), and an <b>RTL application field</b>. Pick a direction (or mix elements) — I'll build the spines from your choice. Nothing here is my recommendation; the pick is yours.</p>
+
+<div class="grid">
+
+  <!-- A -->
+  <div class="dir A">
+    <div class="hd"><div class="tag">Direction A</div><div class="nm">Institutional Trust</div><div class="ds">Calm, credible, data-clear. For gov/corporate accelerators where decisions must look defensible.</div></div>
+    <div class="body">
+      <div class="swatches">
+        <div class="sw" style="background:#0f2a47">#0F2A47</div>
+        <div class="sw" style="background:#0e7c86">#0E7C86</div>
+        <div class="sw l" style="background:#e6f4f1">#E6F4F1</div>
+        <div class="sw l" style="background:#f4f5f7">#F4F5F7</div>
+      </div>
+      <div class="lbl">Type — IBM Plex Sans / IBM Plex Sans Arabic</div>
+      <div class="spec"><div class="big">Review applications</div><div class="sm">Score applicants against published, auditable criteria.</div></div>
+      <div class="spec ar" style="margin-top:.5rem"><div class="big">مراجعة الطلبات</div><div class="sm">قيّم المتقدمين وفق معايير منشورة وقابلة للتدقيق.</div></div>
+      <button class="btn">Submit application</button> <button class="btn ar">إرسال الطلب</button>
+      <div class="lbl">Operator console row</div>
+      <div class="row"><span class="av">SN</span> Solar Nile <span class="pill">scored</span><span class="score">86.50</span></div>
+      <div class="field ar"><label>اسم الشركة الناشئة</label><input value="نيل سولار" dir="rtl"></div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="dir B">
+    <div class="hd"><div class="tag">Direction B</div><div class="nm">Growth Momentum</div><div class="ds">Startup-native, optimistic, forward-moving. Green reads as growth/acceleration.</div></div>
+    <div class="body">
+      <div class="swatches">
+        <div class="sw" style="background:#0f1f17">#0F1F17</div>
+        <div class="sw" style="background:#0f9d58">#0F9D58</div>
+        <div class="sw l" style="background:#e7f6ec">#E7F6EC</div>
+        <div class="sw l" style="background:#f4f5f7">#F4F5F7</div>
+      </div>
+      <div class="lbl">Type — Inter / Cairo (Arabic)</div>
+      <div class="spec"><div class="big">Review applications</div><div class="sm">Score applicants against published, auditable criteria.</div></div>
+      <div class="spec ar" style="margin-top:.5rem"><div class="big">مراجعة الطلبات</div><div class="sm">قيّم المتقدمين وفق معايير منشورة وقابلة للتدقيق.</div></div>
+      <button class="btn">Submit application</button> <button class="btn ar">إرسال الطلب</button>
+      <div class="lbl">Operator console row</div>
+      <div class="row"><span class="av">SN</span> Solar Nile <span class="pill">scored</span><span class="score">86.50</span></div>
+      <div class="field ar"><label>اسم الشركة الناشئة</label><input value="نيل سولار" dir="rtl"></div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="dir C">
+    <div class="hd"><div class="tag">Direction C</div><div class="nm">Modern Editorial</div><div class="ds">Distinctive, contemporary, a little character. Stands apart from generic blue SaaS.</div></div>
+    <div class="body">
+      <div class="swatches">
+        <div class="sw" style="background:#241a47">#241A47</div>
+        <div class="sw" style="background:#6d4aff">#6D4AFF</div>
+        <div class="sw l" style="background:#efeaff">#EFEAFF</div>
+        <div class="sw l" style="background:#f4f5f7">#F4F5F7</div>
+      </div>
+      <div class="lbl">Type — Space Grotesk display / Inter body / Tajawal (Arabic)</div>
+      <div class="spec"><div class="big">Review applications</div><div class="sm">Score applicants against published, auditable criteria.</div></div>
+      <div class="spec ar" style="margin-top:.5rem"><div class="big">مراجعة الطلبات</div><div class="sm">قيّم المتقدمين وفق معايير منشورة وقابلة للتدقيق.</div></div>
+      <button class="btn">Submit application</button> <button class="btn ar">إرسال الطلب</button>
+      <div class="lbl">Operator console row</div>
+      <div class="row"><span class="av">SN</span> Solar Nile <span class="pill">scored</span><span class="score">86.50</span></div>
+      <div class="field ar"><label>اسم الشركة الناشئة</label><input value="نيل سولار" dir="rtl"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

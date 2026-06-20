@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalesta P1a — key screens</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap');
+:root{
+  --bg:#F7F7FB;--surface:#FFFFFF;--surfaceAlt:#F1EFFA;--ink:#1A1430;--inkMuted:#5B5470;--inkFaint:#8E87A6;
+  --brand:#241A47;--accent:#6D4AFF;--accentHover:#5A38E6;--accentSubtle:#EFEAFF;--border:#E6E3F0;--borderStrong:#CFC9E4;
+  --success:#0F9D58;--danger:#D92D20;--warning:#B7791F;--focus:#6D4AFF;
+  --e1:0 1px 3px rgba(20,15,40,.08);--e3:0 12px 32px rgba(20,15,40,.16);
+}
+.dark{
+  --bg:#14121F;--surface:#1E1B2E;--surfaceAlt:#26223A;--ink:#ECE9F7;--inkMuted:#A9A2C2;--inkFaint:#7C7596;
+  --brand:#B6A6FF;--accent:#7C5CFF;--accentHover:#9279FF;--accentSubtle:#2A2342;--border:#2E2A40;--borderStrong:#403A58;
+  --success:#34C77B;--danger:#FF6B5E;--warning:#F2C14E;--focus:#9279FF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e9ef;font-family:Inter,system-ui,sans-serif;color:var(--ink);padding:1.25rem}
+h1.pg{font:700 1.4rem 'Space Grotesk';margin:0 0 .15rem;color:#1A1430}
+p.pg{color:#555;margin:0 0 1.25rem;font-size:.86rem}
+.stage{display:flex;gap:1.25rem;flex-wrap:wrap;align-items:flex-start}
+.panel{background:var(--bg);border-radius:14px;padding:14px;box-shadow:var(--e1)}
+.cap{font:600 .72rem Inter;letter-spacing:.04em;text-transform:uppercase;color:#777;margin:0 0 .4rem}
+.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.tag{font:700 .68rem Inter;padding:.1rem .5rem;border-radius:999px;display:inline-flex;gap:.25rem;align-items:center}
+.tag.s{background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success)}
+.tag.p{background:var(--accentSubtle);color:var(--accent)}
+.tag.n{background:var(--surfaceAlt);color:var(--inkMuted)}
+.btn{font:600 .85rem Inter;padding:10px 16px;border-radius:10px;border:none;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;color:var(--inkMuted);border:1.5px solid var(--border)}
+.btn.danger{background:transparent;color:var(--danger);border:1.5px solid color-mix(in srgb,var(--danger) 40%,transparent)}
+.btn.ok{background:var(--success);color:#fff}
+
+/* operator console */
+.console{width:560px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.chrome{background:var(--brand);color:#fff;padding:10px 14px;font:700 .9rem 'Space Grotesk';display:flex;align-items:center;gap:.5rem}
+.chrome .crumb{font:500 .75rem Inter;opacity:.85;margin-inline-start:auto}
+.cwrap{display:flex}
+.rail{width:150px;border-inline-end:1px solid var(--border);padding:10px;font-size:.8rem;color:var(--inkMuted)}
+.rail .it{padding:7px 9px;border-radius:8px;margin-bottom:2px}
+.rail .it.on{background:var(--accentSubtle);color:var(--accent);font-weight:600}
+.work{flex:1;padding:12px;min-width:0}
+.row{display:flex;align-items:center;gap:.55rem;padding:10px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;font-size:.84rem;background:var(--surface)}
+.row.sel{background:var(--accentSubtle);border-color:var(--borderStrong)}
+.row .av{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font:700 .68rem Inter;flex:none}
+.row .sc{margin-inline-start:auto}
+.crit{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem}
+.scorein{width:96px;text-align:end;border:1.5px solid var(--border);border-radius:10px;padding:7px 9px;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;background:var(--surface);color:var(--ink)}
+.scorein:focus{outline:2px solid var(--focus);border-color:var(--focus)}
+.hint{font-size:.72rem;color:var(--inkFaint);margin-top:.5rem}
+
+/* mobile applicant */
+.phone{width:300px;background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:10px;box-shadow:var(--e3)}
+.screen{background:var(--bg);border-radius:18px;padding:14px;min-height:520px}
+.ar{direction:rtl;text-align:right;font-family:Tajawal,sans-serif}
+.ar h2{font:700 1.15rem Tajawal;margin:.2rem 0}
+.ar .sub{font-size:.82rem;color:var(--inkMuted);margin-bottom:1rem}
+.fld{margin-bottom:.7rem}
+.fld label{display:block;font:500 .8rem Tajawal;margin-bottom:.25rem}
+.fld input,.fld textarea{width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font:inherit;font-size:.85rem;background:var(--surface);color:var(--ink)}
+.fld input:focus{outline:2px solid var(--focus);border-color:var(--focus)}
+.up{border:1.5px dashed var(--borderStrong);border-radius:10px;padding:12px;text-align:center;color:var(--inkMuted);font-size:.8rem}
+.step{display:flex;gap:6px;margin-bottom:.8rem}
+.step i{height:4px;flex:1;border-radius:2px;background:var(--border)}
+.step i.on{background:var(--accent)}
+.confirm{background:var(--accentSubtle);border-radius:10px;padding:10px;font-size:.78rem;color:var(--brand);margin:.6rem 0;display:flex;gap:.4rem}
+.framettl{font:600 .78rem Inter;color:#555;margin:0 0 .4rem}
+.toggle{font-size:.78rem;color:#555;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<h1 class="pg">Catalesta — Phase 1a key screens</h1>
+<p class="pg">Built from <code>DESIGN.md</code> tokens (Direction C). Left: operator <b>Scoring &amp; Decision</b> (S9/S10), light + dark. Right: applicant <b>Application page</b> (S6) — mobile-web, Arabic <b>RTL</b>. Spines win on conflict; these are references, not the contract.</p>
+
+<div class="stage">
+
+  <!-- OPERATOR LIGHT -->
+  <div class="panel">
+    <p class="framettl">Operator console — Scoring &amp; Decision · light</p>
+    <div class="console">
+      <div class="chrome">Catalesta <span class="crumb">GreenTech Accelerator › Cohort 3 › Submissions</span></div>
+      <div class="cwrap">
+        <div class="rail"><div class="it">Home</div><div class="it">Program</div><div class="it">Cohort</div><div class="it on">Submissions</div><div class="it">Export</div></div>
+        <div class="work">
+          <div class="row"><span class="av">SN</span> Solar Nile <span class="tag s sc">● scored</span></div>
+          <div class="row sel"><span class="av">DV</span> DeltaVend <span class="num sc" style="font-weight:700">— / 100</span></div>
+          <div class="row"><span class="av">MR</span> MedReach <span class="tag n sc">○ unscored</span></div>
+          <div style="margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:10px">
+            <div style="font:600 .9rem Inter;margin-bottom:.3rem">DeltaVend — score</div>
+            <div class="crit"><span>Team</span><input class="scorein" value="24.00"> <span class="num" style="color:var(--inkFaint)">/30</span></div>
+            <div class="crit"><span>Traction</span><input class="scorein" value="18.50"> <span class="num" style="color:var(--inkFaint)">/25</span></div>
+            <div class="crit" style="border:none"><span>Market</span><input class="scorein" value="—"> <span class="num" style="color:var(--inkFaint)">/45</span></div>
+            <div style="display:flex;gap:.5rem;margin-top:.7rem;align-items:center">
+              <button class="btn ok">Accept</button><button class="btn danger">Reject</button>
+              <span class="num" style="margin-inline-start:auto;font-weight:700">42.50 / 100</span>
+            </div>
+            <p class="hint">Decision is recorded with your identity and is final (reopen is audited). Time-to-decision is captured.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPERATOR DARK -->
+  <div class="panel dark" style="background:#0f0e17">
+    <p class="framettl" style="color:#bbb">…same screen · dark</p>
+    <div class="console">
+      <div class="chrome">Catalesta <span class="crumb">GreenTech Accelerator › Cohort 3 › Submissions</span></div>
+      <div class="cwrap">
+        <div class="rail"><div class="it">Home</div><div class="it">Cohort</div><div class="it on">Submissions</div><div class="it">Export</div></div>
+        <div class="work">
+          <div class="row sel"><span class="av">DV</span> DeltaVend <span class="num sc" style="font-weight:700">42.50 / 100</span></div>
+          <div style="display:flex;gap:.5rem;margin-top:.4rem;align-items:center">
+            <button class="btn ok">Accept</button><button class="btn danger">Reject</button>
+            <span class="tag p sc">scoring</span>
+          </div>
+          <p class="hint">Status uses icon + text, never color alone. Tabular numerals align.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICANT MOBILE RTL -->
+  <div class="panel">
+    <p class="framettl">Applicant — Application page · mobile · Arabic RTL</p>
+    <div class="phone"><div class="screen">
+      <div class="ar">
+        <div class="step"><i class="on"></i><i class="on"></i><i></i></div>
+        <h2>التقديم على البرنامج</h2>
+        <div class="sub">برنامج التسريع الأخضر · الدفعة الثالثة</div>
+        <div class="fld"><label>اسم الشركة الناشئة</label><input dir="auto" value="نيل سولار"></div>
+        <div class="fld"><label>رابط الموقع الإلكتروني</label><input dir="auto" value="solarnile.com" style="direction:ltr;text-align:left"></div>
+        <div class="fld"><label>وصف المشروع</label><textarea dir="auto" rows="2">حلول طاقة شمسية للمزارع الصغيرة.</textarea></div>
+        <div class="fld"><label>عرض تقديمي (PDF)</label><div class="up">اسحب الملف هنا أو اضغط للرفع</div></div>
+        <div class="confirm">⚠︎ لا يمكنك تعديل الطلب بعد الإرسال. راجع بياناتك الآن.</div>
+        <button class="btn primary" style="width:100%">إرسال الطلب</button>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>
