@@ -32,13 +32,14 @@ final class TenantIsolationTest extends TestCase
 
     /**
      * A user who is a member of Org1 only, sending X-Organization-Id: <Org2 id>
-     * to GET /api/v1/organizations/{org2} must receive 403.
+     * to GET /api/v1/organizations/{org2} must receive a neutral 404.
      *
-     * The tenant middleware verifies active membership for the header org.
-     * Because the user has no membership in Org2 the middleware aborts with 403
-     * before the controller is ever reached.
+     * The tenant middleware verifies active membership for the header org. Because
+     * the user has no membership in Org2 the middleware aborts with 404 (FR-004 /
+     * AR-6: cross-tenant access must not reveal that the org exists) before the
+     * controller is ever reached.
      */
-    public function test_non_member_org_header_is_forbidden(): void
+    public function test_non_member_org_header_is_not_found(): void
     {
         [$user] = $this->bootUserWithOrg('Org1');
 
@@ -50,7 +51,7 @@ final class TenantIsolationTest extends TestCase
 
         $this->withHeader('X-Organization-Id', $org2->id)
             ->getJson('/api/v1/organizations/'.$org2->id)
-            ->assertStatus(403);
+            ->assertStatus(404);
     }
 
     // -------------------------------------------------------------------------
@@ -59,9 +60,10 @@ final class TenantIsolationTest extends TestCase
 
     /**
      * GET /api/v1/organizations/{org2} for an org the user doesn't belong to
-     * must not return 200.  The tenant middleware must block the request.
+     * must return a neutral 404 (FR-004 / AR-6) — the tenant middleware blocks it
+     * without revealing the org exists.
      */
-    public function test_reading_foreign_org_is_not_200(): void
+    public function test_reading_foreign_org_is_not_found(): void
     {
         [$user] = $this->bootUserWithOrg('My Org');
 
@@ -72,7 +74,7 @@ final class TenantIsolationTest extends TestCase
         $response = $this->withHeader('X-Organization-Id', $foreignOrg->id)
             ->getJson('/api/v1/organizations/'.$foreignOrg->id);
 
-        $response->assertStatus(403);
+        $response->assertStatus(404);
     }
 
     // -------------------------------------------------------------------------
@@ -188,7 +190,8 @@ final class TenantIsolationTest extends TestCase
      * passes MembershipPolicy) but POSTs to /api/v1/organizations/{OrgB}/memberships.
      *
      * The route-vs-header reconciliation guard in MembershipController must abort
-     * with 403 before any write occurs.  No membership row must be created for OrgB.
+     * with a neutral 404 before any write occurs (consistent with AR-6 — a foreign
+     * org id must not reveal it exists).  No membership row must be created for OrgB.
      */
     public function test_owner_of_org_a_cannot_post_membership_into_org_b(): void
     {
@@ -210,7 +213,7 @@ final class TenantIsolationTest extends TestCase
             ->postJson('/api/v1/organizations/'.$orgB->id.'/memberships', [
                 'external_user_id' => $victim->id,
             ])
-            ->assertStatus(403);
+            ->assertStatus(404);
 
         // Confirm NO membership row was created for Org B
         $this->assertDatabaseMissing('organization_memberships', [

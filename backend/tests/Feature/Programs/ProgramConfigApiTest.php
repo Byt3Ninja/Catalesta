@@ -443,9 +443,11 @@ final class ProgramConfigApiTest extends TestCase
                 'value' => 'probed',
             ]);
 
-        // Must be 403 — not 422 (which would reveal the key exists in Org B)
-        $response->assertStatus(403);
-        $this->assertNotEquals(422, $response->status(), 'Cross-tenant key-existence leak detected: got 422 instead of 403');
+        // Neutral 404 (FR-004 / AR-6): cross-tenant access deterministically returns 404,
+        // never 422, which would reveal the key exists in Org B. The security property
+        // under test is "blocked before validation, no key-existence leak".
+        $response->assertStatus(404);
+        $this->assertNotEquals(422, $response->status(), 'Cross-tenant key-existence leak detected: got 422');
 
         // Nothing was written for Org B's program
         $this->assertDatabaseCount('program_policies', 1);
@@ -482,9 +484,11 @@ final class ProgramConfigApiTest extends TestCase
                 'min_count' => 2,
             ]);
 
-        // Must be 403 — not 422 (which would reveal the role_key exists in Org B)
-        $response->assertStatus(403);
-        $this->assertNotEquals(422, $response->status(), 'Cross-tenant role-key existence leak detected: got 422 instead of 403');
+        // Neutral 404 (FR-004 / AR-6): cross-tenant access deterministically returns 404,
+        // never 422, which would reveal the role_key exists in Org B. The security property
+        // under test is "blocked before validation, no role-key existence leak".
+        $response->assertStatus(404);
+        $this->assertNotEquals(422, $response->status(), 'Cross-tenant role-key existence leak detected: got 422');
 
         // Nothing was written for Org B's program
         $this->assertDatabaseCount('program_role_requirements', 1);

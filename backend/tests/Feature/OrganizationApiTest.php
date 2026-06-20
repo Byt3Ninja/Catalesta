@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Domain\Models\OrganizationRole;
 use Database\Seeders\PermissionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 final class OrganizationApiTest extends TestCase
@@ -116,7 +118,10 @@ final class OrganizationApiTest extends TestCase
     }
 
     /**
-     * Test 4: Non-member accessing GET /api/v1/organizations/{id} with org header → 403.
+     * Test 4: Non-member accessing GET /api/v1/organizations/{id} with org header → 404.
+     *
+     * Neutral 404 (FR-004 / AR-6): a non-member must not learn the org exists, so the
+     * cross-tenant access path returns 404, not 403.
      *
      * State is set up directly in the DB (not via API) to avoid Sanctum SPA session
      * leakage from a prior actingAs() call bleeding the creator's session into the
@@ -134,12 +139,79 @@ final class OrganizationApiTest extends TestCase
         $creatorMembership->organization_id = $org->id;
         $creatorMembership->save();
 
-        // outsider has no membership — tenant middleware must reject with 403
+        // outsider has no membership in the header org — neutral 404 (no existence leak)
         $response = $this->actingAs($outsider, 'web')
             ->withHeader('X-Organization-Id', $org->id)
             ->getJson("/api/v1/organizations/{$org->id}");
 
-        $response->assertStatus(403);
+        $response->assertStatus(404);
+    }
+
+    /**
+     * Test 4b (AR-6): a member of their OWN org cannot read a FOREIGN org by passing
+     * their own valid header but a foreign org id in the URL → neutral 404, no data leak.
+     */
+    public function test_member_cannot_view_foreign_org_via_own_header(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        // The acting user owns their own org (valid X-Organization-Id header)
+        [$user, $ownOrg] = $this->bootUserWithOrg('Home Org');
+
+        // A foreign org the user has no membership in
+        $foreignOrg = $this->createBareOrg('Foreign Org');
+
+        $this->actingAs($user, 'web');
+
+        $response = $this->withHeader('X-Organization-Id', $ownOrg->id)
+            ->getJson("/api/v1/organizations/{$foreignOrg->id}");
+
+        $response->assertStatus(404);
+        // The foreign org's name must never appear in the response body
+        $this->assertStringNotContainsString('Foreign Org', $response->getContent() ?: '');
+    }
+
+    /**
+     * Test 4c (AC-4): a second org whose name derives to an existing slug is rejected
+     * with a clean 422 validation error (not a 500 from the DB unique index).
+     */
+    public function test_duplicate_organization_name_is_rejected_with_422(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        $first = $this->makeUser();
+        $this->actingAs($first, 'web')
+            ->postJson('/api/v1/organizations', ['name' => 'Acme Labs'])
+            ->assertStatus(201);
+
+        // A different user submits a name that derives to the same slug ("acme-labs")
+        $second = $this->makeUser();
+        $response = $this->actingAs($second, 'web')
+            ->postJson('/api/v1/organizations', ['name' => 'Acme   Labs']);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('error.code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('name', $response->json('error.details'));
+    }
+
+    /**
+     * Test 4d (AC-4 race): a concurrent same-name create that slips past the FormRequest
+     * uniqueness check and hits the DB slug unique index must surface a clean
+     * ValidationException (→ 422), never a raw QueryException (→ 500).
+     */
+    public function test_slug_collision_race_in_service_throws_validation_exception(): void
+    {
+        $this->seed(PermissionCatalogSeeder::class);
+
+        // An org with slug "acme" already exists (simulates the row the racing
+        // request did not see during FormRequest validation).
+        Organization::create(['name' => 'Acme']);
+
+        $user = $this->makeUser();
+
+        $this->expectException(ValidationException::class);
+
+        $this->withoutTenantContext(fn () => app(CreateOrganization::class)->handle($user, 'Acme'));
     }
 
     /**

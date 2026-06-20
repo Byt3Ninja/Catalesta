@@ -10,7 +10,9 @@ use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
 use App\Modules\Organizations\Domain\Models\OrganizationRole;
 use App\Shared\Audit\AuditLogger;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final class CreateOrganization
 {
@@ -26,6 +28,22 @@ final class CreateOrganization
      * @param  array<string, mixed>  $branding
      */
     public function handle(ExternalUser $creator, string $name, array $branding = []): Organization
+    {
+        try {
+            return $this->create($creator, $name, $branding);
+        } catch (UniqueConstraintViolationException) {
+            // Concurrent same-name race that slipped past the FormRequest uniqueness
+            // check: surface the same clean 422 envelope as the request rule.
+            throw ValidationException::withMessages([
+                'name' => ['An organization with a similar name already exists.'],
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $branding
+     */
+    private function create(ExternalUser $creator, string $name, array $branding): Organization
     {
         return DB::transaction(function () use ($creator, $name, $branding): Organization {
             // Step 1: Create the organization

@@ -2,6 +2,7 @@ import { render } from '@testing-library/react'
 import axe from 'axe-core'
 import type { ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -11,6 +12,28 @@ import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { ApplyField } from '../pages/ApplyField'
+import { DirectionProvider } from '../app/DirectionProvider'
+import { LoginPage } from '../pages/LoginPage'
+import { OnboardingPage } from '../pages/OnboardingPage'
+import { HomePage } from '../pages/HomePage'
+
+function withProviders(ui: ReactElement): ReactElement {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return (
+    <DirectionProvider>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
+    </DirectionProvider>
+  )
+}
+
+const ORG = {
+  id: '01J0ORG',
+  name: 'Acme Incubator',
+  slug: 'acme-incubator',
+  branding: null,
+  created_at: '2026-06-20T10:00:00+00:00',
+  updated_at: '2026-06-20T10:00:00+00:00',
+}
 
 /**
  * Story 1.0 Task 4 — accessibility CI gate. Runs axe-core over each rendered
@@ -93,6 +116,18 @@ describe('a11y gate (axe-core)', () => {
         <h1>Work area</h1>
       </AppShell>,
     )
+  })
+
+  it('LoginPage — sign-in entry (Story 1.1)', async () => {
+    await expectNoViolations(withProviders(<LoginPage />))
+  })
+
+  it('OnboardingPage — create-org form (Story 1.1)', async () => {
+    await expectNoViolations(withProviders(<OnboardingPage />))
+  })
+
+  it('HomePage — minimal operator home (Story 1.1)', async () => {
+    await expectNoViolations(withProviders(<HomePage organization={ORG} />))
   })
 
   it('ApplyField — representative field types (Story 2.7)', async () => {

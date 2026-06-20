@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class OrganizationController extends Controller
 {
@@ -82,6 +83,8 @@ final class OrganizationController extends Controller
      */
     public function show(string $id): OrganizationResource
     {
+        $this->assertResolvedOrg($id);
+
         $org = Organization::findOrFail($id);
 
         $this->authorize('view', $org);
@@ -97,6 +100,8 @@ final class OrganizationController extends Controller
      */
     public function update(UpdateOrganizationRequest $request, AuditLogger $audit, string $id): OrganizationResource
     {
+        $this->assertResolvedOrg($id);
+
         $org = Organization::findOrFail($id);
 
         $this->authorize('update', $org);
@@ -127,5 +132,19 @@ final class OrganizationController extends Controller
         );
 
         return new OrganizationResource($org);
+    }
+
+    /**
+     * Neutral 404 (FR-004 / AR-6): a tenant-resolved (non-platform-admin) user may only
+     * access the org id matching their resolved context. Passing a foreign org id in the
+     * URL (with their own valid header) must not reveal that org exists.
+     */
+    private function assertResolvedOrg(string $id): void
+    {
+        $tenant = app(TenantContext::class);
+
+        if ($tenant->has() && $id !== $tenant->organizationId()) {
+            throw new NotFoundHttpException;
+        }
     }
 }

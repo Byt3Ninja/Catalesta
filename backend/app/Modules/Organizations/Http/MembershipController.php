@@ -29,7 +29,8 @@ final class MembershipController extends Controller
      *
      * Platform admins (TenantContext::$platformAdmin) are exempt because they may
      * legitimately operate across organizations without a header.  All other callers
-     * must have route == header org or receive 403.
+     * must have route == header org or receive a neutral 404 (consistent with
+     * OrganizationController's AR-6 behavior — a foreign org id must not reveal it exists).
      */
     private function assertRouteMatchesTenant(string $routeOrgId): void
     {
@@ -46,7 +47,7 @@ final class MembershipController extends Controller
         }
 
         if ($tenantOrgId !== $routeOrgId) {
-            abort(403, 'Route organization does not match authenticated tenant.');
+            abort(404);
         }
     }
 
