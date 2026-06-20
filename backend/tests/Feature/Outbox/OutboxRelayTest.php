@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Outbox;
 
+use App\Shared\Idempotency\IdempotencyKey;
 use App\Shared\Outbox\Contracts\OutboxConsumer;
 use App\Shared\Outbox\OutboxEvent;
 use App\Shared\Outbox\OutboxProducer;
@@ -203,5 +204,45 @@ final class OutboxRelayTest extends TestCase
 
         $this->assertSame(0, $delivered, 'a freshly-claimed row is not double-claimed');
         $this->assertSame(0, $this->consumer->calls);
+    }
+
+    public function test_in_flight_idempotency_is_not_counted_as_a_failure(): void // review fix 1
+    {
+        $this->seedEvents(1);
+        $event = OutboxEvent::first();
+        // Another worker is mid-delivery: a fresh, non-stale idempotency claim.
+        IdempotencyKey::create([
+            'scope' => 'outbox:spy', 'key' => $event->id, 'request_fingerprint' => $event->id,
+            'status' => 'claimed', 'locked_at' => now(), 'expires_at' => now()->addDay(),
+        ]);
+
+        $delivered = $this->relay()->dispatchBatch();
+
+        $this->assertSame(0, $delivered);
+        $fresh = $event->fresh();
+        $this->assertSame(0, $fresh->attempts, 'in-flight is not a failure — no attempt burned');
+        $this->assertNull($fresh->dead_lettered_at, 'a healthy in-flight event is never dead-lettered');
+        $this->assertNull($fresh->dispatched_at);
+        $this->assertNull($fresh->claim_token, 'our claim is released so the owner can finalize');
+    }
+
+    public function test_idempotency_conflict_is_dead_lettered_immediately_not_retried(): void // review fix 3
+    {
+        $this->seedEvents(1);
+        $event = OutboxEvent::first();
+        // A corrupted/colliding idempotency row: completed under a DIFFERENT fingerprint.
+        IdempotencyKey::create([
+            'scope' => 'outbox:spy', 'key' => $event->id, 'request_fingerprint' => 'different-fingerprint',
+            'status' => 'completed', 'response_snapshot' => ['value' => null],
+            'locked_at' => null, 'expires_at' => now()->addDay(),
+        ]);
+
+        $delivered = $this->relay()->dispatchBatch();
+
+        $this->assertSame(0, $delivered);
+        $fresh = $event->fresh();
+        $this->assertNotNull($fresh->dead_lettered_at, 'a hard conflict is non-retryable → dead-letter now');
+        $this->assertNull($fresh->dispatched_at);
+        $this->assertSame(0, $this->consumer->calls, 'consumer never ran (conflict precedes the closure)');
     }
 }

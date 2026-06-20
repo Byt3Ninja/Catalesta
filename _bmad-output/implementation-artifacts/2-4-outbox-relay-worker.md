@@ -133,6 +133,7 @@ claude-opus-4-8[1m] (Claude Opus 4.8, 1M context)
 | Date | Change |
 |---|---|
 | 2026-06-20 | Implemented Story 2.4 — outbox relay worker (claim/deliver/retry/dead-letter/reclaim) + `outbox:relay` command + log consumer; reuses IdempotencyService for event_id dedupe. Added datetime casts to OutboxEvent (2.3 model). 9 tests. **Completes GATE-E2.0 logic.** Status → review. |
+| 2026-06-20 | **Code-review fixes (findings 1–4):** (1) catch `IdempotencyInFlightException` separately → release claim, no attempt burned (was mis-counted as failure → could dead-letter healthy events); (3) catch `IdempotencyConflictException` → log + dead-letter immediately (non-retryable, was retried to cap); (2) token-guard the finalize + failure writes (`where('claim_token', $token)`) so a reclaimed/zombie worker can't stomp a row another worker owns; (4) `claimed_at` now app-clock to match the visibility cutoff (was DB-clock → skew could reclaim early), and `outbox.visibility_timeout_seconds` default raised to 120 (> idempotency `lock_timeout` 60) so the reclaim boundary is deterministic. +2 regression tests (11 relay tests; 308 suite green). |
 
 ### File List
 

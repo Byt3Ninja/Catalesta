@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Shared\Outbox;
 
+use App\Shared\Idempotency\Exceptions\IdempotencyConflictException;
+use App\Shared\Idempotency\Exceptions\IdempotencyInFlightException;
 use App\Shared\Idempotency\IdempotencyService;
 use App\Shared\Outbox\Contracts\OutboxConsumer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -42,7 +45,7 @@ final class OutboxRelay
         $delivered = 0;
 
         foreach ($claimed as $event) {
-            if ($this->deliver($event)) {
+            if ($this->deliver($event, $token)) {
                 $delivered++;
             }
         }
@@ -74,15 +77,19 @@ final class OutboxRelay
         }
 
         // Single atomic claim: UPDATE ... WHERE id IN (<selectable>).
+        // claimed_at uses the app clock so it is compared against the same clock as
+        // the visibility cutoff above (avoids a DB-vs-app skew that could reclaim a
+        // freshly-claimed row early). dispatched_at stays DB-side (AC-6).
+        // ponytail: single clock source; residual inter-host skew assumes NTP sync.
         OutboxEvent::whereIn('id', $selectable)->update([
             'claim_token' => $token,
-            'claimed_at' => DB::raw('CURRENT_TIMESTAMP'),
+            'claimed_at' => now(),
         ]);
 
         return OutboxEvent::where('claim_token', $token)->orderBy('created_at')->get();
     }
 
-    private function deliver(OutboxEvent $event): bool
+    private function deliver(OutboxEvent $event, string $token): bool
     {
         try {
             // Idempotent on event id — a redelivery replays (no second effect).
@@ -92,22 +99,55 @@ final class OutboxRelay
                 $event->id,
                 fn () => $this->consumer->handle($event),
             );
+        } catch (IdempotencyInFlightException) {
+            // Another worker is delivering this same event right now (e.g. a
+            // reclaim of a still-in-flight row). NOT a failure — release our claim
+            // so the owner can finalize it; a later pass replays the completed
+            // result and marks it dispatched. No attempt is burned.
+            $this->release($event, $token);
+
+            return false;
+        } catch (IdempotencyConflictException $e) {
+            // fingerprint == key for outbox, so a conflict means a corrupted or
+            // colliding idempotency row — non-retryable. Dead-letter now and surface;
+            // retrying would deterministically conflict until the attempt cap.
+            Log::error('outbox.delivery_conflict', ['event_id' => $event->id, 'error' => $e->getMessage()]);
+            $this->finalizeFailure($event, $token, $e, deadLetter: true);
+
+            return false;
         } catch (Throwable $e) {
-            $this->onFailure($event, $e);
+            $this->onFailure($event, $token, $e);
 
             return false;
         }
 
-        // DB-side timestamp (AC-6) — reflects commit time, clock-agnostic.
-        OutboxEvent::whereKey($event->id)->update([
-            'dispatched_at' => DB::raw('CURRENT_TIMESTAMP'),
-            'claim_token' => null,
-        ]);
+        // DB-side timestamp (AC-6). Guarded by our claim token so a zombie/reclaimed
+        // worker cannot finalize a row another worker now owns.
+        OutboxEvent::whereKey($event->id)
+            ->where('claim_token', $token)
+            ->update([
+                'dispatched_at' => DB::raw('CURRENT_TIMESTAMP'),
+                'claim_token' => null,
+            ]);
 
         return true;
     }
 
-    private function onFailure(OutboxEvent $event, Throwable $e): void
+    /** Drop our claim without penalty so the current owner can finish (in-flight). */
+    private function release(OutboxEvent $event, string $token): void
+    {
+        OutboxEvent::whereKey($event->id)
+            ->where('claim_token', $token)
+            ->update(['claim_token' => null, 'claimed_at' => null]);
+    }
+
+    private function onFailure(OutboxEvent $event, string $token, Throwable $e): void
+    {
+        $this->finalizeFailure($event, $token, $e, deadLetter: $this->isPoison($event, $event->attempts + 1));
+    }
+
+    /** Token-guarded failure write: only the current owner updates retry/dead-letter state. */
+    private function finalizeFailure(OutboxEvent $event, string $token, Throwable $e, bool $deadLetter): void
     {
         $attempts = $event->attempts + 1;
 
@@ -119,11 +159,11 @@ final class OutboxRelay
             'available_at' => now()->addSeconds($this->backoff($attempts)),
         ];
 
-        if ($this->isPoison($event, $attempts)) {
+        if ($deadLetter) {
             $update['dead_lettered_at'] = now();
         }
 
-        OutboxEvent::whereKey($event->id)->update($update);
+        OutboxEvent::whereKey($event->id)->where('claim_token', $token)->update($update);
     }
 
     private function isPoison(OutboxEvent $event, int $attempts): bool
