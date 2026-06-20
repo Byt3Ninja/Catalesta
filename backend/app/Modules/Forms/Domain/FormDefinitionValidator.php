@@ -17,7 +17,7 @@ final class FormDefinitionValidator
     private const FORBIDDEN_KEYS = ['expr', 'expression', 'code', 'formula', 'script', 'eval', 'fn', 'rule'];
 
     /**
-     * @param  array<int, array<string, mixed>>  $definition  list of field definitions
+     * @param  array<int, mixed>  $definition  list of (untrusted) field definitions
      *
      * @throws InvalidFormDefinitionException
      */
