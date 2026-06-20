@@ -15,6 +15,8 @@ use App\Modules\Programs\Domain\Models\Track;
 use App\Modules\Programs\Policies\ProgramPolicy;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Policies\StagePolicy;
+use App\Shared\Entitlement\AllowAllEntitlementService;
+use App\Shared\Entitlement\EntitlementService;
 use App\Shared\Outbox\Consumers\LogOutboxConsumer;
 use App\Shared\Outbox\Contracts\OutboxConsumer;
 use App\Shared\Tenancy\TenantContext;
@@ -32,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
 
         // The single P1a outbox consumer (log transport). Multi-consumer is P2.
         $this->app->bind(OutboxConsumer::class, LogOutboxConsumer::class);
+
+        // Entitlement seam (FR-060): allow-all socket in P1a; real counter in P1b.
+        $this->app->bind(EntitlementService::class, AllowAllEntitlementService::class);
     }
 
     /**

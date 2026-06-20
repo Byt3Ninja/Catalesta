@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
@@ -24,6 +25,9 @@ use Illuminate\Support\Facades\Route;
  */
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', [HealthController::class, 'show'])->name('health');
+
+    // Public application URL (FR-021) — no auth/tenant; a cohort is public once opened.
+    Route::get('/apply/{cohort}', [ApplyController::class, 'show'])->name('apply.show');
 
     // Organization routes — NO tenant middleware for store + index
     // (no org context exists yet when creating; index lists across orgs)
