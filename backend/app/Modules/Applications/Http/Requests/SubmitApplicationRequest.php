@@ -34,9 +34,12 @@ final class SubmitApplicationRequest extends FormRequest
         return [
             'idempotency_key' => ['required', 'string', 'max:255'],
             'answers' => ['required', 'array'],
-            'blob_digests' => ['sometimes', 'array'],
+            'blob_digests' => ['sometimes', 'array', 'max:50'],
             'blob_digests.*' => ['string', 'regex:/^[a-f0-9]{64}$/'],
-            'files' => ['sometimes', 'array'],
+            // Cap the file COUNT, not just per-file size: getContent() loads every
+            // upload into memory at once, so an uncapped array could exhaust the
+            // worker. 20 files at the per-file ceiling is a generous application.
+            'files' => ['sometimes', 'array', 'max:20'],
             'files.*' => ['file', 'max:'.$maxKb, 'mimes:pdf,jpg,jpeg,png,doc,docx'],
         ];
     }

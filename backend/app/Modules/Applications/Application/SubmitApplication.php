@@ -69,11 +69,19 @@ final class SubmitApplication
             'application.submit:'.$cohortId,
             $idempotencyKey,
             $fingerprint,
-            fn (): array => $this->tenant->runAsSystem(
-                fn (): array => DB::transaction(
-                    fn (): array => $this->write($cohortId, $answers, $uploads, $allDigests),
-                ),
-            ),
+            fn (): array => $this->tenant->runAsSystem(function () use ($cohortId, $answers, $uploads, $allDigests): array {
+                // Store uploads to the (MinIO) blob store BEFORE the transaction.
+                // A bucket put is not transactional, so doing it inside the txn
+                // would orphan the object on rollback — the Blob row rolls back,
+                // the bucket object does not, and refcount GC can never see it.
+                // Content-addressed, so this is idempotent; it runs once per real
+                // attempt (the idempotency layer skips it on a completed replay).
+                foreach ($uploads as $contents) {
+                    $this->blobs->store($contents);
+                }
+
+                return DB::transaction(fn (): array => $this->write($cohortId, $answers, $allDigests));
+            }),
         );
 
         return $receipt;
@@ -81,11 +89,10 @@ final class SubmitApplication
 
     /**
      * @param  array<string, mixed>  $answers
-     * @param  array<int, string>  $uploads
-     * @param  array<int, string>  $allDigests
+     * @param  array<int, string>  $allDigests  already-stored blob digests to pin
      * @return array{reference_number: string, status: string, cohort_id: string, submitted_at: ?string}
      */
-    private function write(string $cohortId, array $answers, array $uploads, array $allDigests): array
+    private function write(string $cohortId, array $answers, array $allDigests): array
     {
         // Authoritative open-check INSIDE the write, under a row lock, so a
         // concurrent CloseCohort serializes against us (FR-033 close race).
@@ -94,12 +101,8 @@ final class SubmitApplication
             throw new CohortClosedException($cohortId);
         }
 
-        // Store inline uploads now (idempotent by content); RecordSubmission pins
-        // every digest in $allDigests, so referenced blobs survive GC.
-        foreach ($uploads as $contents) {
-            $this->blobs->store($contents);
-        }
-
+        // Uploads were stored before the transaction; RecordSubmission pins every
+        // digest in $allDigests so referenced blobs survive GC.
         $submission = $this->record->handle($cohort, $answers, $allDigests, [
             'form' => $cohort->form_version_id,
             // program/rubric version ids will resolve from the form version once

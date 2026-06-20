@@ -56,6 +56,14 @@ claude-opus-4-8[1m]
 - A standalone `GET` read-only status endpoint — needs a submitter-identity column on `application_submissions` (2.6 stores no `sub`); it is UI-facing. The POST already returns the full keepable receipt (`reference_number` + `status` + `submitted_at`), and idempotency replay makes a re-tap return that same receipt (AC-4 substance).
 - FR-080 Learning-Telemetry events (`application.viewed/started/abandoned{step}/submitted`) and the **"verified in a dashboard a human has looked at"** DoD — these are frontend/observability and cannot be satisfied autonomously. The outbox `ApplicationSubmitted` event is the durable backend signal in the meantime.
 
+### Review fixes (post-merge, branch `fix/2-7-review`)
+Addressing the PR #13 multi-agent code review:
+- **#1 (MinIO orphan on rollback)** — `ContentAddressedStore::store()` for inline uploads now runs BEFORE the `DB::transaction` (inside the idempotency closure, so it still runs once per real attempt and is skipped on replay). A MinIO `put` is not transactional; storing inside the txn orphaned the bucket object on rollback (the `Blob` row rolled back, the object did not, and refcount GC could never see it).
+- **#4 (memory exhaustion)** — `SubmitApplicationRequest` now caps `files` at 20 and `blob_digests` at 50; `getContent()` loads every upload into memory, so the count must be bounded, not just per-file size.
+- **#2 (FR-033 untested on SQLite)** — added `PublicSubmitCloseRaceTest` (pgsql-gated, `DatabaseMigrations`) that proves with two real connections that a `CloseCohort` UPDATE blocks while a submit holds `Cohort::lockForUpdate()`. Verified PASSING against a throwaway Postgres DB; skips cleanly on the SQLite suite (`lockForUpdate` is a no-op there). **Note:** the default `php artisan test` (SQLite) still cannot exercise the lock — a pgsql CI lane is recommended to keep this guarantee covered.
+- **#3 (program/rubric version ids null)** — left as a tracked Epic-3 gap (no code change); they resolve from the form→program/rubric link that does not exist yet.
+- Cleanup items (#5 double-pin, #6 double cohort resolve, #7 dead `$now` param, #8 nested-txn comment) — deferred; lower value, noted for a later pass.
+
 ### File List
 - `app/Modules/Applications/Application/SubmitApplication.php` (new)
 - `app/Modules/Applications/Application/Exceptions/CohortClosedException.php` (new)
