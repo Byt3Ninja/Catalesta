@@ -63,7 +63,7 @@ development_status:
   epic-2: in-progress
   2-1-content-addressed-blob-storage: review
   2-2-idempotency-primitive: review
-  2-3-transactional-outbox-table-and-producer: backlog
+  2-3-transactional-outbox-table-and-producer: review
   2-4-outbox-relay-worker: backlog
   2-5-enumerated-audit-trail: backlog
   2-6-application-submission-record-and-immutable-snapshot: backlog
