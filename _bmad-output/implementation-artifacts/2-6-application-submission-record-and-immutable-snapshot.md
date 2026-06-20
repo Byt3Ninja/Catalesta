@@ -1,6 +1,9 @@
+---
+baseline_commit: 5a321d6
+---
 # Story 2.6: Application submission record + immutable snapshot
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,18 +35,18 @@ From epics.md (Story 2.6) + FR-030/031 + AR-4/AR-6 + the ★ Edge-Case Hardening
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Schema: `application_submissions`** (AC: 1, 2, 4) — migration `2026_06_2x_xxxxxx_create_application_submissions_table.php` (after `…000500`):
-  - [ ] Columns: `id` (ulid PK), `organization_id` (ulid, indexed — server-set, AR-6), `cohort_id` (ulid, FK→`cohorts`, indexed), `submission_snapshot` (jsonb), `created_at` (timestampTz useCurrent). The snapshot jsonb holds `{answers: {...}, blob_refs: [sha256...], form_version_id, program_version_id, rubric_version_id}`.
-  - [ ] Tenant-owned → carries `organization_id` (CLAUDE.md rule 6). Index `(organization_id, cohort_id)`.
-- [ ] **Task 2 — `ApplicationSubmission` model** (AC: 1, 3) — `app/Modules/Applications/Domain/Models/ApplicationSubmission.php`:
-  - [ ] `final class … extends Model`, `HasUlids`, `$timestamps=false`, casts `submission_snapshot => 'array'`, `created_at => 'datetime'`. Use the **`BelongsToTenant`** trait (`App\Shared\Tenancy`) for fail-closed scoping (AR-6) — mirror an existing tenant-owned model (e.g. a Programs/Cohorts model) for the trait wiring.
-  - [ ] **Immutability:** add an `updating` guard (mirror `App\Shared\Versioning\ImmutableWhenPublished`'s `static::updating` pattern, but unconditional) that throws if any persisted row is updated — the snapshot is write-once (AC-3). A test asserts an update attempt throws and the row is unchanged.
-- [ ] **Task 3 — `RecordSubmission` service** (AC: 2, 5, 6, 7, 8) — `app/Modules/Applications/Application/RecordSubmission.php`, `final class`, mirror `CreateOrganization` (constructor-injected collaborators, `DB::transaction`):
-  - [ ] Signature: `handle(Cohort $cohort, array $answers, array $blobDigests, array $versionIds): ApplicationSubmission` (versionIds = `['form'=>…, 'program'=>…, 'rubric'=>…]`). The caller (Story 2.7) resolves the open cohort + published-form version ids; 2.6 records.
-  - [ ] **Inside one `DB::transaction`** (AC-5): for each digest in `$blobDigests` — assert `ContentAddressedStore::exists($digest)` (AC-6, reject unknown) then `incrementRef($digest)` (AC-5 pin) — then build the snapshot jsonb (answers + blob_refs + version ids, all copied values, AC-7) and create the `ApplicationSubmission`. If anything throws, the transaction rolls back (no orphan submission, no leaked refcount — the increments roll back too).
-  - [ ] Payload guard (AC-8): reject an oversize answers/snapshot payload (config or a sane constant) fail-closed; empty answers → valid empty snapshot.
-  - [ ] **Reuse, do not reinvent:** `ContentAddressedStore` (Story 2.1) for blob existence + refcount; `BelongsToTenant`/`TenantContext` for `organization_id`; the versioning kernel is **not** reused for the snapshot (per ADR-1 the snapshot is a distinct lifecycle — a plain jsonb capture, not a versionable).
-- [ ] **Task 4 — Tests** (AC: all, esp. ★ 5/6) — see Testing Requirements.
+- [x] **Task 1 — Schema: `application_submissions`** (AC: 1, 2, 4) — migration `2026_06_2x_xxxxxx_create_application_submissions_table.php` (after `…000500`):
+  - [x] Columns: `id` (ulid PK), `organization_id` (ulid, indexed — server-set, AR-6), `cohort_id` (ulid, FK→`cohorts`, indexed), `submission_snapshot` (jsonb), `created_at` (timestampTz useCurrent). The snapshot jsonb holds `{answers: {...}, blob_refs: [sha256...], form_version_id, program_version_id, rubric_version_id}`.
+  - [x] Tenant-owned → carries `organization_id` (CLAUDE.md rule 6). Index `(organization_id, cohort_id)`.
+- [x] **Task 2 — `ApplicationSubmission` model** (AC: 1, 3) — `app/Modules/Applications/Domain/Models/ApplicationSubmission.php`:
+  - [x] `final class … extends Model`, `HasUlids`, `$timestamps=false`, casts `submission_snapshot => 'array'`, `created_at => 'datetime'`. Use the **`BelongsToTenant`** trait (`App\Shared\Tenancy`) for fail-closed scoping (AR-6) — mirror an existing tenant-owned model (e.g. a Programs/Cohorts model) for the trait wiring.
+  - [x] **Immutability:** add an `updating` guard (mirror `App\Shared\Versioning\ImmutableWhenPublished`'s `static::updating` pattern, but unconditional) that throws if any persisted row is updated — the snapshot is write-once (AC-3). A test asserts an update attempt throws and the row is unchanged.
+- [x] **Task 3 — `RecordSubmission` service** (AC: 2, 5, 6, 7, 8) — `app/Modules/Applications/Application/RecordSubmission.php`, `final class`, mirror `CreateOrganization` (constructor-injected collaborators, `DB::transaction`):
+  - [x] Signature: `handle(Cohort $cohort, array $answers, array $blobDigests, array $versionIds): ApplicationSubmission` (versionIds = `['form'=>…, 'program'=>…, 'rubric'=>…]`). The caller (Story 2.7) resolves the open cohort + published-form version ids; 2.6 records.
+  - [x] **Inside one `DB::transaction`** (AC-5): for each digest in `$blobDigests` — assert `ContentAddressedStore::exists($digest)` (AC-6, reject unknown) then `incrementRef($digest)` (AC-5 pin) — then build the snapshot jsonb (answers + blob_refs + version ids, all copied values, AC-7) and create the `ApplicationSubmission`. If anything throws, the transaction rolls back (no orphan submission, no leaked refcount — the increments roll back too).
+  - [x] Payload guard (AC-8): reject an oversize answers/snapshot payload (config or a sane constant) fail-closed; empty answers → valid empty snapshot.
+  - [x] **Reuse, do not reinvent:** `ContentAddressedStore` (Story 2.1) for blob existence + refcount; `BelongsToTenant`/`TenantContext` for `organization_id`; the versioning kernel is **not** reused for the snapshot (per ADR-1 the snapshot is a distinct lifecycle — a plain jsonb capture, not a versionable).
+- [x] **Task 4 — Tests** (AC: all, esp. ★ 5/6) — see Testing Requirements.
 
 ## Dev Notes
 
@@ -96,12 +99,36 @@ PHPUnit class-style, `RefreshDatabase`. Seed a Cohort + organization context:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-opus-4-8[1m] (Claude Opus 4.8, 1M context)
 
 ### Debug Log References
+
+- `php artisan test --filter RecordSubmissionTest` → 7 passed, 20 assertions (first run).
+- `php artisan test` (full) → **315 passed, 988 assertions, 0 failures** (no regressions; +7).
+- `vendor/bin/pint` → passed (auto-fixed `self_static_accessor`). Array params annotated `@param array<...>` per the CI PHPStan-L6 lesson.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed — comprehensive developer guide created (2026-06-20).
+- Built the **persistence layer**: `application_submissions` table + `ApplicationSubmission` model (write-once via an `updating` guard) + `RecordSubmission` service, in a new `App\Modules\Applications` module.
+- **★ Blob pinning (AC-5):** `RecordSubmission` runs inside one `DB::transaction` — for each referenced digest it asserts `ContentAddressedStore::exists()` (AC-6 reject unknown) then `incrementRef()` (pin). Proven: a snapshot-referenced blob survives `blobs:gc --apply`. Rollback undoes both the row and the refcount bumps.
+- **Immutability (AC-3):** model-level write-once guard (mirrors `ImmutableWhenPublished`'s `updating` hook, unconditional); version ids are copied values in the jsonb, so a source republish can't alter an existing snapshot.
+- **Tenancy (AC-4):** reused `BelongsToTenant` (org_id server-set on create, fail-closed global scope) + an explicit cross-tenant isolation test (AR-6).
+- **Scope honored:** version ids + blob digests are **inputs** (no HTTP/idempotency/closed-cohort/receipt — those are Story 2.7). The real published-form version source is Story 1.3 (Epic 1, not built) — flagged; 2.7 will need Epic 1 first.
+- **CI discipline applied:** annotated all `array` params; no `@template` generics — the two things that red-failed CI on 2.2/2.3.
+
+### Change Log
+
+| Date | Change |
+|---|---|
+| 2026-06-20 | Implemented Story 2.6 — application submission record + immutable snapshot (`App\Modules\Applications`); blob-pinning protects referenced blobs from GC; write-once + tenant-isolated. 7 tests. Status → review. |
 
 ### File List
+
+**New:**
+- `backend/database/migrations/2026_06_20_000600_create_application_submissions_table.php`
+- `backend/app/Modules/Applications/Domain/Models/ApplicationSubmission.php`
+- `backend/app/Modules/Applications/Application/RecordSubmission.php`
+- `backend/app/Modules/Applications/Application/Exceptions/UnknownBlobReferenceException.php`
+- `backend/app/Modules/Applications/Application/Exceptions/SubmissionTooLargeException.php`
+- `backend/tests/Feature/Applications/RecordSubmissionTest.php`

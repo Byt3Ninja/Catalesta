@@ -66,7 +66,7 @@ development_status:
   2-3-transactional-outbox-table-and-producer: review
   2-4-outbox-relay-worker: review
   2-5-enumerated-audit-trail: review
-  2-6-application-submission-record-and-immutable-snapshot: ready-for-dev
+  2-6-application-submission-record-and-immutable-snapshot: review
   2-7-public-idempotent-submit-flow-and-receipt: backlog
   2-8-operator-submission-list-and-funnel: backlog
   epic-2-retrospective: optional
