@@ -49,6 +49,9 @@ services:
       PROFILE_API_BASE_URL: http://startup-gate-mock:8080/sg/api/v1
     volumes:
       - ./backend:/var/www/html
+      # Keep the image-built vendor/ — the bind mount above would otherwise
+      # shadow it with the host's (absent on CI runners), breaking autoload.
+      - /var/www/html/vendor
 
   queue-worker:
     build: ./backend
@@ -58,6 +61,7 @@ services:
     environment: *laravel_env
     volumes:
       - ./backend:/var/www/html
+      - /var/www/html/vendor
     command: php artisan queue:work --tries=3 --timeout=90
 
   scheduler:
@@ -67,6 +71,7 @@ services:
     environment: *laravel_env
     volumes:
       - ./backend:/var/www/html
+      - /var/www/html/vendor
     command: php artisan schedule:work
 
   react-web:
@@ -162,6 +167,7 @@ services:
       - "8081:8080"
     volumes:
       - ./backend:/var/www/html
+      - /var/www/html/vendor
 
 volumes:
   postgres-data:

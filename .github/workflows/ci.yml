@@ -159,19 +159,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build & start web
-        run: |
-          docker compose build react-web
-          docker compose up -d react-web
-
-      - name: Wait for web
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000 >/dev/null; then echo "web OK"; exit 0; fi
-            sleep 2
-          done
-          echo "web did not become ready"; docker compose logs react-web; exit 1
-
+      # Install host deps BEFORE `docker compose up`. The react-web bind mount
+      # (./frontend:/app) makes Docker create ./frontend/node_modules as root for
+      # the anonymous-volume mountpoint; doing npm ci first means the runner owns
+      # that directory and the host Playwright run isn't blocked by EACCES.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -186,6 +177,19 @@ jobs:
       - name: Install Playwright browsers
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+
+      - name: Build & start web
+        run: |
+          docker compose build react-web
+          docker compose up -d react-web
+
+      - name: Wait for web
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 >/dev/null; then echo "web OK"; exit 0; fi
+            sleep 2
+          done
+          echo "web did not become ready"; docker compose logs react-web; exit 1
 
       - name: Run e2e tests
         working-directory: frontend
