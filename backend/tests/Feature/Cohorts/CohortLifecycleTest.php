@@ -88,4 +88,16 @@ final class CohortLifecycleTest extends TestCase
     {
         $this->getJson('/api/v1/apply/'.Str::ulid())->assertNotFound();
     }
+
+    public function test_public_url_returns_the_published_form_definition(): void // Story 2.7 form-fetch
+    {
+        [$cohort, $form] = $this->bootCohortAndForm();
+        $this->app->make(OpenCohort::class)->handle($cohort, $form, now()->subDay(), now()->addDay());
+
+        // The applicant page needs the field definitions to render the stepped form.
+        $this->getJson("/api/v1/apply/{$cohort->id}")
+            ->assertOk()
+            ->assertJsonPath('form.0.type', 'short_text')
+            ->assertJsonPath('form.0.label', 'Name');
+    }
 }
