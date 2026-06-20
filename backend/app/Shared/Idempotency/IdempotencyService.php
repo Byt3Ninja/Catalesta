@@ -20,10 +20,7 @@ use Throwable;
 final class IdempotencyService
 {
     /**
-     * @template T
-     *
-     * @param  Closure(): T  $fn
-     * @return T
+     * @param  Closure(): mixed  $fn
      *
      * @throws IdempotencyConflictException same key, different fingerprint (→422)
      * @throws IdempotencyInFlightException duplicate while first call runs (→409)
