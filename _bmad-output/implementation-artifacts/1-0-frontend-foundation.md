@@ -130,3 +130,15 @@ Per CLAUDE.md (frontend checks) + Per-story DoD:
 - Contrast verification of `input-border` (≥3:1) with a tool.
 
 **Decision recorded:** dark-mode ships as token set + provider mechanism; a user-facing toggle is later (operator settings).
+
+## Implementation Status — Slice 2 (2026-06-20)
+
+**Done (frontend CI-clean: typecheck + lint + 14 Vitest tests):**
+- Components: `Banner` (info/error/success, role alert/status), `Spinner` + `Skeleton` (`Loading.tsx`; skeleton aria-hidden/busy, shimmer respects `prefers-reduced-motion`), `Link`, `FormLayout`, `AppShell` (two-zone rail+work, logical props for RTL).
+- Wired `DirectionProvider` + `tokens.css` into `main.tsx` (the app shell now mounts the foundation).
+- CSS classes for the new components added to `tokens.css`.
+
+**Still deferred to Slice 3 (the tooling-heavy part):**
+- a11y **CI gate** — Storybook `addon-a11y`/`addon-vitest` axe checks (contrast + missing-label + lang/dir) failing the build on regression.
+- `.stories.tsx` per component.
+- `input-border` contrast verification with a tool.
