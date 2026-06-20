@@ -1,6 +1,6 @@
 # Story 1.0: Frontend foundation (design tokens, component set, a11y gate)
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -114,3 +114,19 @@ Per CLAUDE.md (frontend checks) + Per-story DoD:
 - **Decision to record during implementation:** P1a dark-mode toggle scope (AC-5) — state it here.
 
 ### File List
+
+## Implementation Status — Slice 1 (2026-06-20)
+
+**Done (committed, frontend CI-clean: typecheck + lint + 8 Vitest tests):**
+- **Design tokens** — `src/styles/tokens.css`: DESIGN.md colors (light + `[data-theme=dark]`, incl. `accent-btn`, `input-border`), fonts (Space Grotesk/Inter/Tajawal/IBM Plex Mono), radii, spacing, focus ring; base component classes.
+- **DirectionProvider** (`src/app/DirectionProvider.tsx` + `direction-context.ts`) — live LTR↔RTL + light/dark; sets `dir`/`lang`/`data-theme` on `<html>`. (hook split out for `react-refresh/only-export-components`.)
+- **Primitives** — `Button` (primary/secondary, loading→disabled+aria-busy), `Field` (label + `dir=auto` input + `aria-invalid`/`aria-describedby` error association), `StateBlock` (empty/error/offline). Each with Vitest tests.
+
+**Deferred to Slice 2 (fresh session):**
+- a11y **CI gate** (Storybook `addon-a11y` + `addon-vitest` axe checks; contrast + missing-label + lang/dir; fail build on regression) — the tooling-heavy part.
+- `.stories.tsx` per component (Storybook).
+- Remaining components: Banner/alert, Spinner+Skeleton, FormLayout primitive, AppShell, Link/text styles.
+- Wire `DirectionProvider` + `tokens.css` into `main.tsx`/`App.tsx` (currently tokens are unimported until the shell lands).
+- Contrast verification of `input-border` (≥3:1) with a tool.
+
+**Decision recorded:** dark-mode ships as token set + provider mechanism; a user-facing toggle is later (operator settings).
