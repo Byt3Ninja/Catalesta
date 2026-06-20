@@ -43,6 +43,11 @@ Status: ready-for-dev
 ### Agent Model Used
 claude-opus-4-8[1m]
 ### Completion Notes List
+**UI slice — DONE** (frontend green: typecheck + lint + 39 Vitest tests, 13 files; now unblocked — Story 1.0 shipped).
+- **Form-fetch prereq:** `GET /v1/apply/{cohort}` extended to return the published `FormVersion.definition` (`form`), resolved in the same `runAsSystem` as the cohort, so the page can render the field schema. (committed: backend, 346 tests green.)
+- **Stepped submit page** (`src/pages/ApplyPage.tsx` + `ApplyField.tsx` + `useApplyDraft.ts`, `src/api/apply.ts`, `src/schemas/apply.ts`; routed off the pathname in `App.tsx`, no router dep): renders all 8 field types from the definition, one field per step + a **confirm step** ("can't edit after submitting"); per-step **localStorage autosave** keyed by cohort; **EN↔AR** toggle (via `DirectionProvider`) preserving the draft + flipping `dir`; `dir="auto"` on free-text; **idempotent submit** with a persisted `Idempotency-Key` (retry → same calm receipt) + optimistic-lock `Button`; **keepable receipt** showing the reference number. Calm states (`Banner`/`StateBlock`) for closed (422 `COHORT_CLOSED`), in-flight (409), conflict/validation (422), 401 sign-in prompt, and offline. Reuses the Story 1.0 primitives only; no new deps.
+- **Still deferred:** FR-080 telemetry (no sink — slice 3) and the OIDC login UI (Story 1.1; the page only surfaces the 401 "sign in to submit" prompt). Standalone GET status endpoint also remains deferred (POST receipt + idempotent replay cover the acknowledgment).
+
 **Backend submit slice — DONE** (336/336 tests green, PHPStan L6 clean, Pint clean, OpenAPI regenerated).
 
 - `POST /v1/apply/{cohort}/submit` (auth:sanctum, NO tenant middleware). Thin controller resolves the cohort under system context (clean 404 vs the 422 a closed cohort returns) and delegates to `SubmitApplication`.

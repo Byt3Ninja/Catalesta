@@ -42,12 +42,17 @@
                                         },
                                         "form_version_id": {
                                             "type": "string"
+                                        },
+                                        "form": {
+                                            "type": "string",
+                                            "description": "The published, immutable field definition (jsonb) the applicant fills\nin \u2014 null if the cohort has no published form yet."
                                         }
                                     },
                                     "required": [
                                         "open",
                                         "cohort_id",
-                                        "form_version_id"
+                                        "form_version_id",
+                                        "form"
                                     ]
                                 }
                             }
