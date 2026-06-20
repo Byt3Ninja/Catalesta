@@ -15,6 +15,8 @@ use App\Modules\Programs\Domain\Models\Track;
 use App\Modules\Programs\Policies\ProgramPolicy;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Policies\StagePolicy;
+use App\Shared\Outbox\Consumers\LogOutboxConsumer;
+use App\Shared\Outbox\Contracts\OutboxConsumer;
 use App\Shared\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(TenantContext::class);
+
+        // The single P1a outbox consumer (log transport). Multi-consumer is P2.
+        $this->app->bind(OutboxConsumer::class, LogOutboxConsumer::class);
     }
 
     /**

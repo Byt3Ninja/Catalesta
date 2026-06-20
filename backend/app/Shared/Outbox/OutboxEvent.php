@@ -22,7 +22,11 @@ final class OutboxEvent extends Model
 
     protected $casts = [
         'payload' => 'array',
+        'claimed_at' => 'datetime',
+        'available_at' => 'datetime',
         'dispatched_at' => 'datetime',
+        'dead_lettered_at' => 'datetime',
+        'attempts' => 'int',
         'created_at' => 'datetime',
     ];
 }
