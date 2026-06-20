@@ -10,6 +10,55 @@
         }
     ],
     "paths": {
+        "/v1/apply/{cohort}": {
+            "get": {
+                "operationId": "apply.show",
+                "tags": [
+                    "Apply"
+                ],
+                "parameters": [
+                    {
+                        "name": "cohort",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "open": {
+                                            "type": "string"
+                                        },
+                                        "cohort_id": {
+                                            "type": "string"
+                                        },
+                                        "form_version_id": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "open",
+                                        "cohort_id",
+                                        "form_version_id"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    }
+                }
+            }
+        },
         "/v1/auth/login": {
             "get": {
                 "operationId": "auth.login",
@@ -3025,6 +3074,25 @@
             }
         },
         "responses": {
+            "NotFoundHttpException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
             "AuthenticationException": {
                 "description": "Unauthenticated",
                 "content": {
