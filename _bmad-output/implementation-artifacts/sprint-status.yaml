@@ -54,7 +54,7 @@ development_status:
   1-0-frontend-foundation: ready-for-dev
   1-1-sign-up-and-create-an-organization: backlog
   1-2-create-and-publish-a-program: backlog
-  1-3-build-and-publish-an-application-form: backlog
+  1-3-build-and-publish-an-application-form: review
   1-4-open-and-close-a-cohort-with-a-public-application-url: backlog
   1-5-operator-home-and-consent-aware-reads: backlog
   epic-1-retrospective: optional
