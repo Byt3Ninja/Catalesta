@@ -88,3 +88,22 @@
 .ds-field__help--error { color: var(--color-danger); }
 
 .ds-state { text-align: center; color: var(--color-ink-muted); padding: var(--space-6); }
+
+.ds-banner { border-radius: var(--radius-md); padding: 12px 16px; border: 1px solid var(--color-border); }
+.ds-banner--info { background: var(--color-surface-alt); color: var(--color-ink); }
+.ds-banner--error { background: var(--color-surface); color: var(--color-danger); border-color: var(--color-danger); }
+.ds-banner--success { background: var(--color-surface); color: var(--color-success); border-color: var(--color-success); }
+
+.ds-spinner { color: var(--color-ink-muted); font: 400 14px/1 var(--font-body); }
+.ds-skeleton { display: flex; flex-direction: column; gap: var(--space-2); }
+.ds-skeleton__line { height: 12px; border-radius: var(--radius-sm); background: var(--color-surface-alt); animation: ds-shimmer 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ds-skeleton__line { animation: none; } }
+@keyframes ds-shimmer { 50% { opacity: 0.5; } }
+
+.ds-link { color: var(--color-accent-btn); text-decoration: underline; }
+
+.ds-form { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.ds-shell { display: flex; gap: var(--space-6); align-items: flex-start; }
+.ds-shell__rail { flex: 0 0 240px; }
+.ds-shell__main { flex: 1 1 auto; min-width: 0; }
