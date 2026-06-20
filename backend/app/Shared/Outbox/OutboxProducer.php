@@ -16,6 +16,9 @@ namespace App\Shared\Outbox;
  */
 final class OutboxProducer
 {
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function record(string $eventType, array $payload): OutboxEvent
     {
         return OutboxEvent::create([

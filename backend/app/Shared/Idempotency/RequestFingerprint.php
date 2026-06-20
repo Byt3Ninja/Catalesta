@@ -11,11 +11,17 @@ namespace App\Shared\Idempotency;
  */
 final class RequestFingerprint
 {
+    /**
+     * @param  array<array-key, mixed>  $payload
+     */
     public static function for(string $actor, array $payload): string
     {
         return hash('sha256', $actor.'|'.self::canonicalJson($payload));
     }
 
+    /**
+     * @param  array<array-key, mixed>  $payload
+     */
     private static function canonicalJson(array $payload): string
     {
         self::ksortRecursive($payload);
@@ -23,6 +29,9 @@ final class RequestFingerprint
         return json_encode($payload, JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * @param  array<array-key, mixed>  $payload
+     */
     private static function ksortRecursive(array &$payload): void
     {
         ksort($payload);
