@@ -72,6 +72,10 @@ jobs:
     name: Build & smoke-test containers
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    env:
+      # Lets Compose interpolate startup-gate-mock's APP_KEY (it templates
+      # "${APP_KEY}"); without it the value is blank and Laravel can fail to boot.
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
 
@@ -83,8 +87,11 @@ jobs:
 
       - name: Wait for and verify mock identity service
         run: |
+          # /up is Laravel's framework health route (present in every APP_ROLE);
+          # the mock exposes no bare /health, and OIDC discovery lives under
+          # /.well-known. /up proves the mock app booted and is serving.
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8081/health; then echo " mock OK"; exit 0; fi
+            if curl -sf http://localhost:8081/up; then echo " mock OK"; exit 0; fi
             sleep 2
           done
           echo "mock service did not become healthy"; docker compose logs startup-gate-mock; exit 1
@@ -139,14 +146,21 @@ jobs:
           npm ci
           npm audit --audit-level=high
 
-      - name: Trivy filesystem scan
+      # Dependency vulns are owned by composer audit (PHP) + npm audit (JS) above —
+      # our only shipped ecosystems. Trivy here covers the filesystem layer it is
+      # uniquely good at: leaked secrets. The prior `vuln` scanner re-scanned
+      # language libraries and flagged noise from non-shipped tooling (Python
+      # toolcache) and vendored sub-deps' bundled node_modules, duplicating the
+      # audits. Vendored trees are skipped to avoid secret false-positives in deps.
+      - name: Trivy filesystem scan (secret detection)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
+          scanners: secret
           severity: HIGH,CRITICAL
-          ignore-unfixed: true
           exit-code: '1'
+          skip-dirs: backend/vendor,frontend/node_modules
 
   e2e:
     name: E2E (Playwright)
