@@ -1,0 +1,99 @@
+import { API_BASE_URL } from './client'
+import {
+  applyFormSchema,
+  receiptSchema,
+  SubmitError,
+  type ApplyForm,
+  type Receipt,
+  type SubmitErrorCode,
+} from '../schemas/apply'
+
+/** Public, no-auth fetch of the cohort's apply form definition. */
+export async function fetchApplyForm(cohortId: string): Promise<ApplyForm> {
+  const response = await fetch(`${API_BASE_URL}/apply/${encodeURIComponent(cohortId)}`)
+  if (!response.ok) {
+    throw new Error(`apply-form fetch failed: ${response.status}`)
+  }
+  const json: unknown = await response.json()
+  return applyFormSchema.parse(json)
+}
+
+export interface SubmitArgs {
+  answers: Record<string, unknown>
+  files: File[]
+  idempotencyKey: string
+}
+
+const ERROR_CODES = new Set<SubmitErrorCode>([
+  'COHORT_CLOSED',
+  'IDEMPOTENCY_CONFLICT',
+  'IDEMPOTENCY_IN_FLIGHT',
+  'VALIDATION_ERROR',
+])
+
+function toSubmitErrorCode(raw: unknown): SubmitErrorCode {
+  return typeof raw === 'string' && ERROR_CODES.has(raw as SubmitErrorCode)
+    ? (raw as SubmitErrorCode)
+    : 'UNKNOWN'
+}
+
+/**
+ * Authenticated, idempotent submit. The same Idempotency-Key dedups a retry to
+ * the same receipt (server-side). When files are present we must send multipart
+ * FormData and let the browser set the boundary Content-Type itself.
+ */
+export async function submitApplication(
+  cohortId: string,
+  { answers, files, idempotencyKey }: SubmitArgs,
+): Promise<Receipt> {
+  const url = `${API_BASE_URL}/apply/${encodeURIComponent(cohortId)}/submit`
+  const headers: Record<string, string> = { 'Idempotency-Key': idempotencyKey }
+
+  let body: BodyInit
+  if (files.length > 0) {
+    const form = new FormData()
+    for (const [key, value] of Object.entries(answers)) {
+      form.append(`answers[${key}]`, serializeAnswer(value))
+    }
+    for (const file of files) {
+      form.append('files[]', file)
+    }
+    body = form
+    // Do NOT set Content-Type — the browser adds the multipart boundary.
+  } else {
+    headers['Content-Type'] = 'application/json'
+    body = JSON.stringify({ answers, blob_digests: [] })
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body,
+  })
+
+  if (response.status === 201) {
+    const json: unknown = await response.json()
+    return receiptSchema.parse(json)
+  }
+  if (response.status === 401) {
+    throw new SubmitError('UNAUTHENTICATED')
+  }
+
+  // 409 / 422 carry { error: { code } }.
+  let code: SubmitErrorCode
+  try {
+    const json = (await response.json()) as { error?: { code?: unknown } }
+    code = toSubmitErrorCode(json?.error?.code)
+  } catch {
+    code = 'UNKNOWN'
+  }
+  throw new SubmitError(code)
+}
+
+function serializeAnswer(value: unknown): string {
+  if (value == null) return ''
+  if (Array.isArray(value)) return JSON.stringify(value)
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}

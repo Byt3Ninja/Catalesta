@@ -10,6 +10,7 @@ import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
+import { ApplyField } from '../pages/ApplyField'
 
 /**
  * Story 1.0 Task 4 — accessibility CI gate. Runs axe-core over each rendered
@@ -91,6 +92,56 @@ describe('a11y gate (axe-core)', () => {
       <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
         <h1>Work area</h1>
       </AppShell>,
+    )
+  })
+
+  it('ApplyField — representative field types (Story 2.7)', async () => {
+    const noop = () => {}
+    await expectNoViolations(
+      <FormLayout>
+        <ApplyField
+          field={{ type: 'short_text', label: 'Startup name', required: true }}
+          value=""
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'long_text', label: 'Describe your startup', help: 'Be concise.' }}
+          value=""
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'single_select', label: 'Stage', options: ['Idea', 'MVP'] }}
+          value=""
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'multi_select', label: 'Sectors', options: ['Fintech', 'Health'] }}
+          value={[]}
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'date', label: 'Founded on' }}
+          value=""
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'file_upload', label: 'Pitch deck' }}
+          value={[]}
+          onChange={noop}
+          onFiles={noop}
+        />
+        <ApplyField
+          field={{ type: 'consent', label: 'I agree to the terms.', required: true }}
+          value={false}
+          onChange={noop}
+          onFiles={noop}
+        />
+      </FormLayout>,
     )
   })
 })
