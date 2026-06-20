@@ -32,6 +32,11 @@ jobs:
       - name: Static analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
       - name: Unit & feature tests
         run: php artisan test
 
