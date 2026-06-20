@@ -1,0 +1,90 @@
+/*
+ * Catalesta design tokens (Story 1.0) — from DESIGN.md. Single source consumed by
+ * all components. Light is :root; dark overrides under [data-theme="dark"].
+ * Verified-contrast pairs: accentBtn (white text >=4.5:1), inputBorder (>=3:1).
+ */
+:root {
+  --color-bg: #f7f7fb;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1effa;
+  --color-ink: #1a1430;
+  --color-ink-muted: #5b5470;
+  --color-ink-faint: #8e87a6;
+  --color-accent: #6d4aff;
+  --color-accent-btn: #5a38e6; /* primary-button fill, white text >=4.5:1 */
+  --color-border: #e6e3f0;
+  --color-input-border: #79718f; /* >=3:1 on surface (WCAG 1.4.11) */
+  --color-success: #0a7d45;
+  --color-warning: #9a6410;
+  --color-danger: #d92d20;
+  --color-focus: #6d4aff;
+  --color-on-accent: #ffffff;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-arabic: 'Tajawal', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+}
+
+[data-theme='dark'] {
+  --color-bg: #14121f;
+  --color-surface: #1e1b2e;
+  --color-surface-alt: #26223a;
+  --color-ink: #ece9f7;
+  --color-ink-muted: #a9a2c2;
+  --color-ink-faint: #7c7596;
+  --color-accent: #7c5cff;
+  --color-accent-btn: #5a38e6;
+  --color-border: #2e2a40;
+  --color-input-border: #6e6788;
+  --color-success: #34c77b;
+  --color-warning: #f2c14e;
+  --color-danger: #ff6b5e;
+  --color-focus: #9279ff;
+  --color-on-accent: #ffffff;
+}
+
+/* Visible focus ring, never removed (a11y floor). */
+.ds-focusable:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.ds-btn {
+  font: 600 15px/1 var(--font-body);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+}
+.ds-btn--primary { background: var(--color-accent-btn); color: var(--color-on-accent); }
+.ds-btn--secondary { background: var(--color-surface); color: var(--color-ink); border-color: var(--color-input-border); }
+.ds-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.ds-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.ds-field__label { color: var(--color-ink); font: 500 13px/1.4 var(--font-body); }
+.ds-input {
+  font: 400 15px/1.4 var(--font-body);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-input-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.ds-input[aria-invalid='true'] { border-color: var(--color-danger); }
+.ds-field__help { color: var(--color-ink-muted); font: 400 12px/1.4 var(--font-body); }
+.ds-field__help--error { color: var(--color-danger); }
+
+.ds-state { text-align: center; color: var(--color-ink-muted); padding: var(--space-6); }
