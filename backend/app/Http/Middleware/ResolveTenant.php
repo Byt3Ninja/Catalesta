@@ -9,8 +9,8 @@ use App\Shared\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class ResolveTenant
 {
@@ -44,7 +44,8 @@ final class ResolveTenant
             if ($isPlatformAdmin) {
                 return $next($request);
             }
-            throw new AccessDeniedHttpException('Not a member of this organization.');
+            // Neutral 404 (FR-004 / AR-6): a non-member must not learn the org exists.
+            throw new NotFoundHttpException;
         }
 
         $this->tenant->setOrganization($orgId, $membership, $membership->effectivePermissionKeys());

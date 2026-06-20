@@ -1,9 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { App } from '../app/App'
+
+// Story 1.1 moved the no-org gate to the root route; HealthPage now lives at /health.
+beforeEach(() => {
+  window.history.pushState({}, '', '/health')
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
+  window.history.pushState({}, '', '/')
 })
 
 test('renders API health checks returned by the backend', async () => {
