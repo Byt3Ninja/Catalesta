@@ -13,7 +13,10 @@ const preview: Preview = {
             // 'todo' - show a11y violations in the test UI only
             // 'error' - fail CI on a11y violations
             // 'off' - skip a11y checks entirely
-            test: "todo",
+            // Story 1.0 Task 4: fail on violations. The authoritative CI gate is the
+            // jsdom axe run in src/tests/a11y.test.tsx (green "Frontend" lane); this
+            // makes the Storybook browser path fail too, wherever it is run.
+            test: "error",
         },
     },
 };

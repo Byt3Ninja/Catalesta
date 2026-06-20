@@ -1,0 +1,96 @@
+import { render } from '@testing-library/react'
+import axe from 'axe-core'
+import type { ReactElement } from 'react'
+import { describe, expect, it } from 'vitest'
+import { AppShell } from '../components/AppShell'
+import { Banner } from '../components/Banner'
+import { Button } from '../components/Button'
+import { Field } from '../components/Field'
+import { FormLayout } from '../components/FormLayout'
+import { Link } from '../components/Link'
+import { Spinner } from '../components/Loading'
+import { StateBlock } from '../components/StateBlock'
+
+/**
+ * Story 1.0 Task 4 — accessibility CI gate. Runs axe-core over each rendered
+ * primitive and fails on structural violations (missing form label, accessible
+ * name, invalid ARIA, etc.). Runs in the jsdom Vitest project (the green
+ * "Frontend" CI lane), NOT Playwright browser mode — see the story's decision
+ * record. `color-contrast` and the page-scoped `region` rule are disabled here:
+ * contrast is verified arithmetically in contrast.test.ts (jsdom can't compute
+ * rendered colour), and `region` is a page-level rule irrelevant to isolated
+ * components.
+ */
+const AXE_OPTIONS: axe.RunOptions = {
+  rules: {
+    'color-contrast': { enabled: false },
+    region: { enabled: false },
+  },
+}
+
+async function expectNoViolations(ui: ReactElement): Promise<void> {
+  const { container } = render(ui)
+  const results = await axe.run(container, AXE_OPTIONS)
+  const summary = results.violations
+    .map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)
+    .join('\n')
+  expect(results.violations, summary).toHaveLength(0)
+}
+
+describe('a11y gate (axe-core)', () => {
+  it('Button — all variants/states', async () => {
+    await expectNoViolations(
+      <>
+        <Button>Save</Button>
+        <Button variant="secondary">Cancel</Button>
+        <Button disabled>Disabled</Button>
+        <Button loading>Saving</Button>
+      </>,
+    )
+  })
+
+  it('Field — labelled, with help and error', async () => {
+    await expectNoViolations(
+      <FormLayout>
+        <Field label="Email" type="email" help="We never share it." />
+        <Field label="Name" error="Required." />
+      </FormLayout>,
+    )
+  })
+
+  it('Banner — info/error/success', async () => {
+    await expectNoViolations(
+      <>
+        <Banner variant="info">Heads up.</Banner>
+        <Banner variant="error">Something failed.</Banner>
+        <Banner variant="success">Saved.</Banner>
+      </>,
+    )
+  })
+
+  it('Loading — spinner', async () => {
+    await expectNoViolations(<Spinner />)
+  })
+
+  it('StateBlock — empty/error/offline', async () => {
+    await expectNoViolations(
+      <>
+        <StateBlock variant="empty" message="No submissions yet." />
+        <StateBlock variant="error" message="Could not load." />
+        <StateBlock variant="offline" message="You are offline." />
+      </>,
+    )
+  })
+
+  it('Link — has an accessible name', async () => {
+    await expectNoViolations(<Link href="/apply">Apply now</Link>)
+  })
+
+  it('AppShell — rail + main', async () => {
+    await expectNoViolations(
+      <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
+        <h1>Work area</h1>
+      </AppShell>,
+    )
+  })
+})
