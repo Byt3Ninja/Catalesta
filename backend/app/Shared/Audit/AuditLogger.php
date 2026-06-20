@@ -16,11 +16,13 @@ final class AuditLogger
      * @param  array<string, mixed>  $before
      * @param  array<string, mixed>  $after
      */
-    public function record(string $action, ?string $targetType, ?string $targetId, array $before = [], array $after = [], string $result = 'success'): AuditLog
+    public function record(string $action, ?string $targetType, ?string $targetId, array $before = [], array $after = [], string $result = 'success', ?string $organizationId = null): AuditLog
     {
         return AuditLog::create([
             'actor_external_user_id' => optional($this->request->user())->id,
-            'organization_id' => $this->tenant->organizationId(),
+            // Explicit org wins (a public applicant has no TenantContext, so the
+            // submit audits under the COHORT's org, Story 2.7); else resolved tenant.
+            'organization_id' => $organizationId ?? $this->tenant->organizationId(),
             'action' => $action,
             'target_type' => $targetType,
             'target_id' => $targetId,

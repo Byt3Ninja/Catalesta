@@ -2,6 +2,9 @@
 
 use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\ResolveTenant;
+use App\Modules\Applications\Application\Exceptions\CohortClosedException;
+use App\Shared\Idempotency\Exceptions\IdempotencyConflictException;
+use App\Shared\Idempotency\Exceptions\IdempotencyInFlightException;
 use App\Shared\Support\CorrelationId;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -35,6 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 $e instanceof ValidationException => [422, 'VALIDATION_ERROR'],
                 $e instanceof AuthenticationException => [401, 'UNAUTHENTICATED'],
                 $e instanceof AuthorizationException => [403, 'FORBIDDEN'],
+                // Story 2.7 submit-flow mappings (these exceptions defer their HTTP
+                // status to the endpoint layer by design).
+                $e instanceof CohortClosedException => [422, 'COHORT_CLOSED'],
+                $e instanceof IdempotencyConflictException => [422, 'IDEMPOTENCY_CONFLICT'],
+                $e instanceof IdempotencyInFlightException => [409, 'IDEMPOTENCY_IN_FLIGHT'],
                 $e instanceof HttpExceptionInterface => [$e->getStatusCode(), 'HTTP_'.$e->getStatusCode()],
                 default => [500, 'SERVER_ERROR'],
             };

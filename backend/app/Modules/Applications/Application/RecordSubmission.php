@@ -30,7 +30,7 @@ final class RecordSubmission
     /**
      * @param  array<string, mixed>  $answers
      * @param  array<int, string>  $blobDigests
-     * @param  array<string, string>  $versionIds  keys: form, program, rubric
+     * @param  array<string, string|null>  $versionIds  keys: form, program, rubric (any may be null/absent)
      */
     public function handle(Cohort $cohort, array $answers, array $blobDigests, array $versionIds): ApplicationSubmission
     {
@@ -49,7 +49,13 @@ final class RecordSubmission
                 $this->blobs->incrementRef($digest);
             }
 
-            return ApplicationSubmission::create([
+            // The submission belongs to the COHORT's org, not the caller's tenant.
+            // A public applicant (Story 2.7) has no TenantContext, so the org is
+            // set explicitly from the cohort — BelongsToTenant's "explicit org"
+            // path permits this when no tenant is resolved, and forces the same
+            // value when one is (the cohort is in that tenant), so 2.6's
+            // tenant-context callers are unaffected.
+            $submission = new ApplicationSubmission([
                 'cohort_id' => $cohort->id,
                 'submission_snapshot' => [
                     'answers' => $answers,
@@ -59,6 +65,10 @@ final class RecordSubmission
                     'rubric_version_id' => $versionIds['rubric'] ?? null,
                 ],
             ]);
+            $submission->setAttribute('organization_id', $cohort->organization_id);
+            $submission->save();
+
+            return $submission;
         });
     }
 }

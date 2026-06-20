@@ -43,4 +43,29 @@ Status: ready-for-dev
 ### Agent Model Used
 claude-opus-4-8[1m]
 ### Completion Notes List
+**Backend submit slice — DONE** (336/336 tests green, PHPStan L6 clean, Pint clean, OpenAPI regenerated).
+
+- `POST /v1/apply/{cohort}/submit` (auth:sanctum, NO tenant middleware). Thin controller resolves the cohort under system context (clean 404 vs the 422 a closed cohort returns) and delegates to `SubmitApplication`.
+- `SubmitApplication` wraps everything in `IdempotencyService::remember(scope=`application.submit:{cohort_id}`, key=Idempotency-Key header, fingerprint=`RequestFingerprint::for(sub, {cohort,answers,blobs})`)`. Inside ONE `DB::transaction` (under `runAsSystem`): re-checks `Cohort::lockForUpdate()` open-state (★ FR-033 close race) → 422 `CohortClosedException`; stores inline uploads; records the snapshot via `RecordSubmission`; emits `ApplicationSubmitted` to the outbox; audits `application.submitted` under the cohort org.
+- **Landmine handled:** `RecordSubmission` now sets `organization_id` explicitly from the cohort (applicant has no `TenantContext`); 2.6's tenant-context callers are unaffected (BelongsToTenant forces the same value when a tenant is resolved). `AuditLogger::record` gained an optional trailing `$organizationId` so the tenant-less submit audits under the cohort's org.
+- **Exception→HTTP mapping** added to `bootstrap/app.php`: `CohortClosedException`→422, `IdempotencyConflictException`→422, `IdempotencyInFlightException`→409.
+- **File upload:** the submit accepts inline multipart `files[]` (stored content-addressed, type/size guarded) and/or already-stored `blob_digests[]`; both land in the snapshot's `blob_refs`.
+
+**Deliberately deferred to the UI slice (`blocked-by: Story 1.0`) — NOT built here:**
+- The stepped mobile-web RTL application page + receipt/status screen.
+- A standalone `GET` read-only status endpoint — needs a submitter-identity column on `application_submissions` (2.6 stores no `sub`); it is UI-facing. The POST already returns the full keepable receipt (`reference_number` + `status` + `submitted_at`), and idempotency replay makes a re-tap return that same receipt (AC-4 substance).
+- FR-080 Learning-Telemetry events (`application.viewed/started/abandoned{step}/submitted`) and the **"verified in a dashboard a human has looked at"** DoD — these are frontend/observability and cannot be satisfied autonomously. The outbox `ApplicationSubmitted` event is the durable backend signal in the meantime.
+
 ### File List
+- `app/Modules/Applications/Application/SubmitApplication.php` (new)
+- `app/Modules/Applications/Application/Exceptions/CohortClosedException.php` (new)
+- `app/Modules/Applications/Http/SubmitController.php` (new)
+- `app/Modules/Applications/Http/Requests/SubmitApplicationRequest.php` (new)
+- `app/Modules/Applications/Application/RecordSubmission.php` (set org from cohort; widen version-id type)
+- `app/Modules/Cohorts/Domain/Models/Cohort.php` (add `isAcceptingSubmissions()`)
+- `app/Modules/Cohorts/Http/ApplyController.php` (use `isAcceptingSubmissions()`)
+- `app/Shared/Audit/AuditLogger.php` (optional explicit `$organizationId`)
+- `bootstrap/app.php` (422/409 exception mappings)
+- `routes/api.php` (submit route)
+- `openapi/openapi.json` (regenerated)
+- `tests/Feature/Applications/PublicSubmitTest.php` (new)

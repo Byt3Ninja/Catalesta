@@ -2037,6 +2037,78 @@
                 }
             }
         },
+        "/v1/apply/{cohort}/submit": {
+            "post": {
+                "operationId": "apply.submit",
+                "tags": [
+                    "Submit"
+                ],
+                "parameters": [
+                    {
+                        "name": "cohort",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SubmitApplicationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "reference_number": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "cohort_id": {
+                                            "type": "string"
+                                        },
+                                        "submitted_at": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "reference_number",
+                                        "status",
+                                        "cohort_id",
+                                        "submitted_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFoundHttpException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/v1/programs/{program}/tracks": {
             "get": {
                 "operationId": "programs.tracks.index",
@@ -2884,6 +2956,44 @@
                     "name"
                 ],
                 "title": "StoreTrackRequest"
+            },
+            "SubmitApplicationRequest": {
+                "type": "object",
+                "description": "Validates a public application submit (Story 2.7). The Idempotency-Key arrives\nas a header; it is merged into the input so a missing key returns a clean 422\nwith field details rather than a 500. Files are type/size-guarded pre-store.",
+                "properties": {
+                    "idempotency_key": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "answers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 1
+                    },
+                    "blob_digests": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                        }
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary",
+                            "contentMediaType": "application/octet-stream",
+                            "maxLength": 25600
+                        }
+                    }
+                },
+                "required": [
+                    "idempotency_key",
+                    "answers"
+                ],
+                "title": "SubmitApplicationRequest"
             },
             "TrackResource": {
                 "type": "object",
