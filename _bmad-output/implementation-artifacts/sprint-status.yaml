@@ -1,5 +1,6 @@
 # generated: 2026-06-20
 # last_updated: 2026-06-21
+# (1-5 scoped → ready-for-dev)
 # project: Catalesta
 # project_key: NOKEY
 # tracking_system: file-system
@@ -56,7 +57,7 @@ development_status:
   1-2-create-and-publish-a-program: review  # immutable ProgramVersion (versioning kernel) + program.publish entitlement gate + clone/template verified + /programs create/publish UI
   1-3-build-and-publish-an-application-form: review
   1-4-open-and-close-a-cohort-with-a-public-application-url: review
-  1-5-operator-home-and-consent-aware-reads: backlog
+  1-5-operator-home-and-consent-aware-reads: review  # operator Home (cohort list + single next action + day-one empty) + ConsentProvider seam (FR-006) + GET /cohorts read API
   epic-1-retrospective: optional
 
   # ── Epic 2: Receive Applications (opens with E2.0 reliability gate: 2-1..2-5) ──

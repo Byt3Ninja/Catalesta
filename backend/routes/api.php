@@ -71,6 +71,9 @@ Route::prefix('v1')->group(function (): void {
         // Cohort sub-resource (nested under program for create)
         Route::post('/programs/{program}/cohorts', [CohortController::class, 'store'])->name('programs.cohorts.store');
 
+        // Cohort list (operator Home, Story 1.5) — tenant-scoped index
+        Route::get('/cohorts', [CohortController::class, 'index'])->name('cohorts.index');
+
         // Cohort direct routes (show/update by id)
         Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
         Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
