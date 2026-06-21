@@ -201,7 +201,7 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 
 ## 10. Assumptions & Open Questions
 
-**Assumptions (tagged inline):** responsive web + mobile-web public flow, no native app; applicant auth via `sub`; P1a no billing (seam primitives only); metering = `active_programs` counter + flags (P1b, pending OQ3); applications bind to cohort (FR-030, confirm); P1a form field set as enumerated (FR-020); decimal `DECIMAL(6,2)` half-up (FR-040); outbox retry cap 6; export-then-leave window 24h; rate-limit/perf ceilings as stated.
+**Assumptions (tagged inline):** responsive web + mobile-web public flow, no native app; applicant auth via native Catalesta account (optional linked SG); P1a no billing (seam primitives only); metering = `active_programs` counter + flags (P1b, pending OQ3); applications bind to cohort (FR-030, confirm); P1a form field set as enumerated (FR-020); decimal `DECIMAL(6,2)` half-up (FR-040); outbox retry cap 6; export-then-leave window 24h; rate-limit/perf ceilings as stated.
 
 **Open questions (owner + when):**
 - OQ1 — World A vs B? **Owner:** PM. **Resolved by** the §3 decision band after Phase 1a (≥2 cohorts/≥2 operators). **Gates Phase 1b.**
