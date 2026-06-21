@@ -262,8 +262,8 @@ final class StageDependencyApiTest extends TestCase
         $org = $this->createBareOrg('No-Perm Org');
         [$program, $stageA, $stageB] = $this->createProgramWithStages($org->id);
 
-        $member = $this->makeExternalUser();
-        $membership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 

@@ -324,8 +324,8 @@ final class ProgramTemplateTest extends TestCase
         $source->organization_id = $org->id;
         $source->save();
 
-        $member = $this->makeExternalUser();
-        $membership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 
@@ -359,8 +359,8 @@ final class ProgramTemplateTest extends TestCase
         $template->save();
 
         // Create a bare member (no roles)
-        $member = $this->makeExternalUser();
-        $membership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 

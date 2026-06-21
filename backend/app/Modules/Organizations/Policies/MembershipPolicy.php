@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Organizations\Policies;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Shared\Tenancy\TenantContext;
 
 /**
@@ -31,7 +31,7 @@ final class MembershipPolicy
      *
      * Requires `members.manage`. Platform admins always allowed.
      */
-    public function viewAny(ExternalUser $user): bool
+    public function viewAny(Account $user): bool
     {
         return app(TenantContext::class)->can('members.manage');
     }
@@ -42,7 +42,7 @@ final class MembershipPolicy
      * Requires either `members.invite` or `members.manage`.
      * Platform admins always allowed.
      */
-    public function create(ExternalUser $user): bool
+    public function create(Account $user): bool
     {
         $ctx = app(TenantContext::class);
 

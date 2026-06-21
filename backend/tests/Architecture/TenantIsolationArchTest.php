@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Architecture;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
-use App\Modules\Identity\Domain\Models\ExternalUserToken;
+use App\Modules\Identity\Domain\Models\Account;
+use App\Modules\Identity\Domain\Models\LinkedIdentity;
+use App\Modules\Identity\Domain\Models\LinkedIdentityToken;
 use App\Modules\Identity\Domain\Models\ProfileSnapshot;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
@@ -28,8 +29,9 @@ final class TenantIsolationArchTest extends TestCase
     private const GLOBAL_ALLOWLIST = [
         Organization::class,
         OrganizationPermission::class,
-        ExternalUser::class,
-        ExternalUserToken::class,
+        Account::class,
+        LinkedIdentity::class,
+        LinkedIdentityToken::class,
         ProfileSnapshot::class,
         AuditLog::class,
     ];

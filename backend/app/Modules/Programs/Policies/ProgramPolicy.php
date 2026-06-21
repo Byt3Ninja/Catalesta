@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Programs\Policies;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Programs\Domain\Models\Program;
 use App\Shared\Tenancy\TenantContext;
 
@@ -23,7 +23,7 @@ final class ProgramPolicy
     /**
      * Any authenticated tenant member may list programs.
      */
-    public function viewAny(ExternalUser $user): bool
+    public function viewAny(Account $user): bool
     {
         return true;
     }
@@ -32,7 +32,7 @@ final class ProgramPolicy
      * Any authenticated tenant member may view a single program.
      * BelongsToTenant scope prevents cross-tenant access at the data layer.
      */
-    public function view(ExternalUser $user, Program $program): bool
+    public function view(Account $user, Program $program): bool
     {
         return true;
     }
@@ -40,7 +40,7 @@ final class ProgramPolicy
     /**
      * Creating a program requires the `programs.manage` permission.
      */
-    public function create(ExternalUser $user): bool
+    public function create(Account $user): bool
     {
         return app(TenantContext::class)->can('programs.manage');
     }
@@ -49,7 +49,7 @@ final class ProgramPolicy
      * Updating a program requires the `programs.manage` permission.
      * Programs remain editable after publish — not immutable.
      */
-    public function update(ExternalUser $user, Program $program): bool
+    public function update(Account $user, Program $program): bool
     {
         return app(TenantContext::class)->can('programs.manage');
     }
@@ -57,7 +57,7 @@ final class ProgramPolicy
     /**
      * Publishing a program requires the `programs.publish` permission.
      */
-    public function publish(ExternalUser $user, Program $program): bool
+    public function publish(Account $user, Program $program): bool
     {
         return app(TenantContext::class)->can('programs.publish');
     }
@@ -65,7 +65,7 @@ final class ProgramPolicy
     /**
      * Cloning a program requires the `programs.manage` permission.
      */
-    public function clone(ExternalUser $user, Program $program): bool
+    public function clone(Account $user, Program $program): bool
     {
         return app(TenantContext::class)->can('programs.manage');
     }
@@ -74,7 +74,7 @@ final class ProgramPolicy
      * Managing tracks (create, update, delete, list) requires the `programs.manage` permission.
      * Accepts both Program and Track model instances — the policy method is model-agnostic.
      */
-    public function manageTracks(ExternalUser $user): bool
+    public function manageTracks(Account $user): bool
     {
         return app(TenantContext::class)->can('programs.manage');
     }

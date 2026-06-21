@@ -64,7 +64,7 @@ final class AuthFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('user.startup_gate_subject_id', 'sg_user_01');
 
-        $this->assertDatabaseHas('external_users', ['startup_gate_subject_id' => 'sg_user_01']);
+        $this->assertDatabaseHas('linked_identities', ['provider' => 'startup_gate', 'subject_id' => 'sg_user_01']);
         $this->assertDatabaseCount('profile_snapshots', 1);
 
         // Step 3: GET /api/v1/auth/session — should be authenticated

@@ -94,13 +94,13 @@ final class TenantIsolationTest extends TestCase
         $this->seed(PermissionCatalogSeeder::class);
 
         // Build Org1 with its owner role
-        $owner1 = $this->makeExternalUser();
+        $owner1 = $this->makeAccount();
         /** @var CreateOrganization $service */
         $service = $this->app->make(CreateOrganization::class);
         $org1 = $service->handle($owner1, 'Org1 Scope');
 
         // Build Org2 with its owner role
-        $owner2 = $this->makeExternalUser();
+        $owner2 = $this->makeAccount();
         $org2 = $service->handle($owner2, 'Org2 Scope');
 
         // Confirm both orgs have an owner role (without any scope)
@@ -117,7 +117,7 @@ final class TenantIsolationTest extends TestCase
         // Set TenantContext to Org2: the BelongsToTenant scope should ONLY return Org2 rows
         $membership2 = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $org2->id)
-            ->where('external_user_id', $owner2->id)
+            ->where('account_id', $owner2->id)
             ->firstOrFail();
 
         /** @var TenantContext $ctx */
@@ -163,8 +163,8 @@ final class TenantIsolationTest extends TestCase
         $org = Organization::create(['name' => 'Isolation Patch Org']);
 
         // Add the test member as active but with NO roles (empty permission set)
-        $member = $this->makeExternalUser();
-        $membershipForTest = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membershipForTest = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membershipForTest->organization_id = $org->id;
         $membershipForTest->save();
 
@@ -204,21 +204,21 @@ final class TenantIsolationTest extends TestCase
         $orgB = $this->createBareOrg('Org B');
 
         // A third user to be (incorrectly) added to Org B
-        $victim = $this->makeExternalUser();
+        $victim = $this->makeAccount();
 
         // ownerA authenticates with a valid Org A header (passes MembershipPolicy)
         // but targets Org B in the URL — must be blocked
         $this->actingAs($ownerA, 'web')
             ->withHeader('X-Organization-Id', $orgA->id)
             ->postJson('/api/v1/organizations/'.$orgB->id.'/memberships', [
-                'external_user_id' => $victim->id,
+                'account_id' => $victim->id,
             ])
             ->assertStatus(404);
 
         // Confirm NO membership row was created for Org B
         $this->assertDatabaseMissing('organization_memberships', [
             'organization_id' => $orgB->id,
-            'external_user_id' => $victim->id,
+            'account_id' => $victim->id,
         ]);
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Programs;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Programs\Domain\Models\Program;
@@ -39,7 +39,7 @@ final class ProgramConfigApiTest extends TestCase
     /**
      * Boot a user+org, create a program via API, return [$user, $org, $programId].
      *
-     * @return array{0: ExternalUser, 1: Organization, 2: string}
+     * @return array{0: Account, 1: Organization, 2: string}
      */
     private function bootWithProgram(): array
     {
@@ -215,8 +215,8 @@ final class ProgramConfigApiTest extends TestCase
         $program->organization_id = $org->id;
         $program->save();
 
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 
@@ -240,8 +240,8 @@ final class ProgramConfigApiTest extends TestCase
         $program->organization_id = $org->id;
         $program->save();
 
-        $member = $this->makeExternalUser();
-        $memberMembership2 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership2 = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership2->organization_id = $org->id;
         $memberMembership2->save();
 
@@ -276,8 +276,8 @@ final class ProgramConfigApiTest extends TestCase
         $policy->save();
 
         // Create a member of the org with NO permissions
-        $member = $this->makeExternalUser();
-        $memberMembership3 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership3 = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership3->organization_id = $org->id;
         $memberMembership3->save();
 
@@ -315,8 +315,8 @@ final class ProgramConfigApiTest extends TestCase
         $roleReq->save();
 
         // Create a member of the org with NO permissions
-        $member = $this->makeExternalUser();
-        $memberMembership4 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership4 = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership4->organization_id = $org->id;
         $memberMembership4->save();
 

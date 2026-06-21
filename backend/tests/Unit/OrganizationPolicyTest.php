@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Policies\MembershipPolicy;
 use App\Modules\Organizations\Policies\OrganizationPolicy;
@@ -71,10 +71,10 @@ final class OrganizationPolicyTest extends TestCase
         return $ctx;
     }
 
-    /** Minimal ExternalUser stub — policy methods receive it but don't inspect it. */
-    private function makeUser(): ExternalUser
+    /** Minimal Account stub — policy methods receive it but don't inspect it. */
+    private function makeUser(): Account
     {
-        return new ExternalUser(['id' => 'user-001']);
+        return new Account(['id' => 'user-001']);
     }
 
     /** Minimal Organization stub. */

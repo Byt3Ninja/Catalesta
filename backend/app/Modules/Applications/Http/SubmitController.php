@@ -7,7 +7,7 @@ namespace App\Modules\Applications\Http;
 use App\Modules\Applications\Application\SubmitApplication;
 use App\Modules\Applications\Http\Requests\SubmitApplicationRequest;
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Shared\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
@@ -26,7 +26,7 @@ final class SubmitController
 
     public function store(SubmitApplicationRequest $request, string $cohort): JsonResponse
     {
-        /** @var ExternalUser $user */
+        /** @var Account $user */
         $user = $request->user();
 
         // A cohort is public once opened, so resolve it under system context. An
@@ -45,7 +45,7 @@ final class SubmitController
         $receipt = $this->submit->handle(
             cohortId: $cohort,
             idempotencyKey: (string) $request->string('idempotency_key'),
-            actor: (string) $user->startup_gate_subject_id,
+            actor: (string) $user->startupGateSubjectId(),
             answers: $request->array('answers'),
             uploads: $uploads,
             blobDigests: $request->array('blob_digests'),

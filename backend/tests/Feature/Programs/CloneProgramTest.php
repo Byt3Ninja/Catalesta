@@ -221,8 +221,8 @@ final class CloneProgramTest extends TestCase
         $source->organization_id = $org->id;
         $source->save();
 
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 

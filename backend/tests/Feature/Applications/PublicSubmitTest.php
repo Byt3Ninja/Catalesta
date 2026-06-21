@@ -9,7 +9,7 @@ use App\Modules\Applications\Domain\Models\ApplicationSubmission;
 use App\Modules\Cohorts\Application\CloseCohort;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Domain\Models\CohortStatus;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Shared\Idempotency\Exceptions\IdempotencyConflictException;
 use App\Shared\Outbox\OutboxEvent;
 use App\Shared\Storage\ContentAddressedStore;
@@ -59,9 +59,9 @@ final class PublicSubmitTest extends TestCase
     }
 
     /** Submit as an applicant with NO tenant context (mirrors the public request). */
-    private function submit(string $key, array $body, ?ExternalUser $applicant = null, array $files = []): TestResponse
+    private function submit(string $key, array $body, ?Account $applicant = null, array $files = []): TestResponse
     {
-        $applicant ??= $this->makeExternalUser();
+        $applicant ??= $this->makeAccount();
 
         return $this->withoutTenantContext(fn () => $this->actingAs($applicant, 'web')
             ->withHeader('Idempotency-Key', $key)
@@ -185,7 +185,7 @@ final class PublicSubmitTest extends TestCase
 
     public function test_unknown_cohort_is_404(): void
     {
-        $this->withoutTenantContext(fn () => $this->actingAs($this->makeExternalUser(), 'web')
+        $this->withoutTenantContext(fn () => $this->actingAs($this->makeAccount(), 'web')
             ->withHeader('Idempotency-Key', 'k')
             ->postJson('/api/v1/apply/'.Str::ulid().'/submit', ['answers' => ['a' => 1]]))
             ->assertNotFound();
@@ -193,7 +193,7 @@ final class PublicSubmitTest extends TestCase
 
     public function test_missing_idempotency_key_is_rejected_422(): void
     {
-        $this->withoutTenantContext(fn () => $this->actingAs($this->makeExternalUser(), 'web')
+        $this->withoutTenantContext(fn () => $this->actingAs($this->makeAccount(), 'web')
             ->postJson("/api/v1/apply/{$this->cohort->id}/submit", ['answers' => ['a' => 1]]))
             ->assertStatus(422)
             ->assertJsonPath('error.details.idempotency_key.0', 'The idempotency key field is required.');

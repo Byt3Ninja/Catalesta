@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
@@ -18,13 +18,12 @@ final class OrganizationApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeUser(bool $isPlatformAdmin = false): ExternalUser
+    private function makeUser(bool $isPlatformAdmin = false): Account
     {
         static $counter = 0;
         $counter++;
 
-        return ExternalUser::create([
-            'startup_gate_subject_id' => 'sub-test-'.$counter,
+        return $this->makeAccount([
             'email' => "user{$counter}@example.com",
             'is_platform_admin' => $isPlatformAdmin,
         ]);
@@ -58,14 +57,14 @@ final class OrganizationApiTest extends TestCase
         // Creator membership should be active
         $this->assertDatabaseHas('organization_memberships', [
             'organization_id' => $orgId,
-            'external_user_id' => $creator->id,
+            'account_id' => $creator->id,
             'status' => 'active',
         ]);
 
         // Creator should have organizations.manage in effective permissions
         $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $orgId)
-            ->where('external_user_id', $creator->id)
+            ->where('account_id', $creator->id)
             ->first();
 
         $this->assertNotNull($membership);
@@ -135,7 +134,7 @@ final class OrganizationApiTest extends TestCase
         // Create org + creator membership directly (no API call, so no session is set)
         $org = Organization::create(['name' => 'Private Org']);
         $creator = $this->makeUser();
-        $creatorMembership = new OrganizationMembership(['external_user_id' => $creator->id, 'status' => 'active']);
+        $creatorMembership = new OrganizationMembership(['account_id' => $creator->id, 'status' => 'active']);
         $creatorMembership->organization_id = $org->id;
         $creatorMembership->save();
 
@@ -262,7 +261,7 @@ final class OrganizationApiTest extends TestCase
         $response = $this->actingAs($owner, 'web')
             ->withHeader('X-Organization-Id', $orgId)
             ->postJson("/api/v1/organizations/{$orgId}/memberships", [
-                'external_user_id' => $newMember->id,
+                'account_id' => $newMember->id,
                 'role_keys' => ['owner'],
             ]);
 
@@ -270,14 +269,14 @@ final class OrganizationApiTest extends TestCase
 
         $this->assertDatabaseHas('organization_memberships', [
             'organization_id' => $orgId,
-            'external_user_id' => $newMember->id,
+            'account_id' => $newMember->id,
             'status' => 'active',
         ]);
 
         // Verify the role was attached
         $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $orgId)
-            ->where('external_user_id', $newMember->id)
+            ->where('account_id', $newMember->id)
             ->first();
 
         $this->assertNotNull($membership);
@@ -303,7 +302,7 @@ final class OrganizationApiTest extends TestCase
         $response = $this->actingAs($owner, 'web')
             ->withHeader('X-Organization-Id', $orgId)
             ->postJson("/api/v1/organizations/{$orgId}/memberships", [
-                'external_user_id' => $newMember->id,
+                'account_id' => $newMember->id,
                 'role_keys' => ['nonexistent-role-xyz'],
             ]);
 
@@ -327,7 +326,7 @@ final class OrganizationApiTest extends TestCase
         $org = Organization::create(['name' => 'Target Org']);
 
         // Add $member as an active member with NO roles (no permissions)
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 

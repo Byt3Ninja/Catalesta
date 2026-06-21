@@ -22,7 +22,7 @@ final class ProgramModelTest extends TestCase
 
         $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $org->id)
-            ->where('external_user_id', $user->id)
+            ->where('account_id', $user->id)
             ->firstOrFail();
 
         $this->app->make(TenantContext::class)

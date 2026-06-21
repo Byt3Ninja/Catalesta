@@ -18,7 +18,7 @@ final class AuditAppendOnlyTest extends TestCase
     private function seedLog(): AuditLog
     {
         return AuditLog::create([
-            'actor_external_user_id' => '01HQEXTERNALUSER00000000AA',
+            'actor_account_id' => '01HQEXTERNALUSER00000000AA',
             'organization_id' => '01HQORGANIZATION0000000000',
             'action' => AuditAction::ProgramPublished->value,
             'target_type' => 'program',
@@ -34,7 +34,7 @@ final class AuditAppendOnlyTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'id' => $log->id,
             'action' => 'program.published',
-            'actor_external_user_id' => '01HQEXTERNALUSER00000000AA',
+            'actor_account_id' => '01HQEXTERNALUSER00000000AA',
             'organization_id' => '01HQORGANIZATION0000000000',
         ]);
         $this->assertNotNull($log->fresh()->created_at, 'audit row carries a timestamp');

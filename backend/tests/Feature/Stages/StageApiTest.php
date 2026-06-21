@@ -303,8 +303,8 @@ final class StageApiTest extends TestCase
         $program->organization_id = $org->id;
         $program->save();
 
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 
@@ -348,8 +348,8 @@ final class StageApiTest extends TestCase
         $stageVersion->organization_id = $org->id;
         $stageVersion->save();
 
-        $member = $this->makeExternalUser();
-        $memberMembership2 = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership2 = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership2->organization_id = $org->id;
         $memberMembership2->save();
 

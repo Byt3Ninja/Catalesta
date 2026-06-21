@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Stages;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Programs\Domain\Models\Program;
 use App\Modules\Stages\Application\AdvanceParticipantStage;
@@ -27,7 +27,7 @@ final class AdvancePrerequisiteTest extends TestCase
 {
     use RefreshDatabase;
 
-    private ExternalUser $participant;
+    private Account $participant;
 
     private Cohort $cohort;
 
@@ -43,13 +43,13 @@ final class AdvancePrerequisiteTest extends TestCase
 
         $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $org->id)
-            ->where('external_user_id', $user->id)
+            ->where('account_id', $user->id)
             ->firstOrFail();
 
         $this->app->make(TenantContext::class)
             ->setOrganization($org->id, $membership, $membership->effectivePermissionKeys());
 
-        $this->participant = $this->makeExternalUser();
+        $this->participant = $this->makeAccount();
 
         $program = Program::create(['name' => 'Test Program']);
 
@@ -112,7 +112,7 @@ final class AdvancePrerequisiteTest extends TestCase
 
         $this->assertDatabaseMissing('participant_stage_statuses', [
             'cohort_id' => $this->cohort->id,
-            'external_user_id' => $this->participant->id,
+            'account_id' => $this->participant->id,
             'program_stage_id' => $stageB->id,
         ]);
         $this->assertSame(0, ParticipantStageStatus::query()
@@ -138,7 +138,7 @@ final class AdvancePrerequisiteTest extends TestCase
         // Simulate A being completed by inserting a completed status record
         ParticipantStageStatus::create([
             'cohort_id' => $this->cohort->id,
-            'external_user_id' => $this->participant->id,
+            'account_id' => $this->participant->id,
             'program_stage_id' => $stageA->id,
             'status' => ParticipantStageState::Completed->value,
             'entered_at' => now(),

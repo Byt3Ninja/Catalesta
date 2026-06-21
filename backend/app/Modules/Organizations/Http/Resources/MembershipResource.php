@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * @property-read string $id
  * @property-read string $organization_id
- * @property-read string $external_user_id
+ * @property-read string $account_id
  * @property-read string $status
  * @property-read Collection<int, OrganizationRole> $roles
  */
@@ -26,7 +26,7 @@ final class MembershipResource extends JsonResource
         return [
             'id' => $this->id,
             'organization_id' => $this->organization_id,
-            'external_user_id' => $this->external_user_id,
+            'account_id' => $this->account_id,
             'status' => $this->status,
             'roles' => $this->roles->pluck('key')->toArray(),
         ];

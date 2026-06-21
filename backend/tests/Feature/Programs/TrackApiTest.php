@@ -201,8 +201,8 @@ final class TrackApiTest extends TestCase
         $program->save();
 
         // Bare member with no roles
-        $member = $this->makeExternalUser();
-        $membership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 

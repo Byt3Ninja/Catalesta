@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Stages\Application;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Stages\Domain\Exceptions\StageNotPublishedException;
 use App\Modules\Stages\Domain\Exceptions\StagePrerequisiteNotMetException;
 use App\Modules\Stages\Domain\Models\ParticipantStageState;
@@ -38,7 +38,7 @@ final class AdvanceParticipantStage
      */
     public function enter(
         Cohort $cohort,
-        ExternalUser $participant,
+        Account $participant,
         ProgramStage $stage,
         array $context = [],
     ): ParticipantStageStatus {
@@ -49,7 +49,7 @@ final class AdvanceParticipantStage
         if ($unmet->isNotEmpty()) {
             $completed = ParticipantStageStatus::query()
                 ->where('cohort_id', $cohort->id)
-                ->where('external_user_id', $participant->id)
+                ->where('account_id', $participant->id)
                 ->whereIn('program_stage_id', $unmet)
                 ->where('status', ParticipantStageState::Completed->value)
                 ->pluck('program_stage_id');
@@ -85,7 +85,7 @@ final class AdvanceParticipantStage
             $status = ParticipantStageStatus::updateOrCreate(
                 [
                     'cohort_id' => $cohort->id,
-                    'external_user_id' => $participant->id,
+                    'account_id' => $participant->id,
                     'program_stage_id' => $stage->id,
                 ],
                 $allowed

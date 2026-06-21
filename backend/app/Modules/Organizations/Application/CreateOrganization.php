@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Organizations\Application;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
@@ -27,7 +27,7 @@ final class CreateOrganization
      *
      * @param  array<string, mixed>  $branding
      */
-    public function handle(ExternalUser $creator, string $name, array $branding = []): Organization
+    public function handle(Account $creator, string $name, array $branding = []): Organization
     {
         try {
             return $this->create($creator, $name, $branding);
@@ -43,7 +43,7 @@ final class CreateOrganization
     /**
      * @param  array<string, mixed>  $branding
      */
-    private function create(ExternalUser $creator, string $name, array $branding): Organization
+    private function create(Account $creator, string $name, array $branding): Organization
     {
         return DB::transaction(function () use ($creator, $name, $branding): Organization {
             // Step 1: Create the organization
@@ -76,7 +76,7 @@ final class CreateOrganization
 
             // Step 4: Create the creator's active membership — organization_id set via direct assignment
             // (organization_id is intentionally excluded from $fillable; must be set directly)
-            $membership = new OrganizationMembership(['external_user_id' => $creator->id, 'status' => 'active']);
+            $membership = new OrganizationMembership(['account_id' => $creator->id, 'status' => 'active']);
             $membership->organization_id = $org->id;
             $membership->save();
 

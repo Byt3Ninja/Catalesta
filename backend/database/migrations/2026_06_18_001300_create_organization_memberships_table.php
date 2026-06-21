@@ -13,22 +13,22 @@ return new class extends Migration
         Schema::create('organization_memberships', function (Blueprint $t): void {
             $t->ulid('id')->primary();
             $t->ulid('organization_id');
-            $t->ulid('external_user_id');
+            $t->ulid('account_id');
             $t->string('status')->default('active');
             $t->timestampsTz();
 
-            $t->unique(['organization_id', 'external_user_id']);
+            $t->unique(['organization_id', 'account_id']);
             $t->index('organization_id');
-            $t->index('external_user_id');
+            $t->index('account_id');
 
             $t->foreign('organization_id')
                 ->references('id')
                 ->on('organizations')
                 ->cascadeOnDelete();
 
-            $t->foreign('external_user_id')
+            $t->foreign('account_id')
                 ->references('id')
-                ->on('external_users')
+                ->on('accounts')
                 ->cascadeOnDelete();
         });
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Applications\Policies;
 
 use App\Modules\Applications\Domain\Models\ApplicationSubmission;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 
 /**
  * Authorization for reading application submissions (Story 2.8, FR-034).
@@ -18,12 +18,12 @@ use App\Modules\Identity\Domain\Models\ExternalUser;
  */
 final class ApplicationSubmissionPolicy
 {
-    public function viewAny(ExternalUser $user): bool
+    public function viewAny(Account $user): bool
     {
         return true;
     }
 
-    public function view(ExternalUser $user, ApplicationSubmission $submission): bool
+    public function view(Account $user, ApplicationSubmission $submission): bool
     {
         return true;
     }

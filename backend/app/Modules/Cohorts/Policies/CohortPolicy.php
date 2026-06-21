@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Cohorts\Policies;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Shared\Tenancy\TenantContext;
 
 /**
@@ -22,7 +22,7 @@ final class CohortPolicy
     /**
      * Any authenticated tenant member may list cohorts.
      */
-    public function viewAny(ExternalUser $user): bool
+    public function viewAny(Account $user): bool
     {
         return true;
     }
@@ -31,7 +31,7 @@ final class CohortPolicy
      * Any authenticated tenant member may view a single cohort.
      * BelongsToTenant scope prevents cross-tenant access at the data layer.
      */
-    public function view(ExternalUser $user, Cohort $cohort): bool
+    public function view(Account $user, Cohort $cohort): bool
     {
         return true;
     }
@@ -39,7 +39,7 @@ final class CohortPolicy
     /**
      * Creating a cohort requires the `cohorts.manage` permission.
      */
-    public function create(ExternalUser $user): bool
+    public function create(Account $user): bool
     {
         return app(TenantContext::class)->can('cohorts.manage');
     }
@@ -47,7 +47,7 @@ final class CohortPolicy
     /**
      * Updating a cohort requires the `cohorts.manage` permission.
      */
-    public function update(ExternalUser $user, Cohort $cohort): bool
+    public function update(Account $user, Cohort $cohort): bool
     {
         return app(TenantContext::class)->can('cohorts.manage');
     }
