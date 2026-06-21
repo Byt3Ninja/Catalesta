@@ -21,7 +21,7 @@ Turn the current `ExternalUser`-keyed-on-`sub` identity model into the target **
 - Membership FK `organization_memberships.external_user_id` → `external_users(id)` (DB FK cascade), unique `(organization_id, external_user_id)`.
 - Other FK columns: `profile_snapshots.external_user_id` (DB FK cascade), `participant_stage_statuses.external_user_id` (indexed, no FK), `audit_logs.actor_external_user_id` (nullable, indexed, no FK).
 - Frontend session shape (`frontend/src/schemas/session.ts`): `{ id, startup_gate_subject_id, email, display_name }` wrapped as `{ user: … }`. Cookie transport, `credentials: 'include'`.
-- **Assumption (confirmed in brainstorm):** no production user rows — Phase 1a, OIDC mock, no pilot. The "migration" moves dev/seed data only; a hard one-shot cutover is acceptable.
+- **Assumption (confirmed in brainstorm):** no production user rows — Phase 1a, OIDC mock, no pilot. There is therefore no data migration — the create-migrations are edited to emit the target schema directly (see §4). Tests run on fresh in-memory SQLite (`RefreshDatabase`), reinforcing this.
 
 ## 3. Target schema
 
@@ -56,16 +56,20 @@ Same columns and encryption; FK column `external_user_id` → **`linked_identity
 - `participant_stage_statuses.account_id`; indexed, no DB FK (unchanged).
 - `audit_logs.actor_external_user_id` → **`actor_account_id`** (nullable, indexed, no DB FK).
 
-## 4. Migration (one ordered set, hard cutover, no dual-write)
+## 4. Migration (edit the original create-migrations — no data migration)
 
-1. Rename table `external_users` → `accounts`. Create `linked_identities`.
-2. Backfill: for each `accounts` row, insert one `linked_identities` row `(provider='startup_gate', subject_id=<old startup_gate_subject_id>, account_id=accounts.id, display_name/avatar_url/locale/profile_version/synchronization_status/synchronized_at carried over, linked_at=now)`. Then drop `startup_gate_subject_id`, `synchronization_status`, `synchronized_at`, `profile_version` from `accounts`.
-3. Rename `external_user_tokens` → `linked_identity_tokens`; add `linked_identity_id`; backfill it by joining the old `external_user_id` → the account's `startup_gate` link; drop `external_user_id`.
-4. Repoint the 4 dependent FK columns (drop+recreate FK constraints where they exist): `organization_memberships`, `profile_snapshots`, `participant_stage_statuses`, `audit_logs.actor_account_id`.
+**Decided 2026-06-22:** Tests run on fresh in-memory SQLite with `RefreshDatabase` (every suite rebuilds the schema from the create-migrations), and there is no production data (Phase 1a, OIDC mock; dev re-migrates fresh). Layering a rename/backfill migration would be both SQLite-fragile (column rename + FK drop/recreate trigger table rebuilds) and pointless (no rows to migrate). So SP-1a **edits the original `2026_06_18_*` create-migrations to emit the target schema directly.** This is acceptable precisely because the repo is pre-production and every environment rebuilds from scratch.
 
-The `ResolveTenant` middleware and the `StoreMembershipRequest` `exists:` rule (see §5) are updated in the **same PR** so the rename is atomic; there is no interim state where code queries a renamed column by its old name.
+Migration file changes:
+1. `…000200_create_external_users_table.php` → rename file to `…000200_create_accounts_table.php`; `Schema::create('accounts', …)` keeping `email`, `display_name`, `avatar_url`, `locale`, `is_platform_admin`, `rememberToken`, timestamps; **omit** `startup_gate_subject_id`, `synchronization_status`, `synchronized_at`, `profile_version` (they move to the link).
+2. **New** `…000250_create_linked_identities_table.php` (sorts after accounts, before tokens) — the `linked_identities` schema with FK → `accounts`, unique `(provider, subject_id)` and `(account_id, provider)`.
+3. `…000300_create_external_user_tokens_table.php` → rename file to `…000300_create_linked_identity_tokens_table.php`; `Schema::create('linked_identity_tokens', …)` with `linked_identity_id` (indexed) instead of `external_user_id`.
+4. `…000400` profile_snapshots: column `external_user_id` → `account_id`; `->on('accounts')`.
+5. `…001300` organization_memberships: `external_user_id` → `account_id`; unique `(organization_id, account_id)`; `->on('accounts')`.
+6. `…002900` participant_stage_statuses: `external_user_id` → `account_id`; unique `(cohort_id, account_id, program_stage_id)`.
+7. `…000100` audit_logs: `actor_external_user_id` → `actor_account_id`.
 
-A `down()` is provided (reverse rename/repoint) for dev reversibility; it is best-effort given the column drops.
+No `down()`/`up()` rename gymnastics and no data-backfill step — the migrations simply *are* the target schema. The code, call sites, and test seams (§5) all change in the same PR so a fresh `migrate` + the full suite are green together; there is no interim state referencing an old name.
 
 ## 5. Code changes
 
@@ -97,7 +101,8 @@ A `down()` is provided (reverse rename/repoint) for dev reversibility; it is bes
 - **Regression (must stay green):** the existing OIDC suite — `AuthFlowTest`, `AuthSecurityTest`, the projection test (renamed `…AccountProjectionTest`), the token-lifecycle test — passes against the new model and the unchanged session JSON.
 - **New:**
   - `LinkedIdentity` projection + uniqueness: upsert by `(provider, subject_id)`; second login with same `sub` reuses the same account + link (no duplicate account); unique constraints enforced.
-  - **Migration data-integrity test:** seed `external_users` + tokens + memberships + a profile snapshot + an audit row → run the migration → assert exactly one `accounts` row and one `startup_gate` `linked_identities` row per original user, tokens repointed to `linked_identity_id`, memberships/snapshots/stage-statuses repointed to `account_id`, `audit_logs.actor_account_id` populated, zero orphans.
+  - **Schema-shape test** (replaces the data-migration test, since there is no data migration): after a fresh migrate, assert `Schema::hasTable('accounts')` and `Schema::hasTable('linked_identities')` and `Schema::hasTable('linked_identity_tokens')`; assert `!Schema::hasTable('external_users')` / `!hasTable('external_user_tokens')`; assert `accounts` has no `startup_gate_subject_id` column; assert `organization_memberships`/`profile_snapshots`/`participant_stage_statuses` have `account_id` (not `external_user_id`) and `audit_logs` has `actor_account_id`.
+  - **End-to-end projection** (the data path that used to be a backfill): a full OIDC login creates exactly one `accounts` row + one `startup_gate` `linked_identities` row + one `linked_identity_tokens` row; a second login with the same `sub` reuses the same account (no duplicate); the owner membership written by `CreateOrganization` lands on `account_id`.
   - **Tenant isolation (AR-6):** re-verify fail-closed isolation on the renamed `organization_memberships.account_id` (cross-tenant → 404).
   - Audit write uses `actor_account_id`.
 - **Gates:** Pint, PHPStan, the full backend feature suite, and the frontend typecheck/lint (frontend unchanged, so it must remain green with no edits).
