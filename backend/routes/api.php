@@ -16,6 +16,7 @@ use App\Modules\Programs\Http\ProgramPolicyController;
 use App\Modules\Programs\Http\ProgramRoleRequirementController;
 use App\Modules\Programs\Http\ProgramTemplateController;
 use App\Modules\Programs\Http\TrackController;
+use App\Modules\Reporting\Http\FunnelController;
 use App\Modules\Stages\Http\StageController;
 use App\Modules\Stages\Http\StageDependencyController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,10 @@ Route::prefix('v1')->group(function (): void {
     // middleware (the applicant has no org; the submission inherits the cohort's).
     Route::post('/apply/{cohort}/submit', [SubmitController::class, 'store'])
         ->middleware('auth:sanctum')->name('apply.submit');
+
+    // Public telemetry beacon (Story 2.8, FR-080) — no auth/tenant, best-effort.
+    // The client fires `started` once when the applicant enters their first answer.
+    Route::post('/apply/{cohort}/events', [ApplyController::class, 'event'])->name('apply.events');
 
     // Organization routes — NO tenant middleware for store + index
     // (no org context exists yet when creating; index lists across orgs)
@@ -81,6 +86,9 @@ Route::prefix('v1')->group(function (): void {
         // Operator submission read API (Story 2.8, FR-034) — tenant-scoped list + detail.
         Route::get('/cohorts/{cohort}/submissions', [SubmissionController::class, 'index'])->name('cohorts.submissions.index');
         Route::get('/cohorts/{cohort}/submissions/{submission}', [SubmissionController::class, 'show'])->name('cohorts.submissions.show');
+
+        // Operator funnel (Story 2.8, FR-080) — viewed/started (telemetry) + submitted (durable).
+        Route::get('/cohorts/{cohort}/funnel', [FunnelController::class, 'show'])->name('cohorts.funnel');
 
         // Stage sub-resource routes (nested under program)
         Route::get('/programs/{program}/stages', [StageController::class, 'index'])->name('programs.stages.index');

@@ -9,6 +9,8 @@ import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
 import { ProgramsPage } from '../pages/ProgramsPage'
+import { SubmissionsPage } from '../pages/SubmissionsPage'
+import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -22,6 +24,9 @@ const LOGIN_ROUTE = /^\/login\/?$/
 const CALLBACK_ROUTE = /^\/auth\/callback\/?$/
 const HEALTH_ROUTE = /^\/health\/?$/
 const PROGRAMS_ROUTE = /^\/programs\/?$/
+// Detail must be tested before the list route (more specific first).
+const SUBMISSION_DETAIL_ROUTE = /^\/cohorts\/([^/]+)\/submissions\/([^/]+)\/?$/
+const SUBMISSIONS_ROUTE = /^\/cohorts\/([^/]+)\/submissions\/?$/
 
 /**
  * No-org gate (Story 1.1, AC-1/2/3). Drives a session + org query and decides:
@@ -119,6 +124,30 @@ function resolveRoute() {
   }
   if (PROGRAMS_ROUTE.test(path)) {
     return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
+  }
+  const detail = SUBMISSION_DETAIL_ROUTE.exec(path)
+  if (detail) {
+    return (
+      <ConsoleGate>
+        {(org) => (
+          <SubmissionDetailPage
+            cohortId={decodeURIComponent(detail[1])}
+            submissionId={decodeURIComponent(detail[2])}
+            organization={org}
+          />
+        )}
+      </ConsoleGate>
+    )
+  }
+  const submissions = SUBMISSIONS_ROUTE.exec(path)
+  if (submissions) {
+    return (
+      <ConsoleGate>
+        {(org) => (
+          <SubmissionsPage cohortId={decodeURIComponent(submissions[1])} organization={org} />
+        )}
+      </ConsoleGate>
+    )
   }
   // Root and any other console/onboarding route → the gate decides. Home is the
   // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
