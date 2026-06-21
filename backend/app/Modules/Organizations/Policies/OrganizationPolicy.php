@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Organizations\Policies;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Shared\Tenancy\TenantContext;
 
@@ -34,7 +34,7 @@ final class OrganizationPolicy
      * member. Data-layer scoping prevents cross-tenant access; no extra permission
      * key is needed here.
      */
-    public function view(ExternalUser $user, Organization $org): bool
+    public function view(Account $user, Organization $org): bool
     {
         return true;
     }
@@ -45,7 +45,7 @@ final class OrganizationPolicy
      * Requires the `organizations.manage` permission on the resolved tenant.
      * Platform admins bypass this check via TenantContext.
      */
-    public function update(ExternalUser $user, Organization $org): bool
+    public function update(Account $user, Organization $org): bool
     {
         return app(TenantContext::class)->can('organizations.manage');
     }

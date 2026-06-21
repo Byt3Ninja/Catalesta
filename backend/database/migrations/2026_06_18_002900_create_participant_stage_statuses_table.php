@@ -14,14 +14,14 @@ return new class extends Migration
             $t->ulid('id')->primary();
             $t->ulid('organization_id')->index();
             $t->ulid('cohort_id')->index();
-            $t->ulid('external_user_id')->index();
+            $t->ulid('account_id')->index();
             $t->ulid('program_stage_id')->index();
             $t->string('status')->default('not_started');
             $t->timestampTz('entered_at')->nullable();
             $t->timestampTz('completed_at')->nullable();
             $t->timestampsTz();
 
-            $t->unique(['cohort_id', 'external_user_id', 'program_stage_id']);
+            $t->unique(['cohort_id', 'account_id', 'program_stage_id']);
         });
     }
 

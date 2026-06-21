@@ -19,7 +19,7 @@ final class AuditLogger
     public function record(string $action, ?string $targetType, ?string $targetId, array $before = [], array $after = [], string $result = 'success', ?string $organizationId = null): AuditLog
     {
         return AuditLog::create([
-            'actor_external_user_id' => optional($this->request->user())->id,
+            'actor_account_id' => optional($this->request->user())->id,
             // Explicit org wins (a public applicant has no TenantContext, so the
             // submit audits under the COHORT's org, Story 2.7); else resolved tenant.
             'organization_id' => $organizationId ?? $this->tenant->organizationId(),

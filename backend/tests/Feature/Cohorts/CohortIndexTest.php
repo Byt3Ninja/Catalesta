@@ -7,7 +7,7 @@ namespace Tests\Feature\Cohorts;
 use App\Modules\Applications\Domain\Models\ApplicationSubmission;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Domain\Models\CohortStatus;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -57,7 +57,7 @@ final class CohortIndexTest extends TestCase
         });
     }
 
-    private function getAs(ExternalUser $user, Organization $org, string $path): TestResponse
+    private function getAs(Account $user, Organization $org, string $path): TestResponse
     {
         return $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Organizations\Domain\Models\OrganizationPermission;
@@ -33,8 +32,7 @@ final class EffectivePermissionsTest extends TestCase
     {
         $org = Organization::create(['name' => 'Acme']);
 
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sub-test-001',
+        $user = $this->makeAccount([
             'email' => 'alice@example.com',
         ]);
 
@@ -50,7 +48,7 @@ final class EffectivePermissionsTest extends TestCase
         // Attach the permission to the role via the pivot table
         $role->permissions()->attach($permission->id);
 
-        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership = new OrganizationMembership(['account_id' => $user->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 
@@ -67,8 +65,7 @@ final class EffectivePermissionsTest extends TestCase
     {
         $org = Organization::create(['name' => 'Beta Corp']);
 
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sub-test-002',
+        $user = $this->makeAccount([
             'email' => 'bob@example.com',
         ]);
 
@@ -87,7 +84,7 @@ final class EffectivePermissionsTest extends TestCase
         // Also attach perm1 to role2 to test DISTINCT
         $role2->permissions()->attach($perm1->id);
 
-        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership = new OrganizationMembership(['account_id' => $user->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 
@@ -106,12 +103,11 @@ final class EffectivePermissionsTest extends TestCase
     {
         $org = Organization::create(['name' => 'Gamma Inc']);
 
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sub-test-003',
+        $user = $this->makeAccount([
             'email' => 'carol@example.com',
         ]);
 
-        $membership = new OrganizationMembership(['external_user_id' => $user->id, 'status' => 'active']);
+        $membership = new OrganizationMembership(['account_id' => $user->id, 'status' => 'active']);
         $membership->organization_id = $org->id;
         $membership->save();
 

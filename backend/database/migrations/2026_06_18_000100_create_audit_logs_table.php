@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('audit_logs', function (Blueprint $t) {
             $t->ulid('id')->primary();
-            $t->ulid('actor_external_user_id')->nullable()->index();
+            $t->ulid('actor_account_id')->nullable()->index();
             $t->ulid('organization_id')->nullable()->index();
             $t->string('action');
             $t->string('target_type')->nullable();

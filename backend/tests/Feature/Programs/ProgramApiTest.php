@@ -172,8 +172,8 @@ final class ProgramApiTest extends TestCase
         $org = $this->createBareOrg('Managed Org');
 
         // Add a bare member with no roles (no permissions)
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 
@@ -203,8 +203,8 @@ final class ProgramApiTest extends TestCase
         $programId = $program->id;
 
         // Create a bare member with no roles (no programs.publish permission)
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 

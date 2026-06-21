@@ -164,8 +164,8 @@ final class CohortApiTest extends TestCase
         // Create an org and program under the owner (not the member)
         $org = $this->createBareOrg('Managed Org');
 
-        $owner = $this->makeExternalUser();
-        $ownerMembership = new OrganizationMembership(['external_user_id' => $owner->id, 'status' => 'active']);
+        $owner = $this->makeAccount();
+        $ownerMembership = new OrganizationMembership(['account_id' => $owner->id, 'status' => 'active']);
         $ownerMembership->organization_id = $org->id;
         $ownerMembership->save();
 
@@ -175,8 +175,8 @@ final class CohortApiTest extends TestCase
         $program->save();
 
         // Add a bare member with no roles (no permissions)
-        $member = $this->makeExternalUser();
-        $memberMembership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $memberMembership->organization_id = $org->id;
         $memberMembership->save();
 

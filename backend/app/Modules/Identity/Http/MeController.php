@@ -8,8 +8,8 @@ use App\Modules\Identity\Domain\Contracts\IdentityProvider;
 use App\Modules\Identity\Domain\Contracts\ProfileProvider;
 use App\Modules\Identity\Domain\Contracts\RoleProfileProvider;
 use App\Modules\Identity\Domain\Contracts\StartupMembershipProvider;
-use App\Modules\Identity\Domain\Models\ExternalUser;
-use App\Modules\Identity\Domain\Models\ExternalUserToken;
+use App\Modules\Identity\Domain\Models\Account;
+use App\Modules\Identity\Domain\Models\LinkedIdentityToken;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,13 +33,13 @@ final class MeController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        /** @var ExternalUser $user */
+        /** @var Account $user */
         $user = $request->user();
 
         return response()->json([
             'data' => [
                 'id' => $user->id,
-                'startup_gate_subject_id' => $user->startup_gate_subject_id,
+                'startup_gate_subject_id' => $user->startupGateSubjectId(),
                 'email' => $user->email,
                 'display_name' => $user->display_name,
                 'avatar_url' => $user->avatar_url,
@@ -101,7 +101,7 @@ final class MeController extends Controller
     /**
      * Resolves the current access token for the authenticated user.
      *
-     * Fetches the latest ExternalUserToken row. If the token is expired, a
+     * Fetches the latest LinkedIdentityToken row. If the token is expired, a
      * best-effort token refresh is attempted: on success the stored row is
      * rotated with the new credentials. On failure (e.g. no refresh token),
      * the existing token is used as-is.
@@ -112,13 +112,15 @@ final class MeController extends Controller
      */
     private function resolveAccessToken(Request $request, IdentityProvider $identityProvider): string
     {
-        /** @var ExternalUser $user */
+        /** @var Account $user */
         $user = $request->user();
 
-        /** @var ExternalUserToken|null $tokenRecord */
-        $tokenRecord = ExternalUserToken::where('external_user_id', $user->id)
-            ->latest('created_at')
-            ->first();
+        $link = $user->linkedIdentities()->where('provider', 'startup_gate')->first();
+
+        /** @var LinkedIdentityToken|null $tokenRecord */
+        $tokenRecord = $link
+            ? LinkedIdentityToken::where('linked_identity_id', $link->id)->latest('created_at')->first()
+            : null;
 
         if ($tokenRecord === null) {
             abort(401, 'No stored access token — re-authentication required.');

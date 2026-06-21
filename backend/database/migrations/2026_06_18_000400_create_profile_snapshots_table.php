@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('profile_snapshots', function (Blueprint $t) {
             $t->ulid('id')->primary();
-            $t->ulid('external_user_id')->index();
+            $t->ulid('account_id')->index();
             $t->string('context_type');
             $t->string('context_id')->nullable();
             $t->unsignedInteger('profile_version');
@@ -21,9 +21,9 @@ return new class extends Migration
             $t->char('hash', 64);
             $t->timestampTz('captured_at');
 
-            $t->foreign('external_user_id')
+            $t->foreign('account_id')
                 ->references('id')
-                ->on('external_users')
+                ->on('accounts')
                 ->onDelete('cascade');
         });
     }

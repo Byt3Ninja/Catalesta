@@ -6,7 +6,7 @@ namespace App\Modules\Identity\Http;
 
 use App\Modules\Identity\Application\CompleteLogin;
 use App\Modules\Identity\Domain\Contracts\IdentityProvider;
-use App\Modules\Identity\Domain\Models\ExternalUserToken;
+use App\Modules\Identity\Domain\Models\LinkedIdentityToken;
 use App\Shared\Audit\AuditLogger;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -75,7 +75,7 @@ final class AuthController extends Controller
         return response()->json([
             'user' => [
                 'id' => $user->id,
-                'startup_gate_subject_id' => $user->startup_gate_subject_id,
+                'startup_gate_subject_id' => $user->startupGateSubjectId(),
                 'email' => $user->email,
                 'display_name' => $user->display_name,
             ],
@@ -94,7 +94,7 @@ final class AuthController extends Controller
         return response()->json([
             'user' => [
                 'id' => $user->id,
-                'startup_gate_subject_id' => $user->startup_gate_subject_id,
+                'startup_gate_subject_id' => $user->startupGateSubjectId(),
                 'email' => $user->email,
                 'display_name' => $user->display_name,
             ],
@@ -110,8 +110,12 @@ final class AuthController extends Controller
     {
         $user = $request->user();
 
+        $link = $user->linkedIdentities()->where('provider', 'startup_gate')->first();
+
         // Best-effort token revocation
-        $tokens = ExternalUserToken::where('external_user_id', $user->id)->get();
+        $tokens = $link
+            ? LinkedIdentityToken::where('linked_identity_id', $link->id)->get()
+            : collect();
 
         foreach ($tokens as $token) {
             try {
@@ -121,9 +125,11 @@ final class AuthController extends Controller
             }
         }
 
-        ExternalUserToken::where('external_user_id', $user->id)->delete();
+        if ($link) {
+            LinkedIdentityToken::where('linked_identity_id', $link->id)->delete();
+        }
 
-        $audit->record('auth.logout', 'external_user', (string) $user->id);
+        $audit->record('auth.logout', 'account', (string) $user->id);
 
         // Logout from session guard and invalidate session
         Auth::guard('web')->logout();

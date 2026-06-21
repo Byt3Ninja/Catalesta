@@ -97,7 +97,7 @@ final class MembershipController extends Controller
         // Use the TenantContext org (the authorized one), never the raw route param.
         $authorizedOrgId = $tenantContext->organizationId() ?? $orgId;
 
-        /** @var array{external_user_id: string, role_keys?: array<int, string>} $data */
+        /** @var array{account_id: string, role_keys?: array<int, string>} $data */
         $data = $request->validated();
 
         // Validate role_keys against known roles for this org before writing anything
@@ -120,7 +120,7 @@ final class MembershipController extends Controller
             // Create the membership using the TenantContext-authorized org id.
             $membership = OrganizationMembership::create([
                 'organization_id' => $authorizedOrgId,
-                'external_user_id' => $data['external_user_id'],
+                'account_id' => $data['account_id'],
                 'status' => 'active',
             ]);
 
@@ -143,7 +143,7 @@ final class MembershipController extends Controller
                 [],
                 [
                     'organization_id' => $authorizedOrgId,
-                    'external_user_id' => $data['external_user_id'],
+                    'account_id' => $data['account_id'],
                 ],
             );
 

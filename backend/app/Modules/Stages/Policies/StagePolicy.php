@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Stages\Policies;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Shared\Tenancy\TenantContext;
 
@@ -22,7 +22,7 @@ final class StagePolicy
     /**
      * Any authenticated tenant member may list stages.
      */
-    public function viewAny(ExternalUser $user): bool
+    public function viewAny(Account $user): bool
     {
         return true;
     }
@@ -30,7 +30,7 @@ final class StagePolicy
     /**
      * Any authenticated tenant member may view a single stage.
      */
-    public function view(ExternalUser $user, ProgramStage $stage): bool
+    public function view(Account $user, ProgramStage $stage): bool
     {
         return true;
     }
@@ -38,7 +38,7 @@ final class StagePolicy
     /**
      * Creating a stage requires stages.manage.
      */
-    public function create(ExternalUser $user): bool
+    public function create(Account $user): bool
     {
         return app(TenantContext::class)->can('stages.manage');
     }
@@ -46,7 +46,7 @@ final class StagePolicy
     /**
      * Updating a stage requires stages.manage.
      */
-    public function update(ExternalUser $user, ProgramStage $stage): bool
+    public function update(Account $user, ProgramStage $stage): bool
     {
         return app(TenantContext::class)->can('stages.manage');
     }
@@ -54,7 +54,7 @@ final class StagePolicy
     /**
      * Publishing a stage version requires stages.manage.
      */
-    public function publish(ExternalUser $user, ProgramStage $stage): bool
+    public function publish(Account $user, ProgramStage $stage): bool
     {
         return app(TenantContext::class)->can('stages.manage');
     }
@@ -62,7 +62,7 @@ final class StagePolicy
     /**
      * Reordering stages requires stages.manage.
      */
-    public function reorder(ExternalUser $user): bool
+    public function reorder(Account $user): bool
     {
         return app(TenantContext::class)->can('stages.manage');
     }
@@ -70,7 +70,7 @@ final class StagePolicy
     /**
      * Managing stage dependencies (add/view/remove) requires stages.manage.
      */
-    public function manageDependencies(ExternalUser $user, ProgramStage $stage): bool
+    public function manageDependencies(Account $user, ProgramStage $stage): bool
     {
         return app(TenantContext::class)->can('stages.manage');
     }

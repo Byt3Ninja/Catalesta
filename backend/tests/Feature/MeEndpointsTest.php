@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
-use App\Modules\Identity\Domain\Models\ExternalUserToken;
+use App\Modules\Identity\Domain\Models\Account;
+use App\Modules\Identity\Domain\Models\LinkedIdentity;
+use App\Modules\Identity\Domain\Models\LinkedIdentityToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -18,21 +19,26 @@ final class MeEndpointsTest extends TestCase
     // Helpers
     // ---------------------------------------------------------------------------
 
-    private function createUserWithToken(bool $expired = false): ExternalUser
+    private function createUserWithToken(bool $expired = false): Account
     {
-        /** @var ExternalUser $user */
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sg_me_test_01',
+        $user = Account::create([
             'email' => 'me@example.com',
             'display_name' => 'Me User',
             'avatar_url' => 'https://example.com/avatar.png',
             'locale' => 'en',
+        ]);
+
+        $link = LinkedIdentity::create([
+            'account_id' => $user->id,
+            'provider' => 'startup_gate',
+            'subject_id' => 'sg_me_test_01',
+            'linked_at' => now(),
             'synchronization_status' => 'synced',
             'synchronized_at' => now(),
         ]);
 
-        ExternalUserToken::create([
-            'external_user_id' => $user->id,
+        LinkedIdentityToken::create([
+            'linked_identity_id' => $link->id,
             'access_token' => 'test-access-token',
             'refresh_token' => 'test-refresh-token',
             'expires_at' => $expired ? now()->subMinute() : now()->addHour(),
@@ -142,13 +148,16 @@ final class MeEndpointsTest extends TestCase
 
     public function test_me_profile_without_stored_token_returns_401(): void
     {
-        /** @var ExternalUser $user */
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sg_no_token',
+        $user = Account::create([
             'email' => 'notoken@example.com',
             'display_name' => 'No Token User',
-            'synchronization_status' => 'synced',
-            'synchronized_at' => now(),
+        ]);
+
+        LinkedIdentity::create([
+            'account_id' => $user->id,
+            'provider' => 'startup_gate',
+            'subject_id' => 'sg_no_token',
+            'linked_at' => now(),
         ]);
 
         $this->actingAs($user, 'web');
@@ -158,13 +167,16 @@ final class MeEndpointsTest extends TestCase
 
     public function test_me_role_profiles_without_stored_token_returns_401(): void
     {
-        /** @var ExternalUser $user */
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sg_no_token_2',
+        $user = Account::create([
             'email' => 'notoken2@example.com',
             'display_name' => 'No Token User 2',
-            'synchronization_status' => 'synced',
-            'synchronized_at' => now(),
+        ]);
+
+        LinkedIdentity::create([
+            'account_id' => $user->id,
+            'provider' => 'startup_gate',
+            'subject_id' => 'sg_no_token_2',
+            'linked_at' => now(),
         ]);
 
         $this->actingAs($user, 'web');
@@ -174,13 +186,16 @@ final class MeEndpointsTest extends TestCase
 
     public function test_me_startups_without_stored_token_returns_401(): void
     {
-        /** @var ExternalUser $user */
-        $user = ExternalUser::create([
-            'startup_gate_subject_id' => 'sg_no_token_3',
+        $user = Account::create([
             'email' => 'notoken3@example.com',
             'display_name' => 'No Token User 3',
-            'synchronization_status' => 'synced',
-            'synchronized_at' => now(),
+        ]);
+
+        LinkedIdentity::create([
+            'account_id' => $user->id,
+            'provider' => 'startup_gate',
+            'subject_id' => 'sg_no_token_3',
+            'linked_at' => now(),
         ]);
 
         $this->actingAs($user, 'web');

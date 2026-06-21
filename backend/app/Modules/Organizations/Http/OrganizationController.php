@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Organizations\Http;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
@@ -32,14 +32,14 @@ final class OrganizationController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        /** @var ExternalUser $user */
+        /** @var Account $user */
         $user = $request->user();
 
         if ($user->is_platform_admin) {
             $orgs = Organization::all();
         } else {
             $orgIds = app(TenantContext::class)->runAsSystem(fn () => OrganizationMembership::query()
-                ->where('external_user_id', $user->id)
+                ->where('account_id', $user->id)
                 ->where('status', 'active')
                 ->pluck('organization_id')
                 ->toArray());
@@ -58,7 +58,7 @@ final class OrganizationController extends Controller
      */
     public function store(StoreOrganizationRequest $request, CreateOrganization $service): JsonResponse
     {
-        /** @var ExternalUser $user */
+        /** @var Account $user */
         $user = $request->user();
 
         /** @var array{name: string, branding?: array<string, mixed>|null} $data */

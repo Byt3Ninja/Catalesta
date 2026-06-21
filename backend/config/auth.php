@@ -1,7 +1,6 @@
 <?php
 
-use App\Models\User;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 
 return [
 
@@ -65,7 +64,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => ExternalUser::class,
+            'model' => Account::class,
         ],
 
         // 'users' => [

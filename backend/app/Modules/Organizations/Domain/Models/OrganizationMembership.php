@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Organizations\Domain\Models;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Shared\Tenancy\BelongsToTenant;
 use App\Shared\Tenancy\Contracts\TenantMembership;
 use App\Shared\Tenancy\TenantContext;
@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * tests without setting up a tenant context.
  *
  * @property string $organization_id
- * @property string $external_user_id
+ * @property string $account_id
  * @property string $status
  */
 final class OrganizationMembership extends Model implements TenantMembership
@@ -34,7 +34,7 @@ final class OrganizationMembership extends Model implements TenantMembership
     use BelongsToTenant;
     use HasUlids;
 
-    protected $fillable = ['external_user_id', 'status'];
+    protected $fillable = ['account_id', 'status'];
 
     /** @return BelongsTo<Organization, $this> */
     public function organization(): BelongsTo
@@ -42,10 +42,10 @@ final class OrganizationMembership extends Model implements TenantMembership
         return $this->belongsTo(Organization::class);
     }
 
-    /** @return BelongsTo<ExternalUser, $this> */
-    public function externalUser(): BelongsTo
+    /** @return BelongsTo<Account, $this> */
+    public function account(): BelongsTo
     {
-        return $this->belongsTo(ExternalUser::class);
+        return $this->belongsTo(Account::class);
     }
 
     /** @return BelongsToMany<OrganizationRole, $this, OrganizationMembershipRole, 'pivot'> */

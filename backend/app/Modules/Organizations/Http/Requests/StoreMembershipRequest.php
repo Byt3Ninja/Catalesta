@@ -22,7 +22,7 @@ final class StoreMembershipRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'external_user_id' => ['required', 'string', 'exists:external_users,id'],
+            'account_id' => ['required', 'string', 'exists:accounts,id'],
             'role_keys' => ['sometimes', 'array'],
             'role_keys.*' => ['string'],
         ];

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use App\Modules\Programs\Domain\Models\Program;
@@ -601,7 +601,7 @@ final class Phase2TenantIsolationTest extends TestCase
      * any session / auth-state bleed-over into the test assertions that follow.
      *
      * @return array{
-     *   0: ExternalUser,
+     *   0: Account,
      *   1: Organization,
      *   2: Program,
      *   3: Cohort,
@@ -669,7 +669,7 @@ final class Phase2TenantIsolationTest extends TestCase
      * must therefore return 403.
      *
      * @return array{
-     *   0: ExternalUser,
+     *   0: Account,
      *   1: Organization,
      *   2: Program,
      *   3: Cohort,
@@ -683,8 +683,8 @@ final class Phase2TenantIsolationTest extends TestCase
         $orgB = $this->createBareOrg('OrgB Member');
 
         // Bare member: active membership, no roles → no permissions
-        $member = $this->makeExternalUser();
-        $membership = new OrganizationMembership(['external_user_id' => $member->id, 'status' => 'active']);
+        $member = $this->makeAccount();
+        $membership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
         $membership->organization_id = $orgB->id;
         $membership->save();
 

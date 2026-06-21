@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use App\Modules\Identity\Domain\Models\ExternalUser;
+use App\Modules\Identity\Domain\Models\Account;
+use App\Modules\Identity\Domain\Models\LinkedIdentity;
 use App\Modules\Organizations\Application\CreateOrganization;
 use App\Modules\Organizations\Domain\Models\Organization;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
@@ -23,17 +24,25 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Create an ExternalUser with a random subject ID.
+     * Create an Account with an attached startup_gate LinkedIdentity.
      *
      * @param  array<string, mixed>  $overrides
      */
-    protected function makeExternalUser(array $overrides = []): ExternalUser
+    protected function makeAccount(array $overrides = []): Account
     {
-        return ExternalUser::create(array_merge([
-            'startup_gate_subject_id' => 'sub-'.Str::uuid()->toString(),
+        $account = Account::create(array_merge([
             'email' => Str::uuid()->toString().'@test.example',
             'is_platform_admin' => false,
         ], $overrides));
+
+        LinkedIdentity::create([
+            'account_id' => $account->id,
+            'provider' => 'startup_gate',
+            'subject_id' => 'sub-'.Str::uuid()->toString(),
+            'linked_at' => now(),
+        ]);
+
+        return $account;
     }
 
     /**
@@ -45,13 +54,13 @@ abstract class TestCase extends BaseTestCase
      * We temporarily swap in a fresh TenantContext so any prior HTTP-resolved tenant does
      * not bleed into the creating hook and force the wrong organization_id.
      *
-     * @return array{0: ExternalUser, 1: Organization}
+     * @return array{0: Account, 1: Organization}
      */
     protected function bootUserWithOrg(string $name = 'Acme'): array
     {
         $this->seed(PermissionCatalogSeeder::class);
 
-        $user = $this->makeExternalUser();
+        $user = $this->makeAccount();
         $this->actingAs($user, 'web');
 
         /** @var CreateOrganization $service */
@@ -71,7 +80,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->seed(PermissionCatalogSeeder::class);
 
-        $owner = $this->makeExternalUser();
+        $owner = $this->makeAccount();
 
         /** @var CreateOrganization $service */
         $service = $this->app->make(CreateOrganization::class);
@@ -85,14 +94,14 @@ abstract class TestCase extends BaseTestCase
      * without going through HTTP middleware.
      */
     protected function actingAsTenant(
-        ExternalUser $user,
+        Account $user,
         Organization $org,
     ): void {
         $this->actingAs($user, 'web');
 
         $membership = OrganizationMembership::withoutGlobalScope('tenant')
             ->where('organization_id', $org->id)
-            ->where('external_user_id', $user->id)
+            ->where('account_id', $user->id)
             ->firstOrFail();
 
         /** @var TenantContext $ctx */

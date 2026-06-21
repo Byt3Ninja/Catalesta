@@ -35,7 +35,7 @@ final class ResolveTenant
         $membership = $user
             ? $this->tenant->runAsSystem(fn () => OrganizationMembership::query()
                 ->where('organization_id', $orgId)
-                ->where('external_user_id', $user->id)
+                ->where('account_id', $user->id)
                 ->where('status', 'active')
                 ->first())
             : null;

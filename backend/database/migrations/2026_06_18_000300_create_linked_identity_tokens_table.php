@@ -10,9 +10,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('external_user_tokens', function (Blueprint $t) {
+        Schema::create('linked_identity_tokens', function (Blueprint $t) {
             $t->ulid('id')->primary();
-            $t->ulid('external_user_id')->index();
+            $t->ulid('linked_identity_id')->index();
             $t->text('access_token');
             $t->text('refresh_token')->nullable();
             $t->jsonb('scopes')->nullable();
@@ -23,6 +23,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('external_user_tokens');
+        Schema::dropIfExists('linked_identity_tokens');
     }
 };
