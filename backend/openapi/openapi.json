@@ -64,6 +64,54 @@
                 }
             }
         },
+        "/v1/apply/{cohort}/events": {
+            "post": {
+                "operationId": "apply.events",
+                "summary": "POST /v1/apply/{cohort}/events \u2014 public best-effort telemetry beacon (FR-080).\nThe client fires `started` once, when the applicant enters their first answer.\nNo auth/tenant; the cohort's org is resolved under system context. Returns 204\nregardless (beacon semantics \u2014 never block or leak), but rejects an unknown\nevent name with 422 so the client contract stays honest",
+                "tags": [
+                    "Apply"
+                ],
+                "parameters": [
+                    {
+                        "name": "cohort",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "event": {
+                                        "type": "string",
+                                        "enum": [
+                                            "started"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "event"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/login": {
             "get": {
                 "operationId": "auth.login",
@@ -457,6 +505,76 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
+        "/v1/cohorts/{cohort}/funnel": {
+            "get": {
+                "operationId": "cohorts.funnel",
+                "summary": "GET /api/v1/cohorts/{cohort}/funnel",
+                "tags": [
+                    "Funnel"
+                ],
+                "parameters": [
+                    {
+                        "name": "cohort",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "viewed": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "started": {
+                                                    "type": "integer",
+                                                    "description": "clamp: beacon-loss undercount",
+                                                    "minimum": 0
+                                                },
+                                                "submitted": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "viewed",
+                                                "started",
+                                                "submitted"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
