@@ -34,7 +34,7 @@ open_items: [OQ1, OQ2, OQ3, OQ4, OQ5, OQ6, OQ7, OQ8, OQ9]
 
 ## 1. Overview
 
-**Catalesta** is a multi-tenant SaaS that lets accelerators and incubators run the full program lifecycle — application → eligibility → evaluation → mentorship → training → final evaluation → graduation → alumni follow-up — in one configurable, auditable, tenant-isolated system, replacing the spreadsheet + form-builder + email patchwork. MENA-first (bilingual Arabic/English + RTL, Geidea billing). Laravel modular monolith; identity is delegated to Startup Gate (`sub` is the immutable user key, never email).
+**Catalesta** is a multi-tenant SaaS that lets accelerators and incubators run the full program lifecycle — application → eligibility → evaluation → mentorship → training → final evaluation → graduation → alumni follow-up — in one configurable, auditable, tenant-isolated system, replacing the spreadsheet + form-builder + email patchwork. MENA-first (bilingual Arabic/English + RTL, Geidea billing). Laravel modular monolith. **Catalesta owns identity** — native registration, authentication, and locally-owned multi-role profiles; the Account id (ULID) is the immutable user key and email is a local login credential only. Startup Gate is an **optional** linked identity provider (SSO) and a consented profile-import source, never the system of record — the platform is fully operational without it.
 
 **Form factor:** responsive web application (operator console + **mobile-web public application pages**) + REST API + webhooks. [ASSUMPTION] no native mobile app in any phase here. The public applicant flow (UJ-2) is designed mobile-first because applicant traffic in MENA is expected to be mobile-dominant.
 
@@ -77,7 +77,7 @@ open_items: [OQ1, OQ2, OQ3, OQ4, OQ5, OQ6, OQ7, OQ8, OQ9]
 ## 4. Users & Stakeholders
 
 - **Program Operator / Admin** (primary buyer + daily user) — configures and runs cohorts, scores, decides, reports.
-- **Applicant / Startup** (end participant) — discovers a program, applies, tracks status. Authenticates via Startup Gate `sub` [ASSUMPTION].
+- **Applicant / Startup** (end participant) — discovers a program, applies, tracks status. Authenticates with a native Catalesta account, or optionally a linked Startup Gate identity.
 - **Evaluator / Mentor / Trainer** (delivery roles) — score applications, run sessions, mark progress.
 - **Funder / Sponsor** (stakeholder, not daily user) — consumes outcomes & reporting.
 - **Platform Admin** (Catalesta staff) — tenant administration, support, impersonation (audited, P4 FR-158).
@@ -95,12 +95,15 @@ open_items: [OQ1, OQ2, OQ3, OQ4, OQ5, OQ6, OQ7, OQ8, OQ9]
 Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Billing seam (gated on World-A) · `[P2]` Substrate generalization + delivery core · `[P3]` Platform services + production commercial plane · `[P4]` Extended capabilities + production cutover. Phase 1a/1b are specified to build depth; later phases are capability-level (full detail in `docs/product/scope-register.md`; P1-critical detail is inlined here).
 
 ### 6.1 Identity, Tenancy & Access — `[P1a]`
-- **FR-001** A user authenticates via Startup Gate OIDC; the immutable `sub` is the user key; email is never an identifier. **Phase 1a runs against the Startup Gate OIDC *mock*** (real-provider cutover is FR-157); FR-001 is "done" for P1a when it passes against the mock and the adapter interface is provider-agnostic — it is **not** claimed production-validated until FR-157.
+- **FR-001** A user authenticates with a **native Catalesta account** (email + password) or, optionally, via a linked identity provider; the immutable **Account id (ULID)** is the user key and email is a local login credential, never a cross-system identifier. Sessions use the existing Sanctum SPA cookie-session transport. *(Native accounts + the linked-provider model are delivered by Epic 4 / SP-1–SP-2; the shipped Epic-1 SG-OIDC-mock path is superseded — see the Epic 1 impact ledger in `epics.md`.)*
 - **FR-002** Signing up creates an Organization (tenant); the creating user becomes its admin.
 - **FR-003** Every tenant-owned record carries `organization_id`, server-set (never client-supplied/mass-assignable).
 - **FR-004** Every tenant query is isolation-enforced fail-closed: an unresolved tenant returns no rows; cross-tenant access returns 404.
 - **FR-005** RBAC scopes permissions per organization (operator, evaluator, applicant, …).
-- **FR-006** Profile reads are consent-aware. **Phase 1a consent source is the Startup Gate mock**; FR-006 is "done" for P1a when the `ConsentProvider` interface is enforced at every profile-read call site against the mock — production consent integration lands with FR-157. (CLAUDE #11 is satisfied as *enforced seam*, not as production data, in P1a.)
+- **FR-006** Profile reads are consent-aware, **including locally-owned profiles**; the `ConsentProvider` interface is enforced at every profile-read call site. (CLAUDE #11.)
+- **FR-007** A user can **register a native account** (email + password), verify their email, reset a forgotten password, and manage their session — with no Startup Gate dependency. *(Epic 4 / SP-1.)*
+- **FR-008** A user can **link** an optional Startup Gate identity to their Catalesta account and sign in with it, or **unlink** it; the account remains usable after unlink. `sub` is stored on the link, not the account. *(Epic 4 / SP-2.)*
+- **FR-009** A user can **import selected profile fields from Startup Gate after explicit, field-level consent**; imported data is a local editable copy with per-field source tracking, import history, and a conflict preview, and **never auto-overwrites locally modified fields**; consent is revocable. *(Epic 4 / SP-4.)*
 
 ### 6.2 Program & Cohort Configuration — `[P1a]`
 - **FR-010** An operator creates a Program and publishes it.
@@ -154,7 +157,7 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 - **FR-130** Production subscription billing: versioned immutable plans, trials, dunning, upgrades/downgrades/add-ons, Geidea recurring + Hosted Payment Page (real charging). **FR-131** Usage metering across the full dimension set. **FR-132** Subdomains + verified custom domains with automatic TLS. **FR-133** Branding/white-label (controlled tokens only; no arbitrary CSS/JS).
 
 ### 6.12 Extended Capabilities & Production Cutover — `[P4]` (capability-level)
-- **FR-150** Interviews/public pages/waitlists; **FR-151** Partners/finance/timesheets; **FR-152** Service marketplace/messaging; **FR-153** Surveys/hackathons/knowledge; **FR-154** Simulation/outcomes/risk; **FR-155** Bulk ops/version migration; **FR-156** *(splits before P4 planning into:)* localization hardening, security hardening, observability, data migration/import-export, performance/production-readiness — each becomes its own FR; **FR-157** Real Startup Gate cutover (mock → production) + federated SSO; **FR-158** Admin impersonation with full audit; **FR-159** Tenant offboarding end-to-end + DR.
+- **FR-150** Interviews/public pages/waitlists; **FR-151** Partners/finance/timesheets; **FR-152** Service marketplace/messaging; **FR-153** Surveys/hackathons/knowledge; **FR-154** Simulation/outcomes/risk; **FR-155** Bulk ops/version migration; **FR-156** *(splits before P4 planning into:)* localization hardening, security hardening, observability, data migration/import-export, performance/production-readiness — each becomes its own FR; **FR-157** Startup Gate as an **optional** linked SSO provider + consented profile import (no authority cutover — SG never becomes the system of record); **FR-158** Admin impersonation with full audit; **FR-159** Tenant offboarding end-to-end + DR.
 
 ## 7. Implementation Phases (roadmap)
 
@@ -166,7 +169,7 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 | **1b** | Billing seam | FR-061, 071–073 | **Entry gate: World-A confirmed (§3 band) AND OQ3 packaging dimensions provisionally ratified.** Exit: Geidea sandbox e2e verified; `active_programs` counter enforced; no real charge |
 | **2** | Substrate generalization + delivery core | FR-100…108 | Participant lifecycle (mentorship→graduation) runnable; substrate generalized to multi-consumer |
 | **3** | Platform services + production commercial plane | FR-120…133 | Tenant subscribes + pays (production Geidea); reporting, notifications, full forms |
-| **4** | Extended capabilities + production cutover | FR-150…159 | Extended modules; real Startup Gate (FR-157); DR/offboarding/impersonation production-ready |
+| **4** | Extended capabilities + production cutover | FR-150…159 | Extended modules; optional Startup Gate SSO + import (FR-157); DR/offboarding/impersonation production-ready |
 
 **"Slice depth" defined.** For Phase 1a, each substrate primitive is built to exactly this depth: **outbox** = table + transactional write + at-least-once relay + one idempotent consumer + dead-letter (FR-050); **idempotency** = key table + middleware on the two named endpoints (FR-051); **audit** = the enumerated action set (FR-052); **entitlement** = interface + three enumerated call sites, allow-all policy (FR-060). "Generalized in P2" = the FR-100 generalization scope above. The substrate is built once at this depth and *extended* (not rewritten) in P2.
 
@@ -175,11 +178,11 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 ## 8. Cross-cutting Non-Functional Requirements
 
 - **NFR-001 Tenant isolation** — fail-closed; `BelongsToTenant`; architecture test asserts the trait on every tenant-owned model. (C1 = 0 incidents.)
-- **NFR-002 Identity integrity** — Startup Gate `sub` is the only cross-system key; email never identifies.
+- **NFR-002 Identity integrity** — the **Account id (ULID)** is the primary user identifier; a Startup Gate `sub`, when linked, is the immutable key of that external identity only. Email never identifies across systems.
 - **NFR-003 Immutability & versioning** — published forms, stages, assessments, workflows cannot mutate; new versions only; formal submissions capture immutable snapshots (FR-031).
 - **NFR-004 Decimal arithmetic** — all scoring uses `DECIMAL` math with the precision/rounding in FR-040; no floats in money/score paths.
 - **NFR-005 No arbitrary code in rules** — rule/form/expression definitions are declarative data. **Acceptance test:** a validator rejects any definition whose nodes are not in the allowed field/operator set; an attempt to embed PHP/SQL/JS/shell fails validation and is covered by a test.
-- **NFR-006 Consent-aware access** — all profile reads enforce consent state via the `ConsentProvider` seam (mock in P1a; real at FR-157).
+- **NFR-006 Consent-aware access** — all profile reads (including locally-owned profiles) enforce consent state via the `ConsentProvider` seam; importing any field from Startup Gate requires explicit field-level consent.
 - **NFR-007 Payment integrity** — provider-interface isolation; verified, idempotent callbacks; no raw card/CVV; browser returns non-authoritative.
 - **NFR-008 Data-respecting limits** — hitting a usage limit never deletes/hides tenant data (FR-062).
 - **NFR-009 Security baseline** — secrets never committed; **signing-key rotation ≤ 90 days, provider-API-key rotation ≤ 180 days or on incident**; least-privilege; **rate limiting: ≤ 60 req/min/IP on the public application endpoint, ≤ 600 req/min/tenant on authenticated APIs** [ASSUMPTION ceilings].
@@ -191,8 +194,9 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 
 ## 9. Data Ownership & Domain Boundaries
 
-- **Startup Gate (global identity domain):** identity (`sub`), general + role profiles, startup memberships, consent, verification, shared directories, achievements. No direct DB sharing; the platform reads via adapter interfaces (mock in P1a, real at FR-157).
-- **Program Platform (tenant domain):** organizations, programs, cohorts, stages, forms, applications, documents, assessments, workflows, role assignments, tasks, mentorship, training, final evaluation, graduation, reporting. Join key is `sub`.
+- **Catalesta (system of record):** accounts & identity, general + role profiles, memberships, consent, verification. Owns all user, role, program, operational, assessment, document, and reporting data. The 7 role-profile types are Founder, Startup, Mentor, Service Provider, Investor, Trainer, Judge.
+- **Startup Gate (optional external identity domain):** an optional linked SSO provider and a consented, field-level profile-import source. No direct DB sharing; the platform integrates via adapter interfaces. Imported data is a local editable copy and never auto-overwrites local edits.
+- **Program Platform (tenant domain):** organizations, programs, cohorts, stages, forms, applications, documents, assessments, workflows, role assignments, tasks, mentorship, training, final evaluation, graduation, reporting. Join key is the **Account id**.
 - **Achievements** flow tenant → Startup Gate only via **trusted publication** (attested, snapshot-backed, consent-gated, idempotent — `features/achievements-trusted-publication.md`).
 
 ## 10. Assumptions & Open Questions
