@@ -34,7 +34,9 @@ final class IdentityModelInversionTest extends TestCase
         $this->assertTrue(Schema::hasColumn('organization_memberships', 'account_id'));
         $this->assertFalse(Schema::hasColumn('organization_memberships', 'external_user_id'));
         $this->assertTrue(Schema::hasColumn('profile_snapshots', 'account_id'));
+        $this->assertFalse(Schema::hasColumn('profile_snapshots', 'external_user_id'));
         $this->assertTrue(Schema::hasColumn('participant_stage_statuses', 'account_id'));
+        $this->assertFalse(Schema::hasColumn('participant_stage_statuses', 'external_user_id'));
         $this->assertTrue(Schema::hasColumn('audit_logs', 'actor_account_id'));
     }
 
