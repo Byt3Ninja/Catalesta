@@ -7,16 +7,16 @@ Build a production-grade multi-tenant platform for configurable incubation, acce
 ## Non-Negotiable Rules
 
 1. Use a Laravel modular monolith.
-2. Startup Gate owns global identity, general profiles, role profiles, startup memberships, consent, verification, shared directories, and achievements.
+2. Catalesta owns global identity, accounts, general and role profiles, memberships, and consent as system of record. Startup Gate is an optional external identity provider (SSO) and a consented profile-import source — never the system of record.
 3. The program platform owns organizations, programs, cohorts, stages, applications, evaluations, assignments, mentorship, training, graduation, and reporting.
-4. Use Startup Gate `sub` as the immutable user identifier.
-5. Never use email as the cross-system identifier.
+4. The primary user identifier is the local Account id (ULID). A Startup Gate `sub`, when an account is linked, is the immutable identifier of that linked external identity — unique, never reassigned, never the primary key.
+5. Email is a local login credential only. Never use email as a cross-system, cross-tenant, or external-linkage identifier; use the Account id locally and `sub` for Startup Gate linkage.
 6. Every tenant-owned record must include `organization_id`.
 7. Every tenant query must enforce tenant isolation.
 8. Published forms, workflows, assessments, and stages are immutable and versioned.
 9. Use decimal arithmetic for scoring.
 10. No arbitrary code execution in rules.
-11. All profile access must be consent-aware.
+11. All profile access must be consent-aware, including locally-owned profiles. Importing any field from Startup Gate requires explicit, field-level consent; imported data is a local editable copy and must never auto-overwrite locally modified fields.
 12. Formal submissions must capture immutable snapshots.
 13. Keep external integrations behind interfaces.
 14. Every feature requires tests and documentation updates.
