@@ -17,6 +17,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
 import { ProgramsPage } from '../pages/ProgramsPage'
+import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { ConsentProvider } from '../app/ConsentProvider'
 
 function withProviders(ui: ReactElement): ReactElement {
@@ -140,6 +141,10 @@ describe('a11y gate (axe-core)', () => {
 
   it('ProgramsPage — list + create + publish (Story 1.2)', async () => {
     await expectNoViolations(withProviders(<ProgramsPage organization={ORG} />))
+  })
+
+  it('SubmissionsPage — funnel + list (Story 2.8)', async () => {
+    await expectNoViolations(withProviders(<SubmissionsPage cohortId="01J0COH" organization={ORG} />))
   })
 
   it('ApplyField — representative field types (Story 2.7)', async () => {

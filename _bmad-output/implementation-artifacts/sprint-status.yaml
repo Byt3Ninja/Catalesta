@@ -69,7 +69,7 @@ development_status:
   2-5-enumerated-audit-trail: review
   2-6-application-submission-record-and-immutable-snapshot: review
   2-7-public-idempotent-submit-flow-and-receipt: review  # backend submit slice done; UI/telemetry blocked-by 1.0
-  2-8-operator-submission-list-and-funnel: ready-for-dev  # slice 1 (FR-034 read API) done; slice 2 scoped: FR-080 telemetry substrate + viewed/started emit + funnel API + operator Submissions UI (list/detail/funnel) + 1-5 link handoff
+  2-8-operator-submission-list-and-funnel: review  # slice 2 done: FR-080 telemetry substrate + viewed/started emit + funnel API + operator Submissions UI + 1-5 link handoff
   epic-2-retrospective: optional
 
   # ── Epic 3: Score & Decide (gated on Epic 2 evidence) ──

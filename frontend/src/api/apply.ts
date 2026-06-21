@@ -8,6 +8,23 @@ import {
   type SubmitErrorCode,
 } from '../schemas/apply'
 
+/**
+ * Best-effort `started` telemetry beacon (FR-080). Fired once when the applicant
+ * enters their first answer. Public, no-auth, fire-and-forget — a failed beacon
+ * must never affect the applicant's form, so all errors are swallowed.
+ */
+export async function recordStarted(cohortId: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/apply/${encodeURIComponent(cohortId)}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'started' }),
+    })
+  } catch {
+    // best-effort: telemetry loss is acceptable (the funnel clamps viewed ≥ started)
+  }
+}
+
 /** Public, no-auth fetch of the cohort's apply form definition. */
 export async function fetchApplyForm(cohortId: string): Promise<ApplyForm> {
   const response = await fetch(`${API_BASE_URL}/apply/${encodeURIComponent(cohortId)}`)

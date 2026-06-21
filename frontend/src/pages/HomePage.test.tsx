@@ -95,17 +95,16 @@ test('day-one: zero cohorts shows the empty state explaining the first action', 
   expect(screen.queryByText(/to score/i)).not.toBeInTheDocument()
 })
 
-test('cohorts with submissions → next action "N submissions to score" (text until 2.8)', async () => {
+test('cohorts with submissions → next action links to the Submissions screen', async () => {
   mockApi({
     cohorts: [cohort({ submissions_count: 3 })],
     profile: { display_name: 'Layla' },
   })
   renderHome()
 
-  // Surfaced as text, not a link — the scoring UI (Story 2.8) has no route yet,
-  // so a link would self-loop to Home.
-  expect(await screen.findByText(/3 submissions to score/i)).toBeInTheDocument()
-  expect(screen.queryByRole('link', { name: /to score/i })).not.toBeInTheDocument()
+  // Story 2.8 shipped the Submissions route, so the next-action is a real link.
+  const link = await screen.findByRole('link', { name: /3 submissions to score/i })
+  expect(link).toHaveAttribute('href', '/cohorts/01J0COH/submissions')
 })
 
 test('cohorts but none with submissions → next action "Open a cohort"', async () => {

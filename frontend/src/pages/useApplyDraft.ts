@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { recordStarted } from '../api/apply'
 
 export interface ApplyDraft {
   answers: Record<string, unknown>
@@ -7,6 +8,22 @@ export interface ApplyDraft {
 
 function draftKey(cohortId: string): string {
   return `apply-draft:${cohortId}`
+}
+
+/**
+ * Fire the `started` telemetry beacon at most once per cohort (FR-080), deduped
+ * via a localStorage flag. Best-effort: if storage is unavailable we proceed
+ * (may double-fire — the funnel tolerates it).
+ */
+function maybeRecordStarted(cohortId: string): void {
+  const flag = `apply-started:${cohortId}`
+  try {
+    if (localStorage.getItem(flag)) return
+    localStorage.setItem(flag, '1')
+  } catch {
+    // storage unavailable — fall through and fire anyway
+  }
+  void recordStarted(cohortId)
 }
 
 function newIdempotencyKey(): string {
@@ -65,13 +82,21 @@ export function useApplyDraft(cohortId: string) {
     }
   }, [cohortId, draft])
 
-  const setAnswer = useCallback((key: string, value: unknown) => {
-    setDraft((prev) => ({ ...prev, answers: { ...prev.answers, [key]: value } }))
-  }, [])
+  const setAnswer = useCallback(
+    (key: string, value: unknown) => {
+      setDraft((prev) => ({ ...prev, answers: { ...prev.answers, [key]: value } }))
+      // FR-080: the first answer entered is the `started` signal (once per cohort).
+      maybeRecordStarted(cohortId)
+    },
+    [cohortId],
+  )
 
   const clear = useCallback(() => {
     try {
       localStorage.removeItem(draftKey(cohortId))
+      // Also clear the once-per-cohort `started` flag so a repeat application on
+      // this device re-emits `started` (else the funnel undercounts it).
+      localStorage.removeItem(`apply-started:${cohortId}`)
     } catch {
       // ignore
     }

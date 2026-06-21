@@ -1,6 +1,9 @@
+---
+baseline_commit: c2f76959f1911eff23a68d54790119f01f71e398
+---
 # Story 2.8: Operator submission list + funnel
 
-Status: ready-for-dev
+Status: review
 
 > **Epic 2 — operator side of the intake loop.** The operator sees the submissions their cohort received (FR-034) and a **real funnel** ("N viewed, M started, K submitted") telling them whether intake is working.
 >
@@ -32,40 +35,40 @@ Delivered: `SubmissionController` (list + detail), `SubmissionResource` (`refere
 ### Tasks
 
 #### Backend — telemetry substrate
-- [ ] **Migration** `…_create_learning_events_table.php` — `ulid id` PK, `ulid organization_id` (index), `ulid cohort_id` (index), `string event_name` (index), `jsonb payload` nullable, `timestampTz occurred_at`, `timestampsTz`. Composite index `(cohort_id, event_name)` for the funnel aggregation. Shape it like `outbox_events` **plus** the explicit `organization_id` (like `audit_logs`) so it's tenant-queryable for the band. [Source: outbox + audit migrations]
-- [ ] **Append-only migration** `…_make_learning_events_append_only.php` — triggers rejecting UPDATE/DELETE, mirroring `2026_06_20_000500_make_audit_logs_append_only.php`.
-- [ ] **`LearningEvent` model** (`app/Modules/Reporting/Domain/Models/LearningEvent.php` — Reporting module owns telemetry) — `BelongsToTenant` + `HasUlids`; `event_name`/`cohort_id`/`occurred_at`/`payload` fillable; `organization_id` server-set (not mass-assignable). `BelongsToTenant` satisfies `TenantIsolationArchTest`.
-- [ ] **`LearningTelemetry` recorder** (`app/Shared/Telemetry/` or Reporting/Application) — `record(string $eventName, string $cohortId, string $organizationId, array $payload = [])`; **explicit-org-wins** like `AuditLogger` (public events have no TenantContext → resolve cohort under `runAsSystem`, stamp the cohort's org). Best-effort: wrap the write so a telemetry failure is swallowed/logged, never thrown into the request path. NO idempotency-kernel use.
+- [x] **Migration** `…_create_learning_events_table.php` — `ulid id` PK, `ulid organization_id` (index), `ulid cohort_id` (index), `string event_name` (index), `jsonb payload` nullable, `timestampTz occurred_at`, `timestampsTz`. Composite index `(cohort_id, event_name)` for the funnel aggregation. Shape it like `outbox_events` **plus** the explicit `organization_id` (like `audit_logs`) so it's tenant-queryable for the band. [Source: outbox + audit migrations]
+- [x] **Append-only migration** `…_make_learning_events_append_only.php` — triggers rejecting UPDATE/DELETE, mirroring `2026_06_20_000500_make_audit_logs_append_only.php`.
+- [x] **`LearningEvent` model** (`app/Modules/Reporting/Domain/Models/LearningEvent.php` — Reporting module owns telemetry) — `BelongsToTenant` + `HasUlids`; `event_name`/`cohort_id`/`occurred_at`/`payload` fillable; `organization_id` server-set (not mass-assignable). `BelongsToTenant` satisfies `TenantIsolationArchTest`.
+- [x] **`LearningTelemetry` recorder** (`app/Shared/Telemetry/` or Reporting/Application) — `record(string $eventName, string $cohortId, string $organizationId, array $payload = [])`; **explicit-org-wins** like `AuditLogger` (public events have no TenantContext → resolve cohort under `runAsSystem`, stamp the cohort's org). Best-effort: wrap the write so a telemetry failure is swallowed/logged, never thrown into the request path. NO idempotency-kernel use.
 
 #### Backend — emit points + funnel API
-- [ ] **`viewed` emit** — in `ApplyController::show`, after resolving the open cohort under `runAsSystem`, record `application.viewed` with the cohort's org. Guarded best-effort.
-- [ ] **`started` beacon endpoint** — `POST /v1/apply/{cohort}/events` (public, no auth/tenant, outside the auth groups like `apply.show`). Validate `event` ∈ {`started`} (extensible). Resolve cohort under `runAsSystem`; record `application.started`. Returns `204`. Best-effort.
-- [ ] **`submitted` emit** — in the existing submit path (`SubmitApplication`), record `application.submitted` inside the transaction (taxonomy completeness for the band). NOTE: the funnel's `submitted` number does NOT read this — it counts `application_submissions` (authoritative).
-- [ ] **Funnel endpoint** — `GET /v1/cohorts/{cohort}/funnel` → `FunnelController@show`: resolve cohort tenant-scoped (AR-6 404); `viewed`/`started` = `LearningEvent` counts (tenant-scoped) per `event_name`; `submitted` = `ApplicationSubmission` count; clamp `viewed = max(viewed, started)`; return `{ data: { viewed, started, submitted } }`. Authorize `viewAny` (any tenant member, like submissions).
-- [ ] **Route** `cohorts.funnel` in the `['auth:sanctum','tenant']` group beside `cohorts.submissions.index`.
-- [ ] **OpenAPI** — `php artisan scramble:export`, commit `openapi/openapi.json` (new routes → contract test).
+- [x] **`viewed` emit** — in `ApplyController::show`, after resolving the open cohort under `runAsSystem`, record `application.viewed` with the cohort's org. Guarded best-effort.
+- [x] **`started` beacon endpoint** — `POST /v1/apply/{cohort}/events` (public, no auth/tenant, outside the auth groups like `apply.show`). Validate `event` ∈ {`started`} (extensible). Resolve cohort under `runAsSystem`; record `application.started`. Returns `204`. Best-effort.
+- [x] **`submitted` emit** — in the existing submit path (`SubmitApplication`), record `application.submitted` inside the transaction (taxonomy completeness for the band). NOTE: the funnel's `submitted` number does NOT read this — it counts `application_submissions` (authoritative).
+- [x] **Funnel endpoint** — `GET /v1/cohorts/{cohort}/funnel` → `FunnelController@show`: resolve cohort tenant-scoped (AR-6 404); `viewed`/`started` = `LearningEvent` counts (tenant-scoped) per `event_name`; `submitted` = `ApplicationSubmission` count; clamp `viewed = max(viewed, started)`; return `{ data: { viewed, started, submitted } }`. Authorize `viewAny` (any tenant member, like submissions).
+- [x] **Route** `cohorts.funnel` in the `['auth:sanctum','tenant']` group beside `cohorts.submissions.index`.
+- [x] **OpenAPI** — `php artisan scramble:export`, commit `openapi/openapi.json` (new routes → contract test).
 
 #### Backend — tests
-- [ ] **`LearningEventTest`** — append-only (UPDATE/DELETE rejected); `BelongsToTenant` scope; explicit-org stamping from a public (no-tenant) context.
-- [ ] **`FunnelTest`** — full flow: seed cohort, hit apply (viewed), beacon (started), submit (submitted) → funnel returns the three counts; clamp asserted (started > raw viewed → viewed == started); **AR-6 cross-tenant 404**; empty cohort → `{0,0,0}`; 401 unauth.
-- [ ] **Telemetry best-effort** — a telemetry write failure does not 500 the public apply/beacon request.
+- [x] **`LearningEventTest`** — append-only (UPDATE/DELETE rejected); `BelongsToTenant` scope; explicit-org stamping from a public (no-tenant) context.
+- [x] **`FunnelTest`** — full flow: seed cohort, hit apply (viewed), beacon (started), submit (submitted) → funnel returns the three counts; clamp asserted (started > raw viewed → viewed == started); **AR-6 cross-tenant 404**; empty cohort → `{0,0,0}`; 401 unauth.
+- [x] **Telemetry best-effort** — a telemetry write failure does not 500 the public apply/beacon request.
 
 #### Frontend — Submissions screen + funnel
-- [ ] **`schemas/submissions.ts`** — `submissionSchema` (`reference_number`, `cohort_id`, `submitted_at`) + `submissionListResponseSchema` (`{ data: [...], meta: { total } }` — note: model `meta.total`, unlike the cohorts schema) + `submissionDetailSchema` (+ `snapshot`) + `funnelSchema` (`{ viewed, started, submitted }` ints). [Source: SubmissionResource/DetailResource shapes]
-- [ ] **`api/submissions.ts`** — `listSubmissions(cohortId)`, `getSubmission(cohortId, id)`, `getFunnel(cohortId)`; mirror `api/cohorts.ts` (credentials, zod-parse).
-- [ ] **`api/apply.ts`** — add `recordStarted(cohortId)` → `POST /apply/{cohort}/events` `{ event: 'started' }`, best-effort (swallow errors; never block the form).
-- [ ] **`useApplyDraft.ts`** — fire `recordStarted` once on the first `setAnswer`, deduped via a per-cohort localStorage flag (reuse the existing draft key namespace).
-- [ ] **`pages/SubmissionsPage.tsx`** — `AppShell` console surface; `useQuery(['funnel', cohortId])` + `useQuery(['submissions', cohortId])`. Funnel header (viewed/started/submitted, "views are approximate" microcopy, `bdi` numerals). Zero submissions → `StateBlock` empty + **copyable share link** (`…/apply/{cohort}`). List rows with a focusable "open detail" `Link` → detail route. Loading/error/retry states. Derive `cohortId` from the path.
-- [ ] **`pages/SubmissionDetailPage.tsx`** — read-only snapshot view (answers + version ids) from `getSubmission`; route, not modal.
-- [ ] **`app/App.tsx`** — add `SUBMISSIONS_ROUTE` (`/cohorts/{id}/submissions`) and `SUBMISSION_DETAIL_ROUTE` (`…/{submission}`) through `ConsoleGate`, mirroring `PROGRAMS_ROUTE`.
-- [ ] **`pages/HomePage.tsx`** — restore the "N submissions to score" next-action to a real `Link` to `/cohorts/{id}/submissions` (give `nextAction` its `href` back); update/relax the HomePage test that currently asserts it is text-not-link.
+- [x] **`schemas/submissions.ts`** — `submissionSchema` (`reference_number`, `cohort_id`, `submitted_at`) + `submissionListResponseSchema` (`{ data: [...], meta: { total } }` — note: model `meta.total`, unlike the cohorts schema) + `submissionDetailSchema` (+ `snapshot`) + `funnelSchema` (`{ viewed, started, submitted }` ints). [Source: SubmissionResource/DetailResource shapes]
+- [x] **`api/submissions.ts`** — `listSubmissions(cohortId)`, `getSubmission(cohortId, id)`, `getFunnel(cohortId)`; mirror `api/cohorts.ts` (credentials, zod-parse).
+- [x] **`api/apply.ts`** — add `recordStarted(cohortId)` → `POST /apply/{cohort}/events` `{ event: 'started' }`, best-effort (swallow errors; never block the form).
+- [x] **`useApplyDraft.ts`** — fire `recordStarted` once on the first `setAnswer`, deduped via a per-cohort localStorage flag (reuse the existing draft key namespace).
+- [x] **`pages/SubmissionsPage.tsx`** — `AppShell` console surface; `useQuery(['funnel', cohortId])` + `useQuery(['submissions', cohortId])`. Funnel header (viewed/started/submitted, "views are approximate" microcopy, `bdi` numerals). Zero submissions → `StateBlock` empty + **copyable share link** (`…/apply/{cohort}`). List rows with a focusable "open detail" `Link` → detail route. Loading/error/retry states. Derive `cohortId` from the path.
+- [x] **`pages/SubmissionDetailPage.tsx`** — read-only snapshot view (answers + version ids) from `getSubmission`; route, not modal.
+- [x] **`app/App.tsx`** — add `SUBMISSIONS_ROUTE` (`/cohorts/{id}/submissions`) and `SUBMISSION_DETAIL_ROUTE` (`…/{submission}`) through `ConsoleGate`, mirroring `PROGRAMS_ROUTE`.
+- [x] **`pages/HomePage.tsx`** — restore the "N submissions to score" next-action to a real `Link` to `/cohorts/{id}/submissions` (give `nextAction` its `href` back); update/relax the HomePage test that currently asserts it is text-not-link.
 
 #### Frontend — tests, stories, gates
-- [ ] **`pages/SubmissionsPage.test.tsx`** — funnel render (clamped numbers, microcopy); zero-day empty + copyable share link; list rows + focusable detail link; loading/error/retry; RTL+dark render with `bdi`.
-- [ ] **`api/submissions.test.ts`** — list (with `meta.total`), funnel, detail parse; 401/non-ok; malformed rejected.
-- [ ] **`pages/SubmissionsPage.stories.tsx`** — populated funnel, zero-day, RTL.
-- [ ] **`tests/a11y.test.tsx`** — add `SubmissionsPage` (+ detail) to the axe gate; zero violations.
-- [ ] **HomePage test** — assert the next-action is now a `Link` to `/cohorts/{id}/submissions` (reverting the Story 1-5 text-only assertion).
+- [x] **`pages/SubmissionsPage.test.tsx`** — funnel render (clamped numbers, microcopy); zero-day empty + copyable share link; list rows + focusable detail link; loading/error/retry; RTL+dark render with `bdi`.
+- [x] **`api/submissions.test.ts`** — list (with `meta.total`), funnel, detail parse; 401/non-ok; malformed rejected.
+- [x] **`pages/SubmissionsPage.stories.tsx`** — populated funnel, zero-day, RTL.
+- [x] **`tests/a11y.test.tsx`** — add `SubmissionsPage` (+ detail) to the axe gate; zero violations.
+- [x] **HomePage test** — assert the next-action is now a `Link` to `/cohorts/{id}/submissions` (reverting the Story 1-5 text-only assertion).
 
 ## Dev Notes
 
@@ -98,14 +101,41 @@ Delivered: `SubmissionController` (list + detail), `SubmissionResource` (`refere
 
 ## Dev Agent Record
 ### Agent Model Used
-claude-opus-4-8[1m]  (Slice 1)
+claude-opus-4-8[1m]
 ### Completion Notes List
-- **Slice 1 (DONE, merged @ dc657f9):** Backend FR-034 read slice — 345 tests green, PHPStan L6 + Pint clean, OpenAPI regenerated. 7 `SubmissionListTest` cases.
+- **Slice 1 (DONE, merged @ dc657f9):** Backend FR-034 read slice — `SubmissionListTest` (7 cases).
+- **Slice 2 (this pass) — DONE:**
+  - **Telemetry substrate:** `learning_events` (outbox-shaped + explicit `organization_id`, append-only triggers like `audit_logs`); `LearningEvent` model (`BelongsToTenant`, no `updated_at`); `LearningTelemetry` recorder (explicit-org-wins, best-effort try/catch, not idempotent). No PII on public events.
+  - **Emit points:** `application.viewed` in `ApplyController::show` (best-effort, cohort org); `application.started` via new public beacon `POST /apply/{cohort}/events` (validates `event in:started` → 422 on unknown, 204 otherwise), fired client-side once per cohort on first `setAnswer` (localStorage dedup); `submitted` stays the durable `application_submissions` count.
+  - **Funnel API:** `GET /cohorts/{cohort}/funnel` → `{viewed, started, submitted}`, tenant-scoped (AR-6 404), `viewed = max(viewed, started)` clamp.
+  - **Operator UI:** `/cohorts/{id}/submissions` (funnel header + "views are approximate" microcopy + list + zero-day empty state with copyable share link) and `/cohorts/{id}/submissions/{submission}` detail route (not a modal); both wired in `App.tsx` (detail regex before list). `HomePage` next-action restored to a real `Link` (closes the 1-5 → 2-8 handoff).
+  - **FR-080 DoD predicate:** `FunnelTest::test_full_flow_view_start_submit_yields_all_three_counts` drives view→start→submit and asserts all three emit + are queryable; the operator funnel screen is the human-looked-at surface.
+  - **Verification:** backend 373 pass / 1 pre-existing skip (Reporting 9, contract green, tenant-isolation arch green, Pint + PHPStan L6 clean, OpenAPI regenerated for 2 new routes); frontend 102 pass + typecheck + ESLint + axe (SubmissionsPage) clean.
 ### File List
-*Slice 1 (merged):* `SubmissionController.php`, `SubmissionResource.php`, `SubmissionDetailResource.php`, `ApplicationSubmissionPolicy.php`, `AppServiceProvider.php` (policy reg), `routes/api.php` (list+detail), `openapi/openapi.json`, `SubmissionListTest.php`.
+*Slice 1 (merged):* `SubmissionController.php`, `SubmissionResource.php`, `SubmissionDetailResource.php`, `ApplicationSubmissionPolicy.php`, `AppServiceProvider.php`, `routes/api.php`, `openapi/openapi.json`, `SubmissionListTest.php`.
+
+*Slice 2 — backend (NEW unless noted):*
+- `database/migrations/2026_06_21_000100_create_learning_events_table.php`
+- `database/migrations/2026_06_21_000200_make_learning_events_append_only.php`
+- `app/Modules/Reporting/Domain/Models/LearningEvent.php`
+- `app/Shared/Telemetry/LearningTelemetry.php`
+- `app/Modules/Reporting/Http/FunnelController.php`
+- `app/Modules/Cohorts/Http/ApplyController.php` (M — viewed emit + event beacon)
+- `routes/api.php` (M — apply.events + cohorts.funnel)
+- `openapi/openapi.json` (M — regenerated)
+- `tests/Feature/Reporting/LearningEventTest.php`, `tests/Feature/Reporting/FunnelTest.php`
+
+*Slice 2 — frontend (NEW unless noted):*
+- `schemas/submissions.ts`, `api/submissions.ts`
+- `pages/SubmissionsPage.tsx`, `pages/SubmissionDetailPage.tsx`
+- `api/apply.ts` (M — recordStarted beacon), `pages/useApplyDraft.ts` (M — fire started on first answer)
+- `app/App.tsx` (M — submissions + detail routes), `pages/HomePage.tsx` (M — next-action real Link)
+- `pages/SubmissionsPage.test.tsx`, `api/submissions.test.ts`, `pages/SubmissionsPage.stories.tsx`
+- `pages/HomePage.test.tsx` (M — next-action now a link), `tests/a11y.test.tsx` (M — SubmissionsPage axe case)
 ### Change Log
 - (Slice 1) Backend FR-034 read API — merged at baseline `dc657f9`.
-- 2026-06-21 — Slice 2 scoped (full funnel): FR-080 Learning Telemetry substrate + viewed/started emit points + funnel read API + operator Submissions UI (list/detail/funnel, zero-day share link, RTL/dark) + 1-5 link handoff. Status review → ready-for-dev.
+- 2026-06-21 — Slice 2 implemented (full funnel): FR-080 Learning Telemetry substrate + viewed/started emit points + funnel read API + operator Submissions UI + 1-5 link handoff. Backend 373 / frontend 102 green. Status → review.
+- 2026-06-21 — Code-review fixes (5 applied): (1) guard `report()` inside the telemetry catch so `record()` truly never throws on the public path; (2) correct the `viewed` clamp comment + honest microcopy ("approximate — counts refreshes and bots") since server-side `viewed` over-counts; (3) clear the `apply-started` localStorage flag on submit so repeat applications re-emit `started`; (4) funnel-unavailable affordance when the funnel fetch fails (was silently blank); (5) gate the share-link "Copied" on an actual clipboard write. **Follow-up (logged, not this story):** un-deduped/un-pruned `learning_events` growth under bot traffic → retention/pruning per NFR-013. Gates re-green.
 
 ## Open Questions (resolved with defaults above; flag in review if wrong)
 - **Q1 — `started` trigger:** first `setAnswer` (decided). If product wants "first focus" instead, the client emit point moves but the contract is unchanged.

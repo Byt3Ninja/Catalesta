@@ -31,10 +31,13 @@ function nextAction(cohorts: Cohort[]): { label: string; href?: string } | null 
     .sort((a, b) => (b.submissions_count ?? 0) - (a.submissions_count ?? 0))
 
   if (withSubs.length > 0) {
-    const n = withSubs[0].submissions_count ?? 0
-    // No href: the submission-scoring UI lands with Story 2.8. Surface the action
-    // as text rather than a link that would self-loop to Home.
-    return { label: `${n} submission${n === 1 ? '' : 's'} to score` }
+    const cohort = withSubs[0]
+    const n = cohort.submissions_count ?? 0
+    // Links to the operator Submissions screen (Story 2.8).
+    return {
+      label: `${n} submission${n === 1 ? '' : 's'} to score`,
+      href: `/cohorts/${cohort.id}/submissions`,
+    }
   }
   if (cohorts.length > 0) {
     return { label: 'Open a cohort', href: '/programs' }
