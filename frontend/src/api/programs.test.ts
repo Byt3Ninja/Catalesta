@@ -1,0 +1,89 @@
+import { afterEach, expect, test, vi } from 'vitest'
+import { createProgram, listPrograms, publishProgram } from './programs'
+import { jsonResponse } from '../tests/test-utils'
+
+const PROGRAM = {
+  id: '01J0PROG',
+  name: 'Spring Accelerator',
+  slug: 'spring-accelerator',
+  status: 'draft',
+  description: null,
+  settings: null,
+  created_at: '2026-06-20T10:00:00+00:00',
+  updated_at: '2026-06-20T10:00:00+00:00',
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+test('listPrograms returns the data array (empty when none)', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [] }))
+  await expect(listPrograms()).resolves.toEqual([])
+})
+
+test('listPrograms parses a program list', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [PROGRAM] }))
+  await expect(listPrograms()).resolves.toHaveLength(1)
+})
+
+test('createProgram returns the created draft on 201', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: PROGRAM }, 201))
+  await expect(createProgram('Spring Accelerator')).resolves.toMatchObject({
+    slug: 'spring-accelerator',
+    status: 'draft',
+  })
+})
+
+test('createProgram sends an optional description when provided', async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: PROGRAM }, 201))
+  await createProgram('Spring Accelerator', 'Cohort for seed startups')
+  const body = JSON.parse((fetchSpy.mock.calls[0][1]?.body as string) ?? '{}')
+  expect(body).toEqual({ name: 'Spring Accelerator', description: 'Cohort for seed startups' })
+})
+
+test('createProgram maps 422 → VALIDATION carrying the first field message', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse(
+      { error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } },
+      422,
+    ),
+  )
+  await expect(createProgram('')).rejects.toMatchObject({
+    name: 'CreateProgramError',
+    code: 'VALIDATION',
+    message: 'The name field is required.',
+  })
+})
+
+test('createProgram maps 401 → UNAUTHENTICATED', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 401 }))
+  await expect(createProgram('X')).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+})
+
+test('publishProgram returns the published program on 200', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse({ data: { ...PROGRAM, status: 'published' } }),
+  )
+  await expect(publishProgram('01J0PROG')).resolves.toMatchObject({ status: 'published' })
+})
+
+test('publishProgram maps 403 → FORBIDDEN', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 403 }))
+  await expect(publishProgram('01J0PROG')).rejects.toMatchObject({
+    name: 'PublishProgramError',
+    code: 'FORBIDDEN',
+  })
+})
+
+test('publishProgram maps 404 → NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(publishProgram('01J0PROG')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+})
+
+test('publishProgram maps 401 → UNAUTHENTICATED', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 401 }))
+  await expect(publishProgram('01J0PROG')).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+})

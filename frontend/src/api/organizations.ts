@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './client'
+import { fieldMessage, firstValidationMessage, readValidationDetails } from './errors'
 import {
   CreateOrgError,
   organizationListResponseSchema,
@@ -46,30 +47,16 @@ export async function createOrganization(name: string): Promise<Organization> {
     // { error: { code:'VALIDATION_ERROR', details: { <field>: [msg] } } }
     // A name-field error is the duplicate-slug collision; any other field is a
     // generic validation failure and must NOT be mislabeled as DUPLICATE_NAME.
-    let details: Record<string, unknown> | undefined
-    try {
-      const json = (await response.json()) as {
-        error?: { details?: Record<string, unknown> }
-      }
-      details = json?.error?.details
-    } catch {
-      details = undefined
-    }
-
-    const firstMessage = (value: unknown): string | undefined =>
-      Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined
+    const details = await readValidationDetails(response)
 
     const nameDetail = details?.name
     if (nameDetail !== undefined) {
-      throw new CreateOrgError('DUPLICATE_NAME', firstMessage(nameDetail))
+      throw new CreateOrgError('DUPLICATE_NAME', fieldMessage(nameDetail))
     }
 
-    const firstAvailable = details
-      ? Object.values(details).map(firstMessage).find((m) => m !== undefined)
-      : undefined
     throw new CreateOrgError(
       'UNKNOWN',
-      firstAvailable ?? 'Please check your entries and try again.',
+      firstValidationMessage(details) ?? 'Please check your entries and try again.',
     )
   }
   throw new CreateOrgError('UNKNOWN', `create organization failed: ${response.status}`)
