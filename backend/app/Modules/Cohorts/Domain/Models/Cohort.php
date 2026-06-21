@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Cohorts\Domain\Models;
 
+use App\Modules\Applications\Domain\Models\ApplicationSubmission;
 use App\Shared\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 final class Cohort extends Model
@@ -28,6 +30,18 @@ final class Cohort extends Model
         'capacity' => 'int',
         'timeline' => 'array',
     ];
+
+    /**
+     * Submissions received by this cohort. Used by the operator Home cohort list
+     * (Story 1.5) via withCount to surface a per-cohort submission count without
+     * an N+1 query. ApplicationSubmission carries `cohort_id`.
+     *
+     * @return HasMany<ApplicationSubmission, $this>
+     */
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(ApplicationSubmission::class);
+    }
 
     protected static function booting(): void
     {

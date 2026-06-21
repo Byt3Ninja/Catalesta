@@ -314,6 +314,45 @@
                 }
             }
         },
+        "/v1/cohorts": {
+            "get": {
+                "operationId": "cohorts.index",
+                "description": "List the resolved tenant's cohorts for the operator Home (Story 1.5).\nBelongsToTenant global scope does the isolation (AR-6) \u2014 no manual\norganization_id filter. `submissions_count` drives Home's next action.",
+                "summary": "GET /api/v1/cohorts",
+                "tags": [
+                    "Cohort"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `CohortResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CohortResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/cohorts/{id}": {
             "get": {
                 "operationId": "cohorts.show",
@@ -2585,6 +2624,10 @@
                     },
                     "timeline": {
                         "type": "string"
+                    },
+                    "submissions_count": {
+                        "type": "integer",
+                        "description": "Present only on the list (withCount); never null on show/store."
                     },
                     "created_at": {
                         "type": "string"

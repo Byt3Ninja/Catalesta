@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property-read Carbon|null $starts_at
  * @property-read Carbon|null $ends_at
  * @property-read array<string, mixed>|null $timeline
+ * @property-read int|null $submissions_count
  * @property-read Carbon $created_at
  * @property-read Carbon $updated_at
  */
@@ -45,6 +46,8 @@ final class CohortResource extends JsonResource
             'starts_at' => $this->starts_at?->toIso8601String(),
             'ends_at' => $this->ends_at?->toIso8601String(),
             'timeline' => $this->timeline,
+            // Present only on the list (withCount); never null on show/store.
+            'submissions_count' => $this->whenCounted('submissions'),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];

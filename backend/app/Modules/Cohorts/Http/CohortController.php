@@ -12,11 +12,31 @@ use App\Modules\Cohorts\Http\Resources\CohortResource;
 use App\Shared\Audit\AuditLogger;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 
 final class CohortController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * GET /api/v1/cohorts
+     *
+     * List the resolved tenant's cohorts for the operator Home (Story 1.5).
+     * BelongsToTenant global scope does the isolation (AR-6) — no manual
+     * organization_id filter. `submissions_count` drives Home's next action.
+     */
+    public function index(): AnonymousResourceCollection
+    {
+        $this->authorize('viewAny', Cohort::class);
+
+        $cohorts = Cohort::query()
+            ->withCount('submissions')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return CohortResource::collection($cohorts);
+    }
 
     /**
      * POST /api/v1/programs/{program}/cohorts
