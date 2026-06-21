@@ -136,4 +136,6 @@ return [
 
     'role' => env('APP_ROLE', 'platform'),
 
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
 ];

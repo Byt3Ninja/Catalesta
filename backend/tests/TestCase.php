@@ -33,6 +33,7 @@ abstract class TestCase extends BaseTestCase
         $account = Account::create(array_merge([
             'email' => Str::uuid()->toString().'@test.example',
             'is_platform_admin' => false,
+            'email_verified_at' => now(),
         ], $overrides));
 
         LinkedIdentity::create([

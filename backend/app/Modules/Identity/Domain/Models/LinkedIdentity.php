@@ -57,6 +57,9 @@ final class LinkedIdentity extends Model
             'avatar_url' => $claims['picture'] ?? null,
             'locale' => $claims['locale'] ?? null,
         ]);
+        if ($account->email_verified_at === null) {
+            $account->email_verified_at = now(); // SG email is trusted
+        }
         $account->save();
 
         if (! $link->exists) {

@@ -7,6 +7,7 @@ namespace App\Modules\Identity\Http;
 use App\Modules\Identity\Application\CompleteLogin;
 use App\Modules\Identity\Domain\Contracts\IdentityProvider;
 use App\Modules\Identity\Domain\Models\LinkedIdentityToken;
+use App\Modules\Identity\Http\Resources\AccountSessionResource;
 use App\Shared\Audit\AuditLogger;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -72,14 +73,9 @@ final class AuthController extends Controller
 
         $user = $completeLogin->handle($validated['code']);
 
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'startup_gate_subject_id' => $user->startupGateSubjectId(),
-                'email' => $user->email,
-                'display_name' => $user->display_name,
-            ],
-        ]);
+        // setStatusCode(200): a JsonResource whose model wasRecentlyCreated (first OIDC
+        // login creates the account) would otherwise auto-return 201; auth is not a create.
+        return (new AccountSessionResource($user))->response()->setStatusCode(200);
     }
 
     /**
@@ -91,14 +87,9 @@ final class AuthController extends Controller
     {
         $user = $request->user();
 
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'startup_gate_subject_id' => $user->startupGateSubjectId(),
-                'email' => $user->email,
-                'display_name' => $user->display_name,
-            ],
-        ]);
+        // setStatusCode(200): a JsonResource whose model wasRecentlyCreated (first OIDC
+        // login creates the account) would otherwise auto-return 201; auth is not a create.
+        return (new AccountSessionResource($user))->response()->setStatusCode(200);
     }
 
     /**

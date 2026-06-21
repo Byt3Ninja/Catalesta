@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Domain\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-final class Account extends Authenticatable
+final class Account extends Authenticatable implements MustVerifyEmail
 {
     use HasUlids;
+    use Notifiable;
 
     protected $guarded = [];
 
     /** @return array<string, string> */
     protected $casts = [
         'is_platform_admin' => 'boolean',
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
 
     /** @return HasMany<LinkedIdentity, $this> */

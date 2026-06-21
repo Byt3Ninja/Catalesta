@@ -22,8 +22,11 @@ use App\Shared\Entitlement\EntitlementService;
 use App\Shared\Outbox\Consumers\LogOutboxConsumer;
 use App\Shared\Outbox\Contracts\OutboxConsumer;
 use App\Shared\Tenancy\TenantContext;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -54,6 +57,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Cohort::class, CohortPolicy::class);
         Gate::policy(ProgramStage::class, StagePolicy::class);
         Gate::policy(ApplicationSubmission::class, ApplicationSubmissionPolicy::class);
+
+        $perEmailIp = fn (Request $r) => Limit::perMinute(6)
+            ->by(strtolower((string) $r->input('email')).'|'.$r->ip());
+
+        RateLimiter::for('auth-register', fn (Request $r) => Limit::perMinute(6)->by((string) $r->ip()));
+        RateLimiter::for('auth-login', $perEmailIp);
+        RateLimiter::for('auth-forgot', $perEmailIp);
+        RateLimiter::for('auth-resend', fn (Request $r) => Limit::perMinute(6)->by(optional($r->user())->id ?: (string) $r->ip()));
 
         // Scramble's RestrictedDocsAccess always allows `local`; this widens the
         // /docs/api viewer to `staging` too, while production stays 403.

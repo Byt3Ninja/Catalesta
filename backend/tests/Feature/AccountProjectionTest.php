@@ -25,10 +25,13 @@ final class AccountProjectionTest extends TestCase
         $this->assertDatabaseCount('accounts', 1);
     }
 
-    public function test_different_sub_creates_distinct_user_even_with_same_email(): void
+    public function test_different_sub_creates_distinct_user(): void
     {
-        LinkedIdentity::projectFromClaims(['sub' => 'sg_user_01', 'email' => 'same@example.com']);
-        LinkedIdentity::projectFromClaims(['sub' => 'sg_user_02', 'email' => 'same@example.com']);
+        // Distinct subs with distinct emails create distinct accounts. (Email is a
+        // unique login credential as of SP-1b-i, so two subs cannot share one email;
+        // SG emails are assumed 1:1 with subs — see the native-auth migration note.)
+        LinkedIdentity::projectFromClaims(['sub' => 'sg_user_01', 'email' => 'one@example.com']);
+        LinkedIdentity::projectFromClaims(['sub' => 'sg_user_02', 'email' => 'two@example.com']);
         $this->assertDatabaseCount('accounts', 2);
     }
 }
