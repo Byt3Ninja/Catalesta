@@ -72,9 +72,17 @@ development_status:
   2-8-operator-submission-list-and-funnel: review  # slice 2 done: FR-080 telemetry substrate + viewed/started emit + funnel API + operator Submissions UI + 1-5 link handoff
   epic-2-retrospective: optional
 
-  # ── Epic 3: Score & Decide (gated on Epic 2 evidence) ──
-  epic-3: backlog
+  # ── Epic 3: Score & Decide (gated on Epic 2 evidence; sequenced after Epic 4) ──
+  epic-3: backlog  # do not start until Epic 4 (SP-1) lands the account model
   3-1-score-a-submission-against-the-rubric: backlog
   3-2-record-an-accept-reject-decision: backlog
   3-3-export-the-decision-list-csv: backlog
   epic-3-retrospective: optional
+
+  # ── Epic 4: Standalone Identity, Accounts & Profiles (foundational — runs before Epic 3) ──
+  epic-4: backlog  # spec: docs/superpowers/specs/2026-06-21-standalone-identity-design.md
+  4-1-sp1-native-accounts-and-auth: backlog        # local accounts + linked_identities; migrate ExternalUser; memberships → account_id
+  4-2-sp2-startup-gate-linked-provider: backlog    # optional SG OIDC link/unlink; sign in with SG
+  4-3-sp3-local-role-profiles: backlog             # 7 role-profile types; system of record
+  4-4-sp4-consented-import-pipeline: backlog        # field-level consent, source tracking, history, conflict preview, never-overwrite, revocation
+  epic-4-retrospective: optional

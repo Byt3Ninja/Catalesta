@@ -22,12 +22,15 @@ Complete epic and story breakdown for **Catalesta — Phase 1a (Selection MVP)**
 ### Functional Requirements
 
 **Identity, Tenancy & Access (reuse-heavy):**
-- FR-001: Authenticate via Startup Gate OIDC; immutable `sub` is the user key (mock in P1a; "done" = passes vs mock + provider-agnostic adapter).
+- FR-001: Authenticate with a native Catalesta account (email + password) or an optional linked provider; immutable Account id (ULID) is the user key. (SG OIDC demotes to an optional linked provider — Epic 4.)
 - FR-002: Signing up creates an Organization; creator becomes admin.
 - FR-003: Every tenant-owned record carries server-set `organization_id` (never mass-assignable).
 - FR-004: Tenant queries fail-closed — unresolved tenant returns no rows; cross-tenant returns 404.
 - FR-005: RBAC scopes permissions per organization.
-- FR-006: Profile reads are consent-aware via the `ConsentProvider` seam (mock in P1a).
+- FR-006: Profile reads are consent-aware via the `ConsentProvider` seam, including locally-owned profiles.
+- FR-007: Native account registration + email verification + password reset + session (Epic 4 / SP-1).
+- FR-008: Link/unlink an optional Startup Gate identity; sign in with SG; `sub` stored on the link (Epic 4 / SP-2).
+- FR-009: Consented field-level profile import from SG — source tracking, import history, conflict preview, never auto-overwrite local edits, revocable consent (Epic 4 / SP-4).
 
 **Program & Cohort (reuse):**
 - FR-010: Operator creates and publishes a Program.
@@ -71,11 +74,11 @@ Complete epic and story breakdown for **Catalesta — Phase 1a (Selection MVP)**
 ### NonFunctional Requirements
 
 - NFR-001: Tenant isolation fail-closed; arch test asserts the trait on every tenant-owned model (C1 = 0 cross-tenant incidents).
-- NFR-002: Identity integrity — `sub` is the only cross-system key; email never identifies.
+- NFR-002: Identity integrity — Account id (ULID) is the primary user key; `sub` is the SG-link key only; email never identifies across systems.
 - NFR-003: Immutability & versioning — published artifacts immutable; submissions captured as immutable snapshots.
 - NFR-004: Decimal arithmetic — `DECIMAL` math, no floats in score paths.
 - NFR-005: No arbitrary code in rules — declarative; validator rejects non-allowed nodes (acceptance-tested).
-- NFR-006: Consent-aware access via `ConsentProvider` seam (mock P1a).
+- NFR-006: Consent-aware access via `ConsentProvider` seam, including locally-owned profiles; SG import requires field-level consent.
 - NFR-007: Payment integrity — provider-interface isolation, verified idempotent callbacks, no raw card/CVV, browser return non-authoritative.
 - NFR-008: Data-respecting limits — reaching a limit never deletes/hides tenant data.
 - NFR-009: Security baseline — secrets not committed; rotation policy; rate limiting; least-privilege.
@@ -95,7 +98,7 @@ Complete epic and story breakdown for **Catalesta — Phase 1a (Selection MVP)**
 - AR-5: **Build content-addressing** over MinIO: `sha256` key + refcount; GC deferred to a manual command (ticketed debt). [ADR-5]
 - AR-6: Per new tenant-owned table, build an explicit cross-tenant isolation test (`BelongsToTenant` is opt-in, not inherited). [ADR-3]
 - AR-7: FMA tripwires (code review): outbox insert inside the domain DB transaction; idempotency claims the key before work; Geidea callback signature-verified before any state change; browser return only reads status.
-- AR-8: External integrations behind interfaces only — Startup Gate OIDC (mock → real FR-157), Geidea (sandbox, no charge in P1a).
+- AR-8: External integrations behind interfaces only — Startup Gate OIDC as an optional linked SSO/import provider (FR-157), Geidea (sandbox, no charge in P1a).
 
 ### UX Design Requirements
 
@@ -131,9 +134,15 @@ Applicants apply on mobile-web (RTL), submit once (immutable snapshot, idempoten
 - Then the user-facing flow: `submission_snapshot` (captures the form **version id** from Epic 1's contract) → submit (FR-030/031/032/033) → file upload → receipt → status → operator list + funnel.
 **FRs covered:** 030, 031, 032, 033, 034, 050, 051, 052. **ARs:** 2, 3, 4, 5, 7. *(FR-070 removed; design constraint kept.)*
 
-### Epic 3: Score & Decide *(gated on Epic 2 evidence)*
+### Epic 3: Score & Decide *(gated on Epic 2 evidence; sequenced AFTER Epic 4)*
 The operator scores submissions against the published rubric (decimal), records defensible accept/reject decisions (audited, reopenable), and exports the decision list. **Entry assumption (contract):** scoring reads the **immutable snapshot, never the live form**. **Gate:** do not start until Epic 2 shows applicants actually submit.
 **FRs covered:** 040, 041, 042, 043, 081.
+
+### Epic 4: Standalone Identity, Accounts & Profiles *(foundational — runs after Epic 2 review closes, BEFORE Epic 3)*
+Catalesta becomes the system of record for accounts and identity. Native registration/auth/account-management and locally-owned multi-role profiles; Startup Gate demotes to an optional linked SSO provider + consented import source. Delivered as four dependency-ordered sub-projects, each with its own brainstorm→spec→plan cycle: **SP-1** native accounts & auth (local `accounts` + N `linked_identities`; migrate existing `ExternalUser` rows; memberships repoint to Account) → **SP-2** SG OIDC as an optional linked provider (link/unlink) → **SP-3** the 7 local role-profile types (Founder, Startup, Mentor, Service Provider, Investor, Trainer, Judge; system of record) → **SP-4** consented SG import pipeline (field-level consent, source tracking, history, conflict preview, never-overwrite-local, revocation).
+**FRs covered:** 007, 008, 009 (+ supersedes the SG-mock framing of 001/006). **Spec:** `docs/superpowers/specs/2026-06-21-standalone-identity-design.md`.
+
+**Epic 1 impact ledger (forward note — do NOT edit closed story files):** Story 1.1 shipped sign-up as "first SG-OIDC-mock login → create org," and the auth provider is `ExternalUser` keyed on `sub`. Epic 4 / SP-1 supersedes this: sign-up becomes native account registration, `ExternalUser` rows migrate to `accounts` + `linked_identities`, and `organization_memberships` repoint to `account_id`. Epic 2's in-review stories keep working across the migration and adopt the account model when SP-1 lands. **Identity supersession (Epic 1–3):** the `sub`-as-actor-key references in already-written ACs — e.g. the `audit_events` actor in Story 2.5, the scorer's identity in FR-041 and Stories 3.1–3.2, the operator in Story 3.2 — and the "consent against the mock" framing in Story 1.5 (FR-006) are left intact to reflect what shipped/is in review, and are superseded by Epic 4: SP-1 repoints the audit/actor key to the **Account id** and SP-4 makes consent local. Do not rewrite those ACs piecemeal; the Epic 4 migration resolves them together.
 
 ### Cross-cutting deliverable: Learning Telemetry *(named, acceptance-gated — not a separate build epic)*
 The World-A/B learning data (FR-080) — `application.viewed/started/abandoned{step}` (Epic 2), `submission.scored{elapsed}` / `decision.recorded{time_to_decision}` / `decisions.exported` + export-then-leave (Epic 3). **DoD rule:** no Epic 2/3 story closes until its events emit **and are verified in a dashboard a human has looked at.** Surfaced to the operator (the funnel) as well as to the team.
@@ -441,7 +450,7 @@ The context handed to the dev for Story `N.M` is **the union of**: (a) the Story
 - **content-addressed version id** — `sha256` of the canonical (stable-key-ordered) serialization of a published artifact's definition; **org-scoped** (not globally enumerable). The id a snapshot pins. (Stories 1.3, 2.6.)
 - **GATE-E2.0** — see checklist below. Dependent stories declare `blocked-by: GATE-E2.0`.
 - **Learning Telemetry DoD** — an instrumented story is not done until its FR-080 events emit with required attributes AND are verified in a dashboard a human has looked at. (Stories 2.7, 2.8, 3.1, 3.2, 3.3.)
-- **tenant isolation** — every tenant-owned record carries server-set `organization_id`; `BelongsToTenant` is opt-in per table; cross-tenant access returns 404; `sub` (never email) is the user key. (All feature stories.)
+- **tenant isolation** — every tenant-owned record carries server-set `organization_id`; `BelongsToTenant` is opt-in per table; cross-tenant access returns 404; the **Account id (ULID)** is the user key (`sub` lives on the Startup Gate link, not the account; email is a local credential only). (All feature stories.)
 
 ### GATE-E2.0 — reliability gate checklist
 Passes only when, with chaos/concurrency tests green: outbox insert is inside the domain txn (rollback leaves no orphan); the relay claims rows atomically and a crash mid-dispatch redelivers (not vanishes); idempotency replays on key+fingerprint match, 409 in-flight, 422 on fingerprint mismatch, recovers from crash-before-response; content-addressed blobs are finalized+verified and GC-protected while referenced. **Stories 2.6–2.8 are `blocked-by: GATE-E2.0` (= stories 2.1–2.5 done).**

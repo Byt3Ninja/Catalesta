@@ -27,7 +27,7 @@ _Scope: **Phase 1a (Selection MVP)** per `roadmap.md` — a brownfield design on
 ### Requirements Overview
 
 **Functional Requirements (Phase 1a, ~30 FRs):**
-- Reuse (built): Identity/`sub` auth (mock), Organizations/tenancy/RBAC, Programs, Cohorts, Stages, versioning/immutability, decimal rule kernel.
+- Reuse (built): Identity/auth (Sanctum SPA session), Organizations/tenancy/RBAC, Programs, Cohorts, Stages, versioning/immutability, decimal rule kernel. **(Identity inverts to native Catalesta accounts under Epic 4 — see PRD §9; the `sub`-keyed SG-OIDC path demotes to an optional linked provider.)**
 - New (thin): Forms (attach-only, 8 field types — FR-020/021/022); Applications (FR-030/031/032/033/034 — cohort-bound, immutable snapshot, idempotent submit); Assessment persistence + Decision (FR-040/041/042/043 — decimal scoring, accept/reject/reopen, CSV export).
 - New (seams, "first-slice depth"): transactional outbox (FR-050), idempotency on submit+callback (FR-051), enumerated audit (FR-052), EntitlementService socket allow-all (FR-060), PaymentProvider interface + Geidea sandbox (FR-070..073), instrumentation events FR-080/081.
 
@@ -41,9 +41,9 @@ _Scope: **Phase 1a (Selection MVP)** per `roadmap.md` — a brownfield design on
 
 ### Technical Constraints & Dependencies
 - Brownfield: must reuse `BelongsToTenant`, the rule/decimal kernel, the versioning/immutability kernel, and the existing module layout; no foundation re-architecture.
-- External integrations behind interfaces only: Startup Gate OIDC (mock in P1a → real FR-157), Geidea (sandbox, no real charge in P1a).
+- External integrations behind interfaces only: Startup Gate OIDC as an **optional** linked SSO/import provider (FR-157), Geidea (sandbox, no real charge in P1a).
 - Content-addressed file storage introduced by FR-031 (blob store dependency).
-- Non-negotiables (CLAUDE.md): organization_id on every tenant row; `sub` not email; no raw card/CVV; published artifacts immutable.
+- Non-negotiables (CLAUDE.md): organization_id on every tenant row; **Account id (ULID) is the primary user key, `sub` is the SG-link key, email is a local credential only**; no raw card/CVV; published artifacts immutable.
 
 ### Cross-Cutting Concerns Identified
 Tenant isolation · immutability/versioning · enforced audit · transactional outbox + idempotency · entitlement seam · consent-aware access · i18n/RTL + a11y floor · observability/correlation IDs · payment-provider isolation.
@@ -54,7 +54,7 @@ Full-stack; **brownfield, no starter selected**. Versions pinned by repo.
 - **Backend:** PHP 8.3.31, Laravel 13.8, Sanctum 4, `firebase/php-jwt` 7 (JWKS), `brick/math` 0.17 (decimal). Modular monolith `app/Modules/*` + `app/Shared/*`.
 - **Frontend:** React 19.2, TS 6 strict, Vite 8, React Query 5, Zod 4; Vitest 4 + Playwright 1.61.
 - **Infra (docker-compose, provisioned):** postgres, redis, queue-worker, scheduler, minio (S3), startup-gate-mock, mailpit, nginx.
-- **Already fixed:** fail-closed `BelongsToTenant`; decimal kernel; versioning/immutability kernel; Sanctum SPA + JWKS-OIDC. No init story needed.
+- **Already fixed:** fail-closed `BelongsToTenant`; decimal kernel; versioning/immutability kernel; Sanctum SPA + JWKS-OIDC (the JWKS-OIDC path becomes the optional SG-link adapter under Epic 4; native-account auth is net-new). No tenancy/kernel init story needed.
 
 ## Foundation Stress-Test (Advanced Elicitation — Winston + Amelia, code-verified 2026-06-20)
 
