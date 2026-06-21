@@ -224,4 +224,4 @@ Unresolved findings from the validate gate (Grade: Good), **deferred with owner 
 
 **All phases:** native mobile apps; offline mode; AI/LLM features; marketplace payments/settlement (the service marketplace is non-transactional at MVP); multi-region active-active.
 
-**Phase 1a explicitly excludes (deferred, not dropped):** all billing/charging and the metering counter (P1b/P3); the workflow engine, documents, mentorship/training/graduation and the rest of the lifecycle (P2); notifications beyond the single log-transport outbox consumer (P3); the full form builder (P3); custom domains/branding (P3); real Startup Gate / federated SSO (P4).
+**Phase 1a explicitly excludes (deferred, not dropped):** all billing/charging and the metering counter (P1b/P3); the workflow engine, documents, mentorship/training/graduation and the rest of the lifecycle (P2); notifications beyond the single log-transport outbox consumer (P3); the full form builder (P3); custom domains/branding (P3); optional Startup Gate SSO + import (P4).
