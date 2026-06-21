@@ -16,6 +16,7 @@ import { DirectionProvider } from '../app/DirectionProvider'
 import { LoginPage } from '../pages/LoginPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
+import { ProgramsPage } from '../pages/ProgramsPage'
 
 function withProviders(ui: ReactElement): ReactElement {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -128,6 +129,10 @@ describe('a11y gate (axe-core)', () => {
 
   it('HomePage — minimal operator home (Story 1.1)', async () => {
     await expectNoViolations(withProviders(<HomePage organization={ORG} />))
+  })
+
+  it('ProgramsPage — list + create + publish (Story 1.2)', async () => {
+    await expectNoViolations(withProviders(<ProgramsPage organization={ORG} />))
   })
 
   it('ApplyField — representative field types (Story 2.7)', async () => {

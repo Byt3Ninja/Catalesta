@@ -7,6 +7,7 @@ import { LoginPage } from '../pages/LoginPage'
 import { AuthCallbackPage } from '../pages/AuthCallbackPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
+import { ProgramsPage } from '../pages/ProgramsPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -19,6 +20,7 @@ const APPLY_ROUTE = /^\/apply\/([^/]+)\/?$/
 const LOGIN_ROUTE = /^\/login\/?$/
 const CALLBACK_ROUTE = /^\/auth\/callback\/?$/
 const HEALTH_ROUTE = /^\/health\/?$/
+const PROGRAMS_ROUTE = /^\/programs\/?$/
 
 /**
  * No-org gate (Story 1.1, AC-1/2/3). Drives a session + org query and decides:
@@ -105,6 +107,9 @@ function resolveRoute() {
   }
   if (CALLBACK_ROUTE.test(path)) {
     return <AuthCallbackPage />
+  }
+  if (PROGRAMS_ROUTE.test(path)) {
+    return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
   }
   // Root and any other console/onboarding route → the gate decides.
   return <ConsoleGate>{(org) => <HomePage organization={org} />}</ConsoleGate>
