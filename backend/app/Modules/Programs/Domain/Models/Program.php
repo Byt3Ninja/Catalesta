@@ -67,4 +67,14 @@ final class Program extends Model
     {
         return $this->hasMany(StageTransition::class);
     }
+
+    /**
+     * Published, immutable snapshots of this program (FR-010/012).
+     *
+     * @return HasMany<ProgramVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(ProgramVersion::class);
+    }
 }
