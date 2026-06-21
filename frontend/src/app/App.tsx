@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
+import { ConsentProvider } from './ConsentProvider'
 import { HealthPage } from '../pages/HealthPage'
 import { ApplyPage } from '../pages/ApplyPage'
 import { LoginPage } from '../pages/LoginPage'
@@ -88,8 +89,16 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
     return <OnboardingPage />
   }
 
-  // Authenticated with an org → render the requested console surface through the gate.
-  return children ? children(orgs[0]) : <HomePage organization={orgs[0]} />
+  // Authenticated with an org → render the requested console surface through the
+  // gate. The ConsentProvider seam wraps the Home render site only (Home is the
+  // sole consent consumer), so other console surfaces don't pay a profile read.
+  return children ? (
+    children(orgs[0])
+  ) : (
+    <ConsentProvider>
+      <HomePage organization={orgs[0]} />
+    </ConsentProvider>
+  )
 }
 
 function resolveRoute() {
@@ -111,8 +120,17 @@ function resolveRoute() {
   if (PROGRAMS_ROUTE.test(path)) {
     return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
   }
-  // Root and any other console/onboarding route → the gate decides.
-  return <ConsoleGate>{(org) => <HomePage organization={org} />}</ConsoleGate>
+  // Root and any other console/onboarding route → the gate decides. Home is the
+  // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
+  return (
+    <ConsoleGate>
+      {(org) => (
+        <ConsentProvider>
+          <HomePage organization={org} />
+        </ConsentProvider>
+      )}
+    </ConsoleGate>
+  )
 }
 
 export function App() {
