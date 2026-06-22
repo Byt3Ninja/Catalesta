@@ -1,19 +1,36 @@
-# Claude Code Full Platform Kit
+# Catalesta Claude Code Configuration
 
-Complete execution kit for building a configurable incubation and acceleration program management platform.
+This package contains:
 
-Startup Gate is the future identity provider, profile owner, role-profile owner, consent authority, and shared-directory source. During development, Startup Gate OIDC and profile APIs are mocked behind replaceable adapters.
+- `CLAUDE.md`: concise repository-wide invariants and workflow controls
+- `.claude/rules/`: modular unconditional and path-scoped rules
+- `.gitignore-snippet.txt`: local Claude files that should not be committed
 
-## Read Order
+## Installation
 
-Start with the documentation map: [`docs/README.md`](docs/README.md). The two
-authoritative docs are `docs/product/scope-register.md` (scope) and
-`docs/plan/roadmap.md` (sequence).
+Copy `CLAUDE.md` and the `.claude` directory to the repository root.
 
-1. `CLAUDE.md`
-2. `docs/README.md` — documentation map
-3. `docs/product/scope-register.md` — canonical scope
-4. `docs/plan/roadmap.md` — plan of record (build order)
-5. `docs/architecture/overview.md`, `domain-boundaries.md`, `data-ownership.md`, `security-baseline.md`
-6. `docs/quality/testing-strategy.md`, `docs/architecture/devops-observability.md`
-7. `docs/plan/build-specs/` — the 69 build specs (order decided by the roadmap, not by number)
+Review path patterns against the actual repository layout, especially whether
+modules live under `Modules/`, `modules/`, or `app/`.
+
+Do not copy over existing `.claude/settings.json`, commands, agents, or plugin
+files without reviewing and merging them.
+
+## Validation
+
+Inside Claude Code:
+
+```text
+/memory
+/status
+/doctor
+```
+
+Confirm the root file and expected rules are loaded.
+
+## Methodology
+
+- BMAD governs product, requirements, architecture, stories, and readiness.
+- Superpowers governs implementation discipline, TDD, debugging, review, and
+  verification.
+- Graphify supports navigation and impact analysis but is not authoritative.
