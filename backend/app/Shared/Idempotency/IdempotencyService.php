@@ -9,6 +9,7 @@ use App\Shared\Idempotency\Exceptions\IdempotencyInFlightException;
 use App\Shared\Idempotency\Exceptions\ResponseTooLargeException;
 use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -38,15 +39,24 @@ final class IdempotencyService
 
     private function claim(string $scope, string $key, string $fingerprint): bool
     {
+        // SAVEPOINT-wrap the conflict-prone INSERT. Postgres aborts the entire
+        // transaction on ANY failed statement (unlike MySQL/SQLite), so a duplicate
+        // claim caught later as UniqueConstraintViolationException would still leave
+        // the outer transaction poisoned — every subsequent query 25P02s. Laravel
+        // turns a nested DB::transaction() into a SAVEPOINT, so a ROLLBACK TO
+        // SAVEPOINT on the unique violation keeps the outer transaction clean and
+        // lets resolveExisting() proceed.
         try {
-            IdempotencyKey::create([
-                'scope' => $scope,
-                'key' => $key,
-                'request_fingerprint' => $fingerprint,
-                'status' => IdempotencyStatus::Claimed->value,
-                'locked_at' => now(),
-                'expires_at' => now()->addSeconds($this->ttl()),
-            ]);
+            DB::transaction(function () use ($scope, $key, $fingerprint): void {
+                IdempotencyKey::create([
+                    'scope' => $scope,
+                    'key' => $key,
+                    'request_fingerprint' => $fingerprint,
+                    'status' => IdempotencyStatus::Claimed->value,
+                    'locked_at' => now(),
+                    'expires_at' => now()->addSeconds($this->ttl()),
+                ]);
+            });
 
             return true;
         } catch (UniqueConstraintViolationException) {
