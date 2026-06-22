@@ -17,6 +17,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
 final class NativeAuthController extends Controller
@@ -77,6 +78,46 @@ final class NativeAuthController extends Controller
         $audit->record('auth.login', 'account', (string) $account->id);
 
         return (new AccountSessionResource($account))->response();
+    }
+
+    /**
+     * POST /api/v1/auth/password/forgot — always 200 (no enumeration).
+     */
+    public function forgot(Request $request, AuditLogger $audit): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'string', 'email']]);
+        Password::sendResetLink(['email' => strtolower($data['email'])]);
+        $audit->record('auth.password_reset_requested', 'account', null);
+
+        return response()->json(['message' => 'If that email exists, a reset link has been sent.']);
+    }
+
+    /**
+     * POST /api/v1/auth/password/reset
+     */
+    public function reset(Request $request, AuditLogger $audit): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string', 'min:8', 'max:255'],
+        ]);
+
+        $status = Password::reset(
+            ['email' => strtolower($data['email']), 'password' => $data['password'], 'token' => $data['token']],
+            function (Account $account, string $password): void {
+                $account->password = $password; // hashed by cast
+                $account->save();
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages(['email' => 'This password reset token is invalid or has expired.']);
+        }
+
+        $audit->record('auth.password_reset_completed', 'account', null);
+
+        return response()->json(['message' => 'Your password has been reset.']);
     }
 
     /**

@@ -127,6 +127,10 @@ Route::prefix('v1')->group(function (): void {
         ->middleware('throttle:auth-register')->name('auth.register');
     Route::post('/auth/password/login', [NativeAuthController::class, 'login'])
         ->middleware('throttle:auth-login')->name('auth.password.login');
+    Route::post('/auth/password/forgot', [NativeAuthController::class, 'forgot'])
+        ->middleware('throttle:auth-forgot')->name('auth.password.forgot');
+    Route::post('/auth/password/reset', [NativeAuthController::class, 'reset'])
+        ->middleware('throttle:auth-forgot')->name('auth.password.reset');
 
     // Native auth — email verification (signed link, public)
     Route::get('/auth/email/verify/{id}/{hash}', [NativeAuthController::class, 'verify'])
