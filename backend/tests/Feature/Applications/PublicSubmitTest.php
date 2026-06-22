@@ -86,7 +86,10 @@ final class PublicSubmitTest extends TestCase
         $submission = $this->systemFind($reference);
         $this->assertNotNull($submission);
         $this->assertSame($this->cohortOrgId, $submission->organization_id, 'submission is owned by the cohort org');
-        $this->assertSame(['name' => 'Omar', 'idea' => 'Solar Nile'], $submission->submission_snapshot['answers']);
+        // assertEquals (order-insensitive): the snapshot is content-addressed and
+        // canonicalizes keys via alphabetical sort for stable hashing — production
+        // stores ['idea','name'], test sent ['name','idea']. Equivalent contents.
+        $this->assertEquals(['name' => 'Omar', 'idea' => 'Solar Nile'], $submission->submission_snapshot['answers']);
         $this->assertSame('form-v1', $submission->submission_snapshot['form_version_id']);
 
         $this->assertDatabaseHas('outbox_events', ['event_type' => 'ApplicationSubmitted']);
