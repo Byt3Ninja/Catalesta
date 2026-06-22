@@ -2,15 +2,19 @@ import { z } from 'zod'
 import { ApiError } from '../api/errors'
 
 /**
- * Current-user projection from the Startup Gate session (Story 1.1).
- * Key is the OIDC `sub` (`startup_gate_subject_id`) — never email (CLAUDE.md 4/5).
- * [Source: backend AuthController::session / ::callback]
+ * Current-user projection (SP-1b-ii). Keyed on the Account id (ULID) — never email
+ * (CLAUDE.md 4/5). `startup_gate_subject_id` is nullable: native accounts have no SG
+ * link. `linked_providers`/`has_password` describe which sign-in methods apply.
+ * [Source: backend AccountSessionResource]
  */
 export const sessionUserSchema = z.object({
   id: z.string(),
-  startup_gate_subject_id: z.string(),
   email: z.string().nullable(),
   display_name: z.string().nullable(),
+  email_verified: z.boolean(),
+  startup_gate_subject_id: z.string().nullable(),
+  linked_providers: z.array(z.string()),
+  has_password: z.boolean(),
 })
 
 export type SessionUser = z.infer<typeof sessionUserSchema>

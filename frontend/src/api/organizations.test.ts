@@ -26,6 +26,7 @@ test('listOrganizations parses an org list', async () => {
 })
 
 test('createOrganization returns the created org on 201', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: ORG }, 201))
   await expect(createOrganization('Acme Incubator')).resolves.toMatchObject({
     slug: 'acme-incubator',
@@ -33,6 +34,7 @@ test('createOrganization returns the created org on 201', async () => {
 })
 
 test('createOrganization maps 422 → DUPLICATE_NAME carrying the message', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
     jsonResponse(
       {
@@ -52,6 +54,7 @@ test('createOrganization maps 422 → DUPLICATE_NAME carrying the message', asyn
 })
 
 test('createOrganization 422 without a name detail does NOT become DUPLICATE_NAME', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
     jsonResponse(
       {
@@ -71,6 +74,7 @@ test('createOrganization 422 without a name detail does NOT become DUPLICATE_NAM
 })
 
 test('createOrganization maps 401 → UNAUTHENTICATED', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 401 }))
   await expect(createOrganization('X')).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
 })

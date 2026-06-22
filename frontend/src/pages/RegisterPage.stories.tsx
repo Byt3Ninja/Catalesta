@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '../app/queryClient'
-import { LoginPage } from './LoginPage'
+import { RegisterPage } from './RegisterPage'
 
 const meta = {
-  title: 'Pages/LoginPage',
-  component: LoginPage,
+  title: 'Pages/RegisterPage',
+  component: RegisterPage,
   decorators: [
     (Story) => (
       <QueryClientProvider client={queryClient}>
@@ -13,7 +13,7 @@ const meta = {
       </QueryClientProvider>
     ),
   ],
-} satisfies Meta<typeof LoginPage>
+} satisfies Meta<typeof RegisterPage>
 
 export default meta
 type Story = StoryObj<typeof meta>

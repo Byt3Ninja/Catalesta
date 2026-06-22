@@ -8,6 +8,19 @@ const USER = {
   startup_gate_subject_id: 'sub-1',
   email: 'op@example.com',
   display_name: 'Operator',
+  email_verified: true,
+  linked_providers: ['startup_gate'],
+  has_password: false,
+}
+
+const NATIVE_USER = {
+  id: 'user-2',
+  startup_gate_subject_id: null,
+  email: 'native@example.com',
+  display_name: 'Native',
+  email_verified: false,
+  linked_providers: [],
+  has_password: true,
 }
 
 afterEach(() => {
@@ -18,6 +31,16 @@ afterEach(() => {
 test('getSession parses the current user on 200', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ user: USER }))
   await expect(getSession()).resolves.toMatchObject({ startup_gate_subject_id: 'sub-1' })
+})
+
+test('getSession parses a native account (null sub, new fields)', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ user: NATIVE_USER }))
+  await expect(getSession()).resolves.toMatchObject({
+    startup_gate_subject_id: null,
+    email_verified: false,
+    has_password: true,
+    linked_providers: [],
+  })
 })
 
 test('getSession throws a typed UNAUTHENTICATED error on 401', async () => {
@@ -74,6 +97,7 @@ test('beginLogin does NOT store the path when already on /login', async () => {
 })
 
 test('completeLogin posts state+code and returns the user', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   const spy = vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(jsonResponse({ user: USER }))

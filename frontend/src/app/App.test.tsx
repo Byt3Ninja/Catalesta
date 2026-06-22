@@ -9,6 +9,9 @@ const USER = {
   startup_gate_subject_id: 'sub-1',
   email: 'op@example.com',
   display_name: 'Operator',
+  email_verified: true,
+  linked_providers: ['startup_gate'],
+  has_password: false,
 }
 
 const ORG = {
@@ -29,6 +32,13 @@ beforeEach(() => {
   // otherwise leak cached results across tests. Clear it for per-test isolation.
   queryClient.clear()
   setPath('/')
+  // Pre-seed the XSRF cookie so csrfFetch (used by create-org) skips its preflight
+  // GET and the sequential fetch mocks below stay aligned.
+  Object.defineProperty(document, 'cookie', {
+    value: 'XSRF-TOKEN=t',
+    writable: true,
+    configurable: true,
+  })
 })
 
 afterEach(() => {
@@ -62,6 +72,26 @@ test('gate: authenticated with no org → forced onboarding (non-skippable)', as
   expect(screen.queryByRole('button', { name: /skip/i })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
   expect(screen.queryByRole('link', { name: /skip/i })).not.toBeInTheDocument()
+})
+
+test('gate: unverified native account → verify-email notice (before onboarding)', async () => {
+  const UNVERIFIED = {
+    ...USER,
+    startup_gate_subject_id: null,
+    email_verified: false,
+    linked_providers: [],
+    has_password: true,
+  }
+  // Only the session call is needed — the notice short-circuits before the org query.
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ user: UNVERIFIED })) // session
+
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { name: /verify your email/i })).toBeInTheDocument()
+  // Did not fall through to onboarding or Home.
+  expect(
+    screen.queryByRole('heading', { name: /create your organization/i }),
+  ).not.toBeInTheDocument()
 })
 
 test('gate: authenticated with an org → operator Home (AppShell)', async () => {
