@@ -6,6 +6,11 @@ import { HealthPage } from '../pages/HealthPage'
 import { ApplyPage } from '../pages/ApplyPage'
 import { LoginPage } from '../pages/LoginPage'
 import { AuthCallbackPage } from '../pages/AuthCallbackPage'
+import { RegisterPage } from '../pages/RegisterPage'
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '../pages/ResetPasswordPage'
+import { EmailVerifiedPage } from '../pages/EmailVerifiedPage'
+import { VerifyEmailNotice } from '../pages/VerifyEmailNotice'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
 import { ProgramsPage } from '../pages/ProgramsPage'
@@ -22,6 +27,10 @@ import type { Organization } from '../schemas/organizations'
 const APPLY_ROUTE = /^\/apply\/([^/]+)\/?$/
 const LOGIN_ROUTE = /^\/login\/?$/
 const CALLBACK_ROUTE = /^\/auth\/callback\/?$/
+const REGISTER_ROUTE = /^\/register\/?$/
+const FORGOT_ROUTE = /^\/forgot-password\/?$/
+const RESET_ROUTE = /^\/auth\/reset-password\/?$/
+const EMAIL_VERIFIED_ROUTE = /^\/auth\/email-verified\/?$/
 const HEALTH_ROUTE = /^\/health\/?$/
 const PROGRAMS_ROUTE = /^\/programs\/?$/
 // Detail must be tested before the list route (more specific first).
@@ -64,6 +73,13 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
   // No session (UNAUTHENTICATED or any session failure) → login.
   if (sessionQuery.isError) {
     return <LoginPage />
+  }
+
+  // Unverified native account → block console/onboarding behind the verify notice.
+  // SG-linked accounts are auto-verified and skip this. (sessionQuery.data is defined
+  // here: isLoading and isError were both handled above.)
+  if (sessionQuery.data?.email_verified === false) {
+    return <VerifyEmailNotice />
   }
 
   // The org decision must wait until the dependent query has truly succeeded —
@@ -121,6 +137,18 @@ function resolveRoute() {
   }
   if (CALLBACK_ROUTE.test(path)) {
     return <AuthCallbackPage />
+  }
+  if (REGISTER_ROUTE.test(path)) {
+    return <RegisterPage />
+  }
+  if (FORGOT_ROUTE.test(path)) {
+    return <ForgotPasswordPage />
+  }
+  if (RESET_ROUTE.test(path)) {
+    return <ResetPasswordPage />
+  }
+  if (EMAIL_VERIFIED_ROUTE.test(path)) {
+    return <EmailVerifiedPage />
   }
   if (PROGRAMS_ROUTE.test(path)) {
     return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>

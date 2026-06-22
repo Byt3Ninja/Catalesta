@@ -74,6 +74,26 @@ test('gate: authenticated with no org → forced onboarding (non-skippable)', as
   expect(screen.queryByRole('link', { name: /skip/i })).not.toBeInTheDocument()
 })
 
+test('gate: unverified native account → verify-email notice (before onboarding)', async () => {
+  const UNVERIFIED = {
+    ...USER,
+    startup_gate_subject_id: null,
+    email_verified: false,
+    linked_providers: [],
+    has_password: true,
+  }
+  // Only the session call is needed — the notice short-circuits before the org query.
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ user: UNVERIFIED })) // session
+
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { name: /verify your email/i })).toBeInTheDocument()
+  // Did not fall through to onboarding or Home.
+  expect(
+    screen.queryByRole('heading', { name: /create your organization/i }),
+  ).not.toBeInTheDocument()
+})
+
 test('gate: authenticated with an org → operator Home (AppShell)', async () => {
   vi.spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
