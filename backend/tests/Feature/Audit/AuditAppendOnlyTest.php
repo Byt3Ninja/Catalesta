@@ -44,8 +44,14 @@ final class AuditAppendOnlyTest extends TestCase
     {
         $log = $this->seedLog();
 
+        // SAVEPOINT-wrap the trigger-rejected UPDATE: Postgres aborts the entire
+        // enclosing (RefreshDatabase) transaction on any failed statement, so the
+        // assertion after the catch would 25P02 without this. Laravel turns a nested
+        // DB::transaction into a SAVEPOINT, rolled back cleanly on the QueryException.
         try {
-            AuditLog::where('id', $log->id)->update(['action' => 'tampered']);
+            DB::transaction(function () use ($log): void {
+                AuditLog::where('id', $log->id)->update(['action' => 'tampered']);
+            });
             $this->fail('expected the DB to reject an UPDATE on audit_logs');
         } catch (QueryException $e) {
             $this->assertStringContainsString('append-only', $e->getMessage());
@@ -58,8 +64,12 @@ final class AuditAppendOnlyTest extends TestCase
     {
         $log = $this->seedLog();
 
+        // SAVEPOINT-wrap — same Postgres-vs-MySQL transaction-abort guard as the
+        // update test above.
         try {
-            AuditLog::where('id', $log->id)->delete();
+            DB::transaction(function () use ($log): void {
+                AuditLog::where('id', $log->id)->delete();
+            });
             $this->fail('expected the DB to reject a DELETE on audit_logs');
         } catch (QueryException $e) {
             $this->assertStringContainsString('append-only', $e->getMessage());
