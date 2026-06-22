@@ -417,6 +417,130 @@ So that I can act on the selection outside the tool and prove it later.
 
 ---
 
+## Epic 4: Standalone Identity, Accounts & Profiles
+
+Catalesta becomes the system of record for accounts, identity, and consent. Native registration / auth / account-management plus locally-owned multi-role profiles; Startup Gate demotes to an optional linked SSO provider + consented profile-import source — never authoritative. **Entry contract (from Epic 2):** the in-flight OIDC-mock-based stories keep working across the migration via §3.1 backfill. **Exit contract (for Epic 3):** scoring reads the **Account id (ULID)** as the canonical actor key, not `sub`.
+
+Sequenced **after Epic 2 review closes, BEFORE Epic 3**. Spec: `docs/superpowers/specs/2026-06-21-standalone-identity-design.md`.
+
+### Story 4.1: Native accounts & identity-model inversion (SP-1a — ✅ DONE)
+
+As a **platform engineer**,
+I want existing `external_users` rows migrated to `accounts` + `linked_identities` without changing behavior,
+So that future native-auth and SG-link work builds on the new model while in-flight OIDC-mock stories keep running.
+
+**Acceptance Criteria:**
+
+**Given** the shipped `external_users` table keyed on `startup_gate_subject_id`
+**When** the SP-1a migration runs
+**Then** every `external_users` row becomes one `accounts` row (`id` ULID, email from claims, `password_hash` null) + one `linked_identities` row (`provider=startup_gate, subject_id=<old sub>`)
+**And** `organization_memberships` repoints from `external_user_id` to `account_id` (column renamed/redefined; a membership belongs to an Account)
+**And** the existing OIDC-mock auth path keeps working unchanged (Sanctum SPA cookie-session transport preserved)
+**And** the test seam `TestCase::makeExternalUser` is replaced with an Account factory; `actingAs('web')` resolves to an Account
+**And** `profile_snapshots` and `participant_stage_statuses` no longer reference the dropped `external_user_id` columns (assertion test).
+
+*Shipped: commit `ecd9fa8`; verified via `IdentityModelInversionTest` + `AccountProjectionTest`.*
+
+### Story 4.2: Native auth backend (SP-1b-i — ✅ DONE)
+
+As an **applicant or operator**,
+I want to register a Catalesta account with email + password, verify my email, recover a forgotten password, and stay signed in via session,
+So that the platform is fully operational with zero Startup Gate dependency.
+
+**Acceptance Criteria:**
+
+**Given** the SP-1a Account + LinkedIdentity model
+**When** native-auth endpoints are exposed under `/api/v1/auth/*`
+**Then** registration creates an Account (lowercase email, hashed password, `email_verified_at` null, `MustVerifyEmail` behaviour), throttled per IP, audited as `auth.register`
+**And** password login validates credentials **enumeration-safely** (login never reveals user existence; same response for wrong-password and unknown-email; throttled per `email|ip`)
+**And** SSO-only accounts (`password_hash` null) cannot native-login
+**And** password reset uses Laravel's broker pattern with queued mail, no enumeration leak
+**And** email verification uses signed routes with throttling
+**And** `GET /api/v1/auth/session` returns the AccountSessionResource (email lowercased, verified state, role-profiles stub)
+**And** `EnsureEmailVerified` middleware blocks console / onboarding for unverified accounts (gates org create + join)
+**And** every state-changing endpoint runs through CSRF preflight (Sanctum `statefulApi`).
+
+*Shipped: see `NativeAuthController`, `auth.*` route group, `auth_logs` enumerated actions; verified via `PasswordLoginTest`, `PasswordResetTest`, `EmailVerificationTest`, `EmailVerifiedGateTest`, `RegistrationTest`, `NativeAuthFoundationTest`.*
+
+### Story 4.3: Native auth frontend (SP-1b-ii — ✅ DONE)
+
+As an **applicant or operator using the UI**,
+I want screens for register, login (native + SG), email verification, forgot password, and reset password,
+So that native auth works end-to-end in the browser, light/dark + LTR/RTL, with the P1a a11y floor met.
+
+**Acceptance Criteria:**
+
+**Given** the SP-1b-i native-auth API + the SP-1a Account model
+**When** the frontend ships under `/api/v1/auth/*`
+**Then** the session schema is evolved to carry native-account identity alongside SG-projected fields
+**And** a CSRF-preflight `csrfFetch` wrapper auto-fetches `/sanctum/csrf-cookie` when absent and sets `X-XSRF-TOKEN` on every mutation (preflight failures surface as `CsrfPreflightError`, not silent 419s)
+**And** `RegisterPage`, `ForgotPasswordPage`, `ResetPasswordPage`, `VerifyEmailNotice`, `EmailVerifiedPage` exist with Storybook stories + Vitest tests + axe coverage
+**And** `LoginPage` exposes a native-credential form alongside the SG OIDC path
+**And** a safe post-login redirect helper rejects open-redirects (`//host`, `/\host`, absolute URLs) and falls back to `/`
+**And** all surfaces render light/dark × LTR/RTL with `bdi` on interpolated values and `dir="auto"` on text fields.
+
+*Shipped: see PR #26; verified via `RegisterPage.test.tsx`, `ForgotPasswordPage.test.tsx`, `ResetPasswordPage.test.tsx`, `VerifyEmailNotice.test.tsx`, `EmailVerifiedPage.test.tsx`, `LoginPage.test.tsx`, `postLoginRedirect.test.ts`, `csrf.test.ts`, `auth.test.ts`.*
+
+### Story 4.4: Optional Startup Gate linked provider (SP-2 — backlog)
+
+As an **applicant with an existing SG identity**,
+I want to link my SG account to my Catalesta account, sign in with SG, and unlink later if I want,
+So that I can keep using my SG identity without it being authoritative for my Catalesta data.
+
+**Acceptance Criteria:**
+
+**Given** a logged-in Catalesta account
+**When** the user initiates "Link Startup Gate" and completes the SG OIDC flow
+**Then** a `linked_identities` row is created `(provider=startup_gate, subject_id=<sub>)` bound to the account
+**And** `last_login_at` and encrypted token material live on the link row (never on `accounts`)
+**And** "Sign in with Startup Gate" resolves an SG `sub` to its linked account; if no link exists, the flow prompts to link to an existing account or create a new one
+**And** unlinking removes the `linked_identities` row but leaves the account fully usable (password and/or other links remain)
+**And** an account with no password and only one SG link **cannot unlink** without first setting a password (no lockout)
+**And** every link / unlink is audited (`auth.sg.linked`, `auth.sg.unlinked`).
+
+*FR covered: FR-008. Spec to be authored when picked up.*
+
+### Story 4.5: Multi-role local profiles (SP-3 — backlog, epic-sized)
+
+As a **platform user with one or more roles**,
+I want a base profile plus role-profile entries (Founder, Startup, Mentor, Service Provider, Investor, Trainer, Judge) that Catalesta owns as system of record,
+So that role-aware features (delivery, evaluation, mentorship) read structured local data instead of depending on Startup Gate.
+
+**Acceptance Criteria:**
+
+**Given** the Account model from SP-1a
+**When** profiles are introduced
+**Then** a `profiles(account_id)` base row exists for every account
+**And** `role_profiles(account_id, role_type)` rows hold per-role structured data, completion state, and **per-field source tracking** (locally-entered vs SG-imported)
+**And** legacy names map: Evaluator → Judge, Funder → Investor
+**And** Operator/Admin and Platform Admin remain RBAC role assignments, NOT profile types
+**And** profile reads enforce consent via the `ConsentProvider` seam (including locally-owned profiles per CLAUDE.md rule 11)
+**And** completion state per role is queryable (drives onboarding next-actions).
+
+*FR coverage gap (flagged in IR report 2026-06-23): PRD currently has no FR for "platform owns the 7 enumerated role-profile types as system of record." Recommend adding `FR-014` (or similar; gaps reserved) in PRD §6.1 before SP-3 starts. Spec to be authored when picked up.*
+
+### Story 4.6: Consented Startup Gate import pipeline (SP-4 — backlog)
+
+As a **user with a linked Startup Gate identity**,
+I want to import selected profile fields from Startup Gate after granting explicit, field-level consent, with full control over what's imported and when,
+So that my local profile is enriched from SG without ever losing my local edits or being silently overwritten.
+
+**Acceptance Criteria:**
+
+**Given** an account with a linked SG identity (from SP-2)
+**When** the user opens "Import from Startup Gate"
+**Then** a field-level consent UI lists every importable field with a granted/denied toggle per field
+**And** on import, each consented field writes to the local profile with `source=startup_gate` and `imported_at`; non-consented fields are not fetched
+**And** fields with a locally-edited source (`source=local`) are **NEVER** auto-overwritten — instead a **conflict-preview** step shows local vs incoming and asks the user to keep, replace, or merge
+**And** a `profile_imports` history row records each import (granted scopes, count of fields written, count deferred-to-conflict)
+**And** consent is revocable per-field; revoking a field does NOT delete already-imported local data (it just blocks future re-imports)
+**And** unlinking SG (SP-2) does NOT delete imported data (it stays in the local profile with `source=startup_gate` as historical attribution)
+**And** never-overwrite + import-history + revocation are acceptance-tested.
+
+*FR covered: FR-009. Spec to be authored when picked up.*
+
+---
+
 ## Edge-Case Hardening (folded from the Boundary & Edge Case Sweep — Amelia + Sally)
 
 Additional acceptance criteria on the named stories. **★ = correctness hole, must-fix-before-green.**
