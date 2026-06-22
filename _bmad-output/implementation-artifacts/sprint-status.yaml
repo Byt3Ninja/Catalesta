@@ -43,7 +43,7 @@
 #   build order — sequence work by the two tracks above.
 
 generated: 2026-06-20
-last_updated: 2026-06-21
+last_updated: 2026-06-22
 project: Catalesta
 project_key: NOKEY
 tracking_system: file-system
@@ -80,8 +80,8 @@ development_status:
   epic-3-retrospective: optional
 
   # ── Epic 4: Standalone Identity, Accounts & Profiles (foundational — runs before Epic 3) ──
-  epic-4: backlog  # spec: docs/superpowers/specs/2026-06-21-standalone-identity-design.md
-  4-1-sp1-native-accounts-and-auth: backlog        # local accounts + linked_identities; migrate ExternalUser; memberships → account_id
+  epic-4: in-progress  # spec: docs/superpowers/specs/2026-06-21-standalone-identity-design.md
+  4-1-sp1-native-accounts-and-auth: done  # 2026-06-22 — SP-1a inversion (ecd9fa8) + SP-1b-i backend (PR/merge) + SP-1b-ii frontend (PR #26, merge 97c392b)
   4-2-sp2-startup-gate-linked-provider: backlog    # optional SG OIDC link/unlink; sign in with SG
   4-3-sp3-local-role-profiles: backlog             # 7 role-profile types; system of record
   4-4-sp4-consented-import-pipeline: backlog        # field-level consent, source tracking, history, conflict preview, never-overwrite, revocation
