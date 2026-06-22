@@ -33,6 +33,8 @@ final class PublicSubmitTest extends TestCase
 
     private string $cohortOrgId;
 
+    private string $formVersionId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,10 +46,15 @@ final class PublicSubmitTest extends TestCase
         // controls auth itself (the applicant is never the cohort's operator).
         $org = $this->createBareOrg();
         $this->cohortOrgId = $org->id;
+        // cohorts.form_version_id is CHAR(26) (ULID FK to form_versions.id). The old
+        // fixture used 'form-v1' (7 chars), which the column space-padded to 26 and
+        // the snapshot copied verbatim into JSON — false-positive padding "bug" that
+        // only existed in tests. Production always stores real ULIDs.
+        $this->formVersionId = (string) Str::ulid();
         $this->cohort = $this->withoutTenantContext(function () use ($org): Cohort {
             $cohort = new Cohort([
                 'program_id' => (string) Str::ulid(),
-                'form_version_id' => 'form-v1',
+                'form_version_id' => $this->formVersionId,
                 'name' => 'Cohort One',
                 'status' => CohortStatus::Open,
             ]);
@@ -90,7 +97,7 @@ final class PublicSubmitTest extends TestCase
         // canonicalizes keys via alphabetical sort for stable hashing — production
         // stores ['idea','name'], test sent ['name','idea']. Equivalent contents.
         $this->assertEquals(['name' => 'Omar', 'idea' => 'Solar Nile'], $submission->submission_snapshot['answers']);
-        $this->assertSame('form-v1', $submission->submission_snapshot['form_version_id']);
+        $this->assertSame($this->formVersionId, $submission->submission_snapshot['form_version_id']);
 
         $this->assertDatabaseHas('outbox_events', ['event_type' => 'ApplicationSubmitted']);
         $this->assertDatabaseHas('audit_logs', [
