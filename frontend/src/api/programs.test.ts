@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { createProgram, listPrograms, publishProgram } from './programs'
 import { jsonResponse } from '../tests/test-utils'
 
@@ -13,6 +13,14 @@ const PROGRAM = {
   updated_at: '2026-06-20T10:00:00+00:00',
 }
 
+function setCookie(value: string) {
+  Object.defineProperty(document, 'cookie', { value, writable: true, configurable: true })
+}
+
+// createProgram + publishProgram now route through csrfFetch (PR #26 follow-up).
+// Pre-set the XSRF-TOKEN cookie so the preflight is skipped and tests can assert
+// against a single fetch mock — same pattern as organizations.test.ts.
+beforeEach(() => setCookie('XSRF-TOKEN=t'))
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -35,12 +43,15 @@ test('createProgram returns the created draft on 201', async () => {
   })
 })
 
-test('createProgram sends an optional description when provided', async () => {
+test('createProgram sends X-XSRF-TOKEN + optional description when provided', async () => {
   const fetchSpy = vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(jsonResponse({ data: PROGRAM }, 201))
   await createProgram('Spring Accelerator', 'Cohort for seed startups')
-  const body = JSON.parse((fetchSpy.mock.calls[0][1]?.body as string) ?? '{}')
+  const init = fetchSpy.mock.calls[0][1]
+  const headers = new Headers(init?.headers)
+  expect(headers.get('X-XSRF-TOKEN')).toBe('t')
+  const body = JSON.parse((init?.body as string) ?? '{}')
   expect(body).toEqual({ name: 'Spring Accelerator', description: 'Cohort for seed startups' })
 })
 

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './client'
+import { csrfFetch } from './csrf'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   CreateProgramError,
@@ -32,10 +33,8 @@ export async function createProgram(
   name: string,
   description?: string,
 ): Promise<Program> {
-  const response = await fetch(`${API_BASE_URL}/programs`, {
+  const response = await csrfFetch(`/programs`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(description ? { name, description } : { name }),
   })
 
@@ -62,9 +61,8 @@ export async function createProgram(
  * [Source: backend ProgramController::publish]
  */
 export async function publishProgram(id: string): Promise<Program> {
-  const response = await fetch(`${API_BASE_URL}/programs/${id}/publish`, {
+  const response = await csrfFetch(`/programs/${id}/publish`, {
     method: 'POST',
-    credentials: 'include',
   })
 
   if (response.status === 200) {

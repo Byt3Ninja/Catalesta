@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './client'
+import { csrfFetch } from './csrf'
 import {
   applyFormSchema,
   receiptSchema,
@@ -63,7 +64,7 @@ export async function submitApplication(
   cohortId: string,
   { answers, files, idempotencyKey }: SubmitArgs,
 ): Promise<Receipt> {
-  const url = `${API_BASE_URL}/apply/${encodeURIComponent(cohortId)}/submit`
+  const path = `/apply/${encodeURIComponent(cohortId)}/submit`
   const headers: Record<string, string> = { 'Idempotency-Key': idempotencyKey }
 
   let body: BodyInit
@@ -76,15 +77,14 @@ export async function submitApplication(
       form.append('files[]', file)
     }
     body = form
-    // Do NOT set Content-Type — the browser adds the multipart boundary.
+    // FormData: csrfFetch skips its JSON default so the browser sets the multipart boundary.
   } else {
-    headers['Content-Type'] = 'application/json'
     body = JSON.stringify({ answers, blob_digests: [] })
+    // JSON: csrfFetch defaults Content-Type to application/json.
   }
 
-  const response = await fetch(url, {
+  const response = await csrfFetch(path, {
     method: 'POST',
-    credentials: 'include',
     headers,
     body,
   })

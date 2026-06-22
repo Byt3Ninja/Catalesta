@@ -60,6 +60,13 @@ const localStorageMock: Storage = {
 beforeEach(() => {
   memoryStore.clear()
   vi.stubGlobal('localStorage', localStorageMock)
+  // submitApplication now routes through csrfFetch (PR #26 follow-up).
+  // Pre-seed the XSRF cookie so the preflight is skipped and sequential fetch mocks stay aligned.
+  Object.defineProperty(document, 'cookie', {
+    value: 'XSRF-TOKEN=t',
+    writable: true,
+    configurable: true,
+  })
 })
 
 afterEach(() => {
@@ -186,8 +193,8 @@ test('double submit reuses the same Idempotency-Key (dedups to one effective sub
   )
   expect(submitCalls).toHaveLength(2)
   const keys = submitCalls.map(([, init]) => {
-    const headers = (init as RequestInit).headers as Record<string, string>
-    return headers['Idempotency-Key']
+    // csrfFetch normalises headers via `new Headers(...)`, so read through Headers API.
+    return new Headers((init as RequestInit).headers).get('Idempotency-Key')
   })
   expect(keys[0]).toBeTruthy()
   expect(keys[0]).toBe(keys[1]) // same key -> server dedups to same receipt
