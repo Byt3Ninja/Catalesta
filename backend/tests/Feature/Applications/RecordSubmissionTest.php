@@ -69,7 +69,9 @@ final class RecordSubmissionTest extends TestCase
         $this->assertNotEmpty($submission->organization_id, 'organization_id is server-set');
 
         $snap = $submission->fresh()->submission_snapshot;
-        $this->assertSame(['name' => 'Omar', 'idea' => 'Solar Nile'], $snap['answers']);
+        // assertEquals (order-insensitive): content-addressed snapshot sorts keys
+        // alphabetically for stable hashing — see PublicSubmitTest for the same fix.
+        $this->assertEquals(['name' => 'Omar', 'idea' => 'Solar Nile'], $snap['answers']);
         $this->assertSame([$blob->digest], $snap['blob_refs']);
         $this->assertSame('form-v1', $snap['form_version_id']);
         $this->assertSame('prog-v1', $snap['program_version_id']);
