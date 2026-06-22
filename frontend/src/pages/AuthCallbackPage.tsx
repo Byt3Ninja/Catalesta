@@ -5,6 +5,7 @@ import { Button } from '../components/Button'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { completeLogin } from '../api/session'
+import { consumePostLoginRedirect } from '../api/postLoginRedirect'
 
 /**
  * OIDC redirect target (Story 1.1, AC-3). Reads state+code from the query string,
@@ -20,11 +21,7 @@ export function AuthCallbackPage() {
       completeLogin(state, code),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['session'] })
-      // Return to the captured pre-login path; the gate routes from there.
-      // Guard against open redirect: only same-origin absolute paths are allowed.
-      const dest = sessionStorage.getItem('postLoginRedirect')
-      sessionStorage.removeItem('postLoginRedirect')
-      window.location.assign(dest && dest.startsWith('/') && !dest.startsWith('//') ? dest : '/')
+      window.location.assign(consumePostLoginRedirect())
     },
   })
 
