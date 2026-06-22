@@ -16,6 +16,8 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 final class NativeAuthController extends Controller
 {
@@ -48,6 +50,33 @@ final class NativeAuthController extends Controller
         session()->regenerate();
 
         return (new AccountSessionResource($account))->response()->setStatusCode(201);
+    }
+
+    /**
+     * POST /api/v1/auth/password/login
+     * Enumeration-safe: unknown email and wrong password return the SAME 422.
+     */
+    public function login(Request $request, AuditLogger $audit): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $account = Account::where('email', strtolower($data['email']))->first();
+
+        if ($account === null || $account->password === null
+            || ! Hash::check($data['password'], $account->password)) {
+            throw ValidationException::withMessages([
+                'email' => 'These credentials do not match our records.',
+            ]);
+        }
+
+        Auth::login($account);
+        session()->regenerate(); // helper, not $request->session() — see register()
+        $audit->record('auth.login', 'account', (string) $account->id);
+
+        return (new AccountSessionResource($account))->response();
     }
 
     /**

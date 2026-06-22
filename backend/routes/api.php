@@ -122,9 +122,11 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/auth/login', [AuthController::class, 'login'])->name('auth.login');
     Route::post('/auth/callback', [AuthController::class, 'callback'])->name('auth.callback');
 
-    // Native auth — registration (public)
+    // Native auth — registration + password login (public)
     Route::post('/auth/register', [NativeAuthController::class, 'register'])
         ->middleware('throttle:auth-register')->name('auth.register');
+    Route::post('/auth/password/login', [NativeAuthController::class, 'login'])
+        ->middleware('throttle:auth-login')->name('auth.password.login');
 
     // Native auth — email verification (signed link, public)
     Route::get('/auth/email/verify/{id}/{hash}', [NativeAuthController::class, 'verify'])
