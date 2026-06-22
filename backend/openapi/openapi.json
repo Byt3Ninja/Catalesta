@@ -814,6 +814,48 @@
                 }
             }
         },
+        "/v1/auth/register": {
+            "post": {
+                "operationId": "auth.register",
+                "summary": "POST /api/v1/auth/register\nCreates a native account, issues a session (unverified), sends verification",
+                "tags": [
+                    "NativeAuth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`AccountSessionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/AccountSessionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "user"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/auth/email/verify/{id}/{hash}": {
             "get": {
                 "operationId": "auth.email.verify",
@@ -3053,6 +3095,33 @@
                     "updated_at"
                 ],
                 "title": "ProgramTemplateResource"
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 255
+                    },
+                    "display_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "title": "RegisterRequest"
             },
             "ReorderStagesRequest": {
                 "type": "object",
