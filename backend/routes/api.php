@@ -45,7 +45,8 @@ Route::prefix('v1')->group(function (): void {
     // Organization routes — NO tenant middleware for store + index
     // (no org context exists yet when creating; index lists across orgs)
     Route::middleware('auth:sanctum')->group(function (): void {
-        Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
+        Route::post('/organizations', [OrganizationController::class, 'store'])
+            ->middleware('verified.email')->name('organizations.store');
         Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
     });
 
@@ -53,7 +54,8 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
         Route::get('/organizations/{id}', [OrganizationController::class, 'show'])->name('organizations.show');
         Route::patch('/organizations/{id}', [OrganizationController::class, 'update'])->name('organizations.update');
-        Route::post('/organizations/{org}/memberships', [MembershipController::class, 'store'])->name('organizations.memberships.store');
+        Route::post('/organizations/{org}/memberships', [MembershipController::class, 'store'])
+            ->middleware('verified.email')->name('organizations.memberships.store');
         Route::get('/organizations/{org}/memberships', [MembershipController::class, 'index'])->name('organizations.memberships.index');
     });
 

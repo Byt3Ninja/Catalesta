@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AssignCorrelationId;
+use App\Http\Middleware\EnsureEmailVerified;
 use App\Http\Middleware\ResolveTenant;
 use App\Modules\Applications\Application\Exceptions\CohortClosedException;
 use App\Shared\Idempotency\Exceptions\IdempotencyConflictException;
@@ -26,7 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->api(prepend: [AssignCorrelationId::class]);
-        $middleware->alias(['tenant' => ResolveTenant::class]);
+        $middleware->alias([
+            'tenant' => ResolveTenant::class,
+            'verified.email' => EnsureEmailVerified::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, Request $request) {
