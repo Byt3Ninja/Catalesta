@@ -174,40 +174,14 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "setStatusCode(200): a JsonResource whose model wasRecentlyCreated (first OIDC\nlogin creates the account) would otherwise auto-return 201; auth is not a create.\n\n\n\n`AccountSessionResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "user": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string"
-                                                },
-                                                "startup_gate_subject_id": {
-                                                    "type": "string"
-                                                },
-                                                "email": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "display_name": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "id",
-                                                "startup_gate_subject_id",
-                                                "email",
-                                                "display_name"
-                                            ]
+                                            "$ref": "#/components/schemas/AccountSessionResource"
                                         }
                                     },
                                     "required": [
@@ -236,40 +210,14 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "setStatusCode(200): a JsonResource whose model wasRecentlyCreated (first OIDC\nlogin creates the account) would otherwise auto-return 201; auth is not a create.\n\n\n\n`AccountSessionResource`",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
                                         "user": {
-                                            "type": "object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string"
-                                                },
-                                                "startup_gate_subject_id": {
-                                                    "type": "string"
-                                                },
-                                                "email": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                },
-                                                "display_name": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "id",
-                                                "startup_gate_subject_id",
-                                                "email",
-                                                "display_name"
-                                            ]
+                                            "$ref": "#/components/schemas/AccountSessionResource"
                                         }
                                     },
                                     "required": [
@@ -541,11 +489,11 @@
                                                     "type": [
                                                         "object",
                                                         "null"
-                                                    ]
+                                                    ],
+                                                    "description": "`viewed` is a raw page-hit count (every public apply GET, incl.\nrefreshes/bots \u2014 hence \"approximate\" in the UI). The clamp only\nguards the rare case where a `viewed` emit was swallowed\nbest-effort while its `started` beacon landed (viewed < started)."
                                                 },
                                                 "started": {
                                                     "type": "integer",
-                                                    "description": "clamp: beacon-loss undercount",
                                                     "minimum": 0
                                                 },
                                                 "submitted": {
@@ -622,31 +570,32 @@
                                                     "type": "string"
                                                 },
                                                 "startup_gate_subject_id": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "email": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                    "type": "string"
                                                 },
                                                 "display_name": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                    "type": "string"
                                                 },
                                                 "avatar_url": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                    "type": "string"
                                                 },
                                                 "locale": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ]
+                                                    "type": "string"
+                                                },
+                                                "email_verified": {
+                                                    "type": "boolean"
+                                                },
+                                                "linked_providers": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                },
+                                                "has_password": {
+                                                    "type": "boolean"
                                                 }
                                             },
                                             "required": [
@@ -655,7 +604,10 @@
                                                 "email",
                                                 "display_name",
                                                 "avatar_url",
-                                                "locale"
+                                                "locale",
+                                                "email_verified",
+                                                "linked_providers",
+                                                "has_password"
                                             ]
                                         }
                                     },
@@ -855,6 +807,82 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/auth/email/verify/{id}/{hash}": {
+            "get": {
+                "operationId": "auth.email.verify",
+                "summary": "GET /api/v1/auth/email/verify/{id}/{hash}  (signed)\nValidates the signed link, marks the email verified, redirects to the SPA",
+                "tags": [
+                    "NativeAuth"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "hash",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/email/resend": {
+            "post": {
+                "operationId": "auth.email.resend",
+                "summary": "POST /api/v1/auth/email/resend  (auth:sanctum)",
+                "tags": [
+                    "NativeAuth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -2704,6 +2732,42 @@
     },
     "components": {
         "schemas": {
+            "AccountSessionResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "email_verified": {
+                        "type": "string"
+                    },
+                    "startup_gate_subject_id": {
+                        "type": "string"
+                    },
+                    "linked_providers": {
+                        "type": "string"
+                    },
+                    "has_password": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "email",
+                    "display_name",
+                    "email_verified",
+                    "startup_gate_subject_id",
+                    "linked_providers",
+                    "has_password"
+                ],
+                "title": "AccountSessionResource"
+            },
             "CohortResource": {
                 "type": "object",
                 "properties": {
@@ -2791,7 +2855,7 @@
                     "organization_id": {
                         "type": "string"
                     },
-                    "external_user_id": {
+                    "account_id": {
                         "type": "string"
                     },
                     "status": {
@@ -2804,7 +2868,7 @@
                 "required": [
                     "id",
                     "organization_id",
-                    "external_user_id",
+                    "account_id",
                     "status",
                     "roles"
                 ],
@@ -3148,7 +3212,7 @@
             "StoreMembershipRequest": {
                 "type": "object",
                 "properties": {
-                    "external_user_id": {
+                    "account_id": {
                         "type": "string"
                     },
                     "role_keys": {
@@ -3159,7 +3223,7 @@
                     }
                 },
                 "required": [
-                    "external_user_id"
+                    "account_id"
                 ],
                 "title": "StoreMembershipRequest"
             },

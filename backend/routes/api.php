@@ -9,6 +9,7 @@ use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
+use App\Modules\Identity\Http\NativeAuthController;
 use App\Modules\Organizations\Http\MembershipController;
 use App\Modules\Organizations\Http\OrganizationController;
 use App\Modules\Programs\Http\ProgramController;
@@ -121,9 +122,17 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/auth/login', [AuthController::class, 'login'])->name('auth.login');
     Route::post('/auth/callback', [AuthController::class, 'callback'])->name('auth.callback');
 
+    // Native auth — email verification (signed link, public)
+    Route::get('/auth/email/verify/{id}/{hash}', [NativeAuthController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])->name('auth.email.verify');
+
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/session', [AuthController::class, 'session'])->name('auth.session');
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+
+        // Native auth — resend verification email
+        Route::post('/auth/email/resend', [NativeAuthController::class, 'resend'])
+            ->middleware('throttle:auth-resend')->name('auth.email.resend');
 
         // /me — local projection + profile API passthroughs (consent enforced by StartupGate mock)
         Route::get('/me', [MeController::class, 'me'])->name('me');
