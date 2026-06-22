@@ -15,6 +15,11 @@ test('rejects protocol-relative and absolute URLs, falling back to /', () => {
   expect(consumePostLoginRedirect()).toBe('/')
 })
 
+test('rejects backslash-host (/\\evil.example) — some UAs treat \\ as /', () => {
+  vi.stubGlobal('sessionStorage', { getItem: () => '/\\evil.example/x', removeItem: vi.fn(), setItem: vi.fn() })
+  expect(consumePostLoginRedirect()).toBe('/')
+})
+
 test('falls back to / when nothing is stored', () => {
   vi.stubGlobal('sessionStorage', { getItem: () => null, removeItem: vi.fn(), setItem: vi.fn() })
   expect(consumePostLoginRedirect()).toBe('/')

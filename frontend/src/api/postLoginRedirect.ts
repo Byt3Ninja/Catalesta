@@ -1,10 +1,12 @@
 /**
  * Read the captured pre-login destination, clear it, and return it only if it is a
- * same-origin absolute path. Guards against open redirects (protocol-relative `//host`
- * or absolute URLs). Falls back to '/'. Shared by callback, login, and register.
+ * same-origin absolute path. Guards against open redirects: rejects protocol-relative
+ * `//host`, backslash-host `/\host` (some user agents treat `\` as `/`), and absolute
+ * URLs. Falls back to '/'. Shared by callback, login, and register.
  */
+const SAFE_PATH = /^\/[^/\\]/
 export function consumePostLoginRedirect(): string {
   const dest = sessionStorage.getItem('postLoginRedirect')
   sessionStorage.removeItem('postLoginRedirect')
-  return dest && dest.startsWith('/') && !dest.startsWith('//') ? dest : '/'
+  return dest && SAFE_PATH.test(dest) ? dest : '/'
 }

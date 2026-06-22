@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { csrfFetch } from './csrf'
+import { csrfFetch, CsrfPreflightError } from './csrf'
 import { jsonResponse } from '../tests/test-utils'
 
 function setCookie(value: string) {
@@ -39,4 +39,31 @@ test('skips the preflight when the cookie is already present', async () => {
 
   expect(fetchMock).toHaveBeenCalledTimes(1)
   expect(fetchMock.mock.calls[0][0]).toContain('/auth/login')
+})
+
+test('throws CsrfPreflightError when the preflight returns a non-2xx', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 503 }))
+  await expect(csrfFetch('/auth/login', { method: 'POST' })).rejects.toMatchObject({
+    name: 'CsrfPreflightError',
+    status: 503,
+  })
+})
+
+test('throws CsrfPreflightError when the preflight rejects (network)', async () => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('offline'))
+  const err = await csrfFetch('/auth/login', { method: 'POST' }).catch((e) => e)
+  expect(err).toBeInstanceOf(CsrfPreflightError)
+  expect((err as CsrfPreflightError).status).toBe('network')
+})
+
+test('does NOT set Content-Type for FormData bodies (browser sets multipart boundary)', async () => {
+  setCookie('XSRF-TOKEN=already')
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ ok: true }))
+  const form = new FormData()
+  form.append('x', 'y')
+
+  await csrfFetch('/apply/c/submit', { method: 'POST', body: form })
+
+  const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+  expect(headers.has('Content-Type')).toBe(false)
 })
