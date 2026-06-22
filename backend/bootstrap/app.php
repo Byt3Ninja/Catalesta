@@ -27,6 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->api(prepend: [AssignCorrelationId::class]);
+        // No `login` named route exists — this is an API. Returning null from
+        // redirectGuestsTo makes Authenticate throw AuthenticationException instead
+        // of redirecting, which the renderer below maps to a clean 401 JSON. Without
+        // this, non-JSON unauth requests (curl, browser direct nav, external clients
+        // missing `Accept: application/json`) crash with RouteNotFoundException → 500.
+        $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'verified.email' => EnsureEmailVerified::class,
