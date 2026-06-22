@@ -43,7 +43,7 @@
 #   build order — sequence work by the two tracks above.
 
 generated: 2026-06-20
-last_updated: 2026-06-22
+last_updated: 2026-06-22  # epic-2 closed (2-1..2-8 done); SP-1 (epic-4 story 4-1) done
 project: Catalesta
 project_key: NOKEY
 tracking_system: file-system
@@ -61,15 +61,15 @@ development_status:
   epic-1-retrospective: done  # 2026-06-21 → epic-1-retro-2026-06-21.md; debt parked as backlog; next: Epic 2 UI (2-8 first)
 
   # ── Epic 2: Receive Applications (opens with E2.0 reliability gate: 2-1..2-5) ──
-  epic-2: in-progress
-  2-1-content-addressed-blob-storage: review
-  2-2-idempotency-primitive: review
-  2-3-transactional-outbox-table-and-producer: review
-  2-4-outbox-relay-worker: review
-  2-5-enumerated-audit-trail: review
-  2-6-application-submission-record-and-immutable-snapshot: review
-  2-7-public-idempotent-submit-flow-and-receipt: review  # backend submit slice done; UI/telemetry blocked-by 1.0
-  2-8-operator-submission-list-and-funnel: review  # slice 2 done: FR-080 telemetry substrate + viewed/started emit + funnel API + operator Submissions UI + 1-5 link handoff
+  epic-2: done
+  2-1-content-addressed-blob-storage: done
+  2-2-idempotency-primitive: done
+  2-3-transactional-outbox-table-and-producer: done
+  2-4-outbox-relay-worker: done
+  2-5-enumerated-audit-trail: done
+  2-6-application-submission-record-and-immutable-snapshot: done
+  2-7-public-idempotent-submit-flow-and-receipt: done  # backend submit slice + UI/telemetry live (1-0 unblocked)
+  2-8-operator-submission-list-and-funnel: done  # FR-080 telemetry substrate + funnel API + operator Submissions UI + 1-5 link handoff
   epic-2-retrospective: optional
 
   # ── Epic 3: Score & Decide (gated on Epic 2 evidence; sequenced after Epic 4) ──
