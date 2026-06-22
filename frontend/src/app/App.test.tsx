@@ -32,6 +32,13 @@ beforeEach(() => {
   // otherwise leak cached results across tests. Clear it for per-test isolation.
   queryClient.clear()
   setPath('/')
+  // Pre-seed the XSRF cookie so csrfFetch (used by create-org) skips its preflight
+  // GET and the sequential fetch mocks below stay aligned.
+  Object.defineProperty(document, 'cookie', {
+    value: 'XSRF-TOKEN=t',
+    writable: true,
+    configurable: true,
+  })
 })
 
 afterEach(() => {

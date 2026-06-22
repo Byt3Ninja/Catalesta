@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './client'
+import { csrfFetch } from './csrf'
 import {
   loginUrlSchema,
   sessionResponseSchema,
@@ -52,10 +53,8 @@ export async function beginLogin(): Promise<void> {
  * session cookie. Returns the freshly logged-in user.
  */
 export async function completeLogin(state: string, code: string): Promise<SessionUser> {
-  const response = await fetch(`${API_BASE_URL}/auth/callback`, {
+  const response = await csrfFetch('/auth/callback', {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ state, code }),
   })
   if (!response.ok) {

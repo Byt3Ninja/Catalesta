@@ -97,6 +97,7 @@ test('beginLogin does NOT store the path when already on /login', async () => {
 })
 
 test('completeLogin posts state+code and returns the user', async () => {
+  Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true })
   const spy = vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(jsonResponse({ user: USER }))

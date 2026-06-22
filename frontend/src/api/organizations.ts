@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './client'
+import { csrfFetch } from './csrf'
 import { fieldMessage, firstValidationMessage, readValidationDetails } from './errors'
 import {
   CreateOrgError,
@@ -29,10 +30,8 @@ export async function listOrganizations(): Promise<Organization[]> {
  * [Source: backend OrganizationController::store, StoreOrganizationRequest, bootstrap/app.php]
  */
 export async function createOrganization(name: string): Promise<Organization> {
-  const response = await fetch(`${API_BASE_URL}/organizations`, {
+  const response = await csrfFetch('/organizations', {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   })
 
