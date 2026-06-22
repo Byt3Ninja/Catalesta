@@ -46,10 +46,15 @@ final class PasswordLoginTest extends TestCase
 
     public function test_login_is_throttled(): void
     {
-        $this->account();
+        // Use a unique email so this test's rate counter starts at zero. The auth-login
+        // limiter is keyed by `email|ip`, but its cache backend isn't reset by
+        // RefreshDatabase — a prior test that POSTs to login@example.com leaves a
+        // residual count, and the throttle would fire one attempt early here.
+        $email = 'throttle@example.com';
+        $this->account($email);
         for ($i = 0; $i < 6; $i++) {
-            $this->postJson('/api/v1/auth/password/login', ['email' => 'login@example.com', 'password' => 'nope'])->assertStatus(422);
+            $this->postJson('/api/v1/auth/password/login', ['email' => $email, 'password' => 'nope'])->assertStatus(422);
         }
-        $this->postJson('/api/v1/auth/password/login', ['email' => 'login@example.com', 'password' => 'nope'])->assertStatus(429);
+        $this->postJson('/api/v1/auth/password/login', ['email' => $email, 'password' => 'nope'])->assertStatus(429);
     }
 }
