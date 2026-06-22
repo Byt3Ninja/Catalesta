@@ -9,6 +9,9 @@ const USER = {
   startup_gate_subject_id: 'sub-1',
   email: 'op@example.com',
   display_name: 'Operator',
+  email_verified: true,
+  linked_providers: ['startup_gate'],
+  has_password: false,
 }
 
 const ORG = {
