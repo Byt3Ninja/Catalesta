@@ -52,7 +52,9 @@ final class LinkedIdentity extends Model
 
         $account = $link->exists ? $link->account : new Account;
         $account->fill([
-            'email' => $claims['email'] ?? null,
+            // Normalize email lowercase on every write path (matches native register/login)
+            // so the unique index + credential lookups are case-insensitive.
+            'email' => isset($claims['email']) ? strtolower(trim((string) $claims['email'])) : null,
             'display_name' => $claims['name'] ?? null,
             'avatar_url' => $claims['picture'] ?? null,
             'locale' => $claims['locale'] ?? null,
