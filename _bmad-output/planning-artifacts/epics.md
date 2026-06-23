@@ -657,7 +657,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.5: Add ADRs for auto-memory §1, §2, §3 (cohort naming, 24-module scope, repo layout)
 
-**Status:** Partially closed. ADR-0004 + ADR-0005 landed this session; this story carries the remaining three from `architecture-decisions.md`.
+**Status:** **Done 2026-06-23** for auto-memory items 1/2/3 (ADR-0006/0007/0008 created). Item 5 (cross-tenant 404-vs-403, auto-memory §5) remains open — it was named in the audit's Epic 0 table summary but is outside this story's acceptance criteria below; tracked as a remaining piece of F-005.
 **Type:** Planning candidate
 **Business objective:** Surface decisions currently only in auto-memory as canonical ADRs reviewers can cite by path.
 **Actor:** Architect (PM consult for cohort-naming impact).
@@ -729,6 +729,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.9: Expand ADR-0001 + ADR-0003 to the standard 5-section schema
 
+**Status:** **Done 2026-06-23** — both ADRs expanded to the Status / Context / Decision / Alternatives / Consequences / References schema; Accepted status retained.
 **Type:** Planning candidate
 **Business objective:** Make existing 1-line ADRs reviewable per `.claude/rules/16-documentation.md` schema requirement (audit F-011).
 **Actor:** Architect.
