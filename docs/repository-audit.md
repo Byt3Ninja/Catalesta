@@ -342,6 +342,32 @@ blocks work in an active epic; Medium = will block soon; Low = hygiene).
 - **Dependency:** SP-1 merge.
 - **Proposed epic:** Epic 0 — Repository Stabilization (hygiene).
 
+### F-013 — `.claude/` is gitignored, yet listed in MANIFEST.md and referenced by CLAUDE.md
+
+- **Severity:** Medium
+- **Affected modules:** All (repo instructions / governance)
+- **Evidence:** `.gitignore` line 37 ignores `/.claude/` (0 files tracked:
+  `git ls-files .claude/` is empty). Yet `MANIFEST.md` § Files lists all 20
+  `.claude/rules/*.md` + `README.md` as package files, and root `CLAUDE.md`
+  authority order #4–#6 plus `.claude/rules/README.md` treat the rules as
+  canonical, version-controlled governance.
+- **Current behaviour:** The 20 scoped rules and the rules README exist only on
+  each developer's machine; they are not in the repo, not reviewable in PRs, and
+  not distributable despite MANIFEST listing them. Discovered while doing Story
+  0.6 — the rule-16 reference to the new Doc authority map could not be committed.
+- **Expected behaviour:** Either (a) un-ignore `.claude/rules/` (and `CLAUDE.md`
+  satellites) so the governance the project depends on is version-controlled, or
+  (b) stop listing `.claude/rules/*` in MANIFEST.md and remove the canonical-doc
+  treatment, accepting they are local-only Claude Code config.
+- **Impact:** Governance drift is invisible to review; MANIFEST overstates what
+  ships; any story whose acceptance criteria edit a `.claude/rules/*` file (e.g.
+  Story 0.6) cannot deliver that half through git.
+- **Recommended remediation:** Repo-owner decision (a vs b). If (a), `git add -f`
+  the rules tree and narrow `.gitignore` to only machine-local Claude Code state
+  (e.g. `/.claude/settings.local.json`, caches), not the rules.
+- **Dependency:** None.
+- **Proposed epic:** Epic 0 — Repository Stabilization (needs owner decision).
+
 ---
 
 ## Out-of-scope for this audit
@@ -386,14 +412,14 @@ runtime behaviour. Order is loose — most can be done in parallel.
 | --- | --- | --- | --- | --- |
 | 0.1 — Issue ADR-0004 inverting identity ownership; mark ADR-0002 Superseded | F-001 | Critical | — | Done (#42) |
 | 0.2 — Resolve `docs/project-context.md` reference: amend CLAUDE.md to point at canonical homes (or create a thin index) | F-002 | Critical | — | Done (#41) |
-| 0.3 — Refresh `docs/status/implementation-status.md` post-SP-1 (Identity row, frontend column, Epic 4 footnote) | F-003, F-008 | High | SP-1 merge | Open |
+| 0.3 — Refresh `docs/status/implementation-status.md` post-SP-1 (Identity row, frontend column, Epic 4 footnote) | F-003, F-008 | High | SP-1 merge | Done (2026-06-23) |
 | 0.4 — Resolve the four open doc contradictions (workflow tables, mutual feedback, application vs evaluation decisions, `.env.example`) | F-004 | High | — (4 sub-tasks) | Open (needs PM/Eng decisions) |
-| 0.5 — Add ADRs (or canonical-doc edits) for items 1, 2, 3, 5 in auto-memory | F-005 | Medium | — | Done items 1/2/3 (ADR-0006/0007/0008, 2026-06-23); item 5 (404-vs-403) open |
-| 0.6 — Add "Doc authority map" to `MANIFEST.md`; reference from rule 16 | F-006 | Medium | — | Open |
+| 0.5 — Add ADRs (or canonical-doc edits) for items 1, 2, 3, 5 in auto-memory | F-005 | Medium | — | Done (ADR-0006/0007/0008 + ADR-0009, 2026-06-23) |
+| 0.6 — Add "Doc authority map" to `MANIFEST.md`; reference from rule 16 | F-006 | Medium | — | Done (2026-06-23) |
 | 0.7 — Roadmap pass for the four Absent modules; assign each to a target phase | F-007 | Medium | — | Open (needs PM phase placement) |
 | 0.8 — Reliability/Audit epic carve-out: confirm or add an epic owning outbox + idempotency + enforced audit + signed webhooks | F-009, F-010 | Medium | — | Done (#41/#42) |
 | 0.9 — Expand ADR-0001 and ADR-0003 to the standard ADR schema | F-011 | Low | — | Done (2026-06-23) |
-| 0.10 — Regenerate graphify on SP-1 merge commit | F-012 | Low | SP-1 merge | Open |
+| 0.10 — Regenerate graphify on SP-1 merge commit | F-012 | Low | SP-1 merge | Satisfied by verification (graph already post-SP-1, 2026-06-22) |
 
 Acceptance for Epic 0 as a whole: every Critical and High finding has either
 a merged remediation or an explicit deferral note in the affected
