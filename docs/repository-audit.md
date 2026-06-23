@@ -382,18 +382,18 @@ production code in this audit.
 Inserted before continuing Epic 4 work. All stories doc-only; none touch
 runtime behaviour. Order is loose — most can be done in parallel.
 
-| Story | Carries | Severity covered | Dependency |
-| --- | --- | --- | --- |
-| 0.1 — Issue ADR-0004 inverting identity ownership; mark ADR-0002 Superseded | F-001 | Critical | — |
-| 0.2 — Resolve `docs/project-context.md` reference: amend CLAUDE.md to point at canonical homes (or create a thin index) | F-002 | Critical | — |
-| 0.3 — Refresh `docs/status/implementation-status.md` post-SP-1 (Identity row, frontend column, Epic 4 footnote) | F-003, F-008 | High | SP-1 merge |
-| 0.4 — Resolve the four open doc contradictions (workflow tables, mutual feedback, application vs evaluation decisions, `.env.example`) | F-004 | High | — (4 sub-tasks) |
-| 0.5 — Add ADRs (or canonical-doc edits) for items 1, 2, 3, 5 in auto-memory | F-005 | Medium | — |
-| 0.6 — Add "Doc authority map" to `MANIFEST.md`; reference from rule 16 | F-006 | Medium | — |
-| 0.7 — Roadmap pass for the four Absent modules; assign each to a target phase | F-007 | Medium | — |
-| 0.8 — Reliability/Audit epic carve-out: confirm or add an epic owning outbox + idempotency + enforced audit + signed webhooks | F-009, F-010 | Medium | — |
-| 0.9 — Expand ADR-0001 and ADR-0003 to the standard ADR schema | F-011 | Low | — |
-| 0.10 — Regenerate graphify on SP-1 merge commit | F-012 | Low | SP-1 merge |
+| Story | Carries | Severity covered | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| 0.1 — Issue ADR-0004 inverting identity ownership; mark ADR-0002 Superseded | F-001 | Critical | — | Done (#42) |
+| 0.2 — Resolve `docs/project-context.md` reference: amend CLAUDE.md to point at canonical homes (or create a thin index) | F-002 | Critical | — | Done (#41) |
+| 0.3 — Refresh `docs/status/implementation-status.md` post-SP-1 (Identity row, frontend column, Epic 4 footnote) | F-003, F-008 | High | SP-1 merge | Open |
+| 0.4 — Resolve the four open doc contradictions (workflow tables, mutual feedback, application vs evaluation decisions, `.env.example`) | F-004 | High | — (4 sub-tasks) | Open (needs PM/Eng decisions) |
+| 0.5 — Add ADRs (or canonical-doc edits) for items 1, 2, 3, 5 in auto-memory | F-005 | Medium | — | Done items 1/2/3 (ADR-0006/0007/0008, 2026-06-23); item 5 (404-vs-403) open |
+| 0.6 — Add "Doc authority map" to `MANIFEST.md`; reference from rule 16 | F-006 | Medium | — | Open |
+| 0.7 — Roadmap pass for the four Absent modules; assign each to a target phase | F-007 | Medium | — | Open (needs PM phase placement) |
+| 0.8 — Reliability/Audit epic carve-out: confirm or add an epic owning outbox + idempotency + enforced audit + signed webhooks | F-009, F-010 | Medium | — | Done (#41/#42) |
+| 0.9 — Expand ADR-0001 and ADR-0003 to the standard ADR schema | F-011 | Low | — | Done (2026-06-23) |
+| 0.10 — Regenerate graphify on SP-1 merge commit | F-012 | Low | SP-1 merge | Open |
 
 Acceptance for Epic 0 as a whole: every Critical and High finding has either
 a merged remediation or an explicit deferral note in the affected
