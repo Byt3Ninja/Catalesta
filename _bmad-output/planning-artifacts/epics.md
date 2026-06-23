@@ -1,6 +1,8 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
 status: complete
+augmented: '2026-06-23'
+augmentation_notes: 'Phase 1: 14-field augmentation of 23 existing stories via appendix (preserves existing story bodies). Phase 2: added Epic 0 (Repository Stabilization — 10 stories: 3 Done in this session, 7 planning candidates) and Epic R/A (Reliability and Audit Substrate — 9 planning candidates). Phase 3: dependency order placement in Epic List. All new stories = planning candidates; NEVER marked Approved for Implementation.'
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-Catalesta-2026-06-20/prd.md
   - _bmad-output/planning-artifacts/ux-designs/ux-Catalesta-2026-06-20/DESIGN.md
@@ -147,6 +149,32 @@ Catalesta becomes the system of record for accounts and identity. Native registr
 ### Cross-cutting deliverable: Learning Telemetry *(named, acceptance-gated — not a separate build epic)*
 The World-A/B learning data (FR-080) — `application.viewed/started/abandoned{step}` (Epic 2), `submission.scored{elapsed}` / `decision.recorded{time_to_decision}` / `decisions.exported` + export-then-leave (Epic 3). **DoD rule:** no Epic 2/3 story closes until its events emit **and are verified in a dashboard a human has looked at.** Surfaced to the operator (the funnel) as well as to the team.
 **FRs covered:** 080 (+ 081 dispute/reopen event from Epic 3).
+
+### Recent additions (2026-06-23 — planning candidates only)
+
+#### Epic 0: Repository Stabilization *(doc-only, parallel to all engineering work)*
+Closes `docs/repository-audit.md` findings F-001 through F-012. 10 stories total — **3 Done in this session** (0.1 ADR-0004 + ADR-0002 supersession; 0.2 `docs/project-context.md`; 0.8 Reliability/Audit epic carve-out architectural slot), **7 planning candidates** (0.3 status doc refresh; 0.4 four open doc contradictions; 0.5 ADRs for auto-memory §1/§2/§3; 0.6 doc authority map; 0.7 roadmap pass for 4 absent modules; 0.9 ADR-0001 + ADR-0003 schema expansion; 0.10 graphify regeneration). **Dependency:** none — runs parallel to all engineering work.
+
+#### Epic R/A: Reliability and Audit Substrate *(carve-out before P2)*
+Cross-cutting home `backend/app/Reliability/` per architecture.md §6 Step 6 (Opt 2: sibling of `app/Tenancy/`, `app/Storage/`). Owns FR-126 (reclassified from P3 → R/A), signed-webhook substrate (new), substrate generalization (outbox + idempotency + audit-set extension from P1a's enumerated set), NFR-015 architecture test (single-DB topology), Step 5 P3/P7/P8 enforcement tests, and OpenAPI→zod codegen pipeline. **9 planning candidates** (RA.1 skeleton; RA.2 audit-enforced middleware; RA.3 signed-webhook substrate; RA.4 generalized outbox; RA.5 generalized idempotency; RA.6 NFR-015 arch test; RA.7 event naming + versioning arch tests; RA.8 API versioning arch test; RA.9 OpenAPI→zod codegen pipeline). **Dependency:** enters Ready after Epic 2 substrate is stable + SP-1 merged + Epic 0.8 done (last is done this session). **Blocks:** no P2 capability epic (FR-100..108) should ship before Epic R/A's generalization stories land — current P1a substrate works for P1a but is a liability once P2's multi-consumer outbox + cross-module idempotency need it.
+
+#### Dependency order (2026-06-23 update)
+
+```
+Epic 0 (Repository Stabilization, doc-only)  ←  runs parallel, blocks nothing
+  ↓
+Epic 1 (Stand Up an Intake)                   ←  DONE
+Epic 2 (Receive Applications)                 ←  DONE
+SP-1 (Native accounts + auth)                 ←  DONE
+  ↓
+Epic 3 (Score & Decide)                       ←  IN FLIGHT
+Epic 4 / SP-2, SP-3, SP-4 (Identity completion) ←  IN FLIGHT
+  ↓
+Epic R/A (Reliability and Audit Substrate)    ←  carve-out before P2
+  ↓
+P2 capability epics (FR-100..108)             ←  deferred; out of scope this turn
+P3 / P4 capability epics                      ←  deferred
+```
 
 ---
 
@@ -559,6 +587,471 @@ Additional acceptance criteria on the named stories. **★ = correctness hole, m
 - **3.3** — empty-cohort export → **headers-only CSV** (or disabled with "Nothing to export yet"); exports while the cohort is open carry an **"as of [time]"** stamp.
 
 **Top-3 must-fix-before-green:** 2.7 close-boundary race · 2.6 GC-vs-snapshot refcount invariant · 2.2 in-flight/crash semantics.
+
+---
+
+## Epic 0: Repository Stabilization (added 2026-06-23 — doc-only)
+
+Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 Medium, 3 Low). Closes audit findings F-001 through F-012 across 10 stories. **All stories are doc-only — no production code, no migrations, no API surface.** Three stories already landed in this session and are recorded for audit trail; seven remain as planning candidates.
+
+**Epic dependency:** none. Epic 0 has no engineering dependency, blocks nothing, and is blocked by nothing — runs parallel to Epic 3 + Epic 4 implementation.
+
+### Story 0.1: ADR-0004 (identity inversion) + ADR-0002 supersession
+
+**Status:** **Done 2026-06-23** (commit `1c41a9a` on branch `docs/prd-update-2026-06-23`).
+**Carries:** audit F-001.
+**Outcome:** `adr/0004-catalesta-identity-system-of-record.md` created (Accepted); `adr/0002-startup-gate-system-of-record.md` Status flipped to "Superseded by ADR-0004"; both follow the standard 5-section ADR schema (Status / Context / Decision / Alternatives / Consequences / References).
+
+### Story 0.2: Create `docs/project-context.md`
+
+**Status:** **Done 2026-06-23** (commit `8834bb0` on branch `docs/prd-update-2026-06-23`).
+**Carries:** audit F-002.
+**Outcome:** `docs/project-context.md` created with PHP/Laravel rules (18 subsections) + Database Topology section. CLAUDE.md authority-order #5 reference now resolves.
+
+### Story 0.3: Refresh `docs/status/implementation-status.md` post-SP-1
+
+**Type:** Planning candidate (not Approved for Implementation)
+**Business objective:** Restore canonical as-built status to current truth so reviewers can distinguish "shipped" from "claimed."
+**Actor:** Engineering owner of the status doc.
+**Business rules:** Status doc is the single source for what is built; refresh on every Epic completion + on SP-N completion. Per `.claude/rules/16-documentation.md`, update documentation in the same change as the change being recorded.
+**Acceptance criteria:**
+- Identity row reflects the post-SP-1 model (Account ULID + linked_identities, not `ExternalUser`)
+- Forms / Applications / Cohorts rows updated to current state (readiness 2026-06-23 marks Epic 1 + Epic 2 complete)
+- New "Frontend per-module" column added (audit F-008)
+- Epic 4 row added or footnoted, with SP-1 status
+- Cross-cutting section updated: Audit module stays "opt-in" until Epic R/A lands; reliability substrates "Absent" → "in Epic R/A scope" after R/A scoping
+- Header `Last-updated` field bumped
+**Authorization:** N/A — doc; PR review controls
+**Tenant isolation:** N/A — doc
+**Data + migration impact:** N/A — doc
+**API impact:** N/A — doc
+**UI states:** N/A — doc
+**Failure behaviour:** PR review catches inaccuracy; no runtime failure mode
+**Audit requirements:** N/A — commit history is the audit
+**Test expectations:** Reviewer sign-off; no automated test
+**Dependencies:** SP-1 merged to main; Epic 1 + Epic 2 verified per readiness 2026-06-23
+**Rollback:** `git revert` the refresh commit
+
+### Story 0.4: Resolve four open doc contradictions
+
+**Type:** Planning candidate (4 sub-tasks; may split before implementation)
+**Business objective:** Eliminate ambiguities in canonical docs that bias affected-story implementation.
+**Actor:** Engineering + PM per contradiction.
+**Business rules:** Each contradiction listed in auto-memory `architecture-decisions.md` § How-to-apply must have a written decision before the affected story enters Ready.
+**Acceptance criteria:**
+- Workflow table set: docs/04 vs docs/07 — choose canonical, redirect losing doc
+- Mutual-feedback one-vs-two tables — choose one schema, record decision
+- application_decisions vs evaluation_decisions — choose authoritative table for stage outcomes
+- `.env.example` aligned with current `backend/config/*.php` (Redis / S3 / OIDC)
+- Each decision logged in `_bmad-output/.../.decision-log.md` or auto-memory
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** Only `.env.example` sub-task touches an environment artifact; no schema or data change
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** Reviewers may reject a direction; story splits as needed
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms losing doc's old text no longer appears outside archive comment
+**Dependencies:** None (4 independent sub-tasks)
+**Rollback:** `git revert` per sub-task
+
+### Story 0.5: Add ADRs for auto-memory §1, §2, §3 (cohort naming, 24-module scope, repo layout)
+
+**Status:** Partially closed. ADR-0004 + ADR-0005 landed this session; this story carries the remaining three from `architecture-decisions.md`.
+**Type:** Planning candidate
+**Business objective:** Surface decisions currently only in auto-memory as canonical ADRs reviewers can cite by path.
+**Actor:** Architect (PM consult for cohort-naming impact).
+**Business rules:** Each decision in auto-memory items §1, §2, §3 becomes its own ADR using the 5-section schema; references the canonical doc that holds the rule.
+**Acceptance criteria:**
+- `adr/0006-cohort-naming-and-program-cycles-rename.md` (cohort canonical; `program_cycles` → `cohorts` rename already implemented; ADR documents the decision)
+- `adr/0007-24-module-canonical-scope.md` (24 modules as scope source of truth; references `docs/product/scope-register.md`)
+- `adr/0008-repo-layout-backend-frontend-services-siblings.md` (sibling layout; references `docs/project-context.md` § Repo layout)
+- Each ADR uses the 5-section schema (Status / Context / Decision / Alternatives / Consequences / References)
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A — cohort rename already implemented
+**API impact:** N/A — existing API uses `cohorts` already
+**UI states:** N/A
+**Failure behaviour:** Reviewers may push back on framing; iterate
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms each ADR uses the schema
+**Dependencies:** None
+**Rollback:** Delete the ADR files; references in other docs become orphan
+
+### Story 0.6: Add "Doc authority map" to `MANIFEST.md`
+
+**Type:** Planning candidate
+**Business objective:** Resolve the ambiguity between `_bmad-output/`, `docs/`, and `_bmad/` as competing canonical homes (audit F-006).
+**Actor:** Tech writer / architect.
+**Business rules:** A single section in MANIFEST.md declares which tree is authoritative for each artifact type; `.claude/rules/16-documentation.md` references it.
+**Acceptance criteria:**
+- MANIFEST.md gains a "Doc authority map" section: PRD, UX spec, architecture, ADRs, status, BMAD planning artifacts each map to a canonical home
+- `.claude/rules/16-documentation.md` updated to reference the map
+- Conflict-resolution rule stated ("when two homes disagree, the home named in the map wins; the loser must redirect")
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** Reviewer may push back on canonical assignment; iterate
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms MANIFEST.md section + rule 16 reference
+**Dependencies:** None
+**Rollback:** `git revert`
+
+### Story 0.7: Roadmap pass for 4 absent modules
+
+**Type:** Planning candidate
+**Business objective:** Assign each currently-absent module (FinalEvaluation / Notifications / Search / Administration) a target phase so phase-affected stories have a place to land.
+**Actor:** PM with architect consult.
+**Business rules:** Per audit F-007, the 4 absent modules need explicit phase placement; Notifications likely earlier than the others (audit + observability + integrations depend on it).
+**Acceptance criteria:**
+- `docs/plan/roadmap.md` updated with explicit phase placement for each of FinalEvaluation / Notifications / Search / Administration
+- Notifications placed at Phase 2 (or in Epic R/A if signed-webhook substrate needs it earlier)
+- FinalEvaluation, Search, Administration each placed at P2 or P3 per scope-register intent
+- Each placement cross-referenced to the FRs it carries
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A — doc; module scaffold lives in later epics
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** PM may revisit phase placement after Phase 1a learning data
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms each absent module has a placement
+**Dependencies:** Story 0.4 (workflow-tables sub-task may inform Notifications timing)
+**Rollback:** `git revert` roadmap edit
+
+### Story 0.8: Reliability/Audit epic carve-out (architectural slot)
+
+**Status:** **Done 2026-06-23** (commits `8834bb0` + `1c41a9a` on branch `docs/prd-update-2026-06-23`).
+**Carries:** audit F-009 + F-010 (architectural carve-out).
+**Outcome:** PRD §7 gains "R/A" phase-table row; architecture.md Step 6 names `app/Reliability/` as the cross-cutting home; FR-126 reclassified P3 → R/A. Epic R/A scoping (below) defines the constituent stories.
+
+### Story 0.9: Expand ADR-0001 + ADR-0003 to the standard 5-section schema
+
+**Type:** Planning candidate
+**Business objective:** Make existing 1-line ADRs reviewable per `.claude/rules/16-documentation.md` schema requirement (audit F-011).
+**Actor:** Architect.
+**Business rules:** Every ADR must have Context, Decision, Alternatives, Consequences, References (in addition to Status).
+**Acceptance criteria:**
+- `adr/0001-modular-monolith.md` expanded with the 5 sections
+- `adr/0003-mocked-oidc-first.md` expanded with the 5 sections
+- Both ADRs retain their Accepted status
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** Reviewer may push back on rationale framing; iterate
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms each ADR carries the 5 sections
+**Dependencies:** None
+**Rollback:** `git revert`
+
+### Story 0.10: Regenerate graphify on next SP-* merge
+
+**Type:** Planning candidate
+**Business objective:** Keep the knowledge-graph snapshot current with the inverted-identity codebase so AI agents using graphify orient correctly.
+**Actor:** Engineering (whoever lands the next SP-* merge).
+**Business rules:** Per `.claude/rules/14-graphify-impact-analysis.md`, regenerate after substantial structural changes; SP-1's `external_users → accounts + linked_identities` migration qualifies.
+**Acceptance criteria:**
+- `graphify-out/GRAPH_REPORT.md` snapshot timestamp moves forward to the SP-1 merge commit
+- New snapshot directory reflects the Identity module's post-SP-1 shape
+- Regeneration runs as part of the merge commit, not a follow-up
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A — knowledge graph only
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** Regeneration failure → capture error in the PR, file as follow-up; do not block the merge
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms snapshot timestamp + directory match the SP-1 merge commit
+**Dependencies:** SP-1 merge
+**Rollback:** Restore prior snapshot from `graphify-out/2026-06-19/`; rerun on a later commit
+
+---
+
+## Epic R/A: Reliability and Audit Substrate (added 2026-06-23 — planning-candidate scope)
+
+Originated from PRD §7 R/A row (added this session) + architecture.md Step 6 Reliability boundary (Opt 2: cross-cutting `backend/app/Reliability/`). Owns FR-126 (platform-wide audit, reclassified P3 → R/A), signed-webhook substrate, substrate generalization (outbox + idempotency + audit-set extension from P1a's enumerated set), NFR-015 architecture-test acceptance (single-DB topology from ADR-0005), Step 5 P7/P8 enforcement (event naming + versioning), Step 5 P3 enforcement (API versioning), and OpenAPI → zod codegen pipeline.
+
+**Epic dependency:** enters Ready after (a) Epic 2 substrate is stable (FR-050/051/052 production), (b) Epic 0.8 done (this session), (c) SP-1 inversion is merged (so `Account ULID` is the audit actor key). **Epic blocks:** no P2 capability epic (FR-100..108) ships before Epic R/A lands its generalization stories — current P1a substrate works for P1a's enumerated set but becomes a liability when P2's multi-consumer outbox + cross-module idempotency need it.
+
+**FRs covered:** FR-126 (platform-wide audit); generalization of FR-050 / FR-051 / FR-052. **NFRs anchored:** NFR-012 (observability — audit enforced), NFR-015 (DB topology arch test).
+
+### Story RA.1: `app/Reliability/` skeleton (Audit / Outbox / Idempotency / Webhooks)
+
+**Type:** Planning candidate (not Approved for Implementation)
+**Business objective:** Establish the cross-cutting home for the Reliability/Audit substrate so subsequent stories have a place to land.
+**Actor:** Backend engineer.
+**Business rules:** Skeleton matches architecture.md Step 6 § Reliability home; four sub-areas (Audit / Outbox / Idempotency / Webhooks); each carries `Contracts/` + `Services/` + `Middleware/` per canonical skeleton.
+**Acceptance criteria:**
+- `backend/app/Reliability/` created at sibling level to `app/Tenancy/` and `app/Storage/` (NOT under `app/Modules/`)
+- Four sub-directories created: `Audit/`, `Outbox/`, `Idempotency/`, `Webhooks/`
+- Each sub-directory has empty `Contracts/`, `Services/`, optionally `Middleware/`, optionally `Workers/` (Outbox)
+- `ReliabilityServiceProvider` registered
+- deptrac (Epic 0 hygiene) treats `App\Reliability\*` as cross-cutting (no inbound dependency from `App\Modules\*` except via Contracts)
+**Authorization:** N/A — substrate; controllers continue to use Policy classes
+**Tenant isolation:** Substrate emits tenant-bound side effects but is not tenant-scoped itself
+**Data + migration impact:** None for the skeleton; subsequent RA stories add tables
+**API impact:** N/A — no controllers
+**UI states:** N/A — no UI
+**Failure behaviour:** ServiceProvider binding failure surfaces at boot; CI catches via Laravel `php artisan optimize`
+**Audit requirements:** N/A — skeleton emits no events
+**Test expectations:** Architecture test asserts `App\Reliability\*` cross-cutting placement; `ReliabilityServiceProvider` registered
+**Dependencies:** None (deptrac config from Epic 0 becomes blocking once it lands)
+**Rollback:** Delete `backend/app/Reliability/`; remove ServiceProvider binding
+
+### Story RA.2: Audit-enforced middleware (FR-126; closes F-010 + CLAUDE.md baseline)
+
+**Type:** Planning candidate
+**Business objective:** Move audit from opt-in (current `app/Modules/Audit/` scaffold) to enforced for every audit-bearing event named in CLAUDE.md.
+**Actor:** Backend engineer + security reviewer.
+**Business rules:** Per CLAUDE.md "Authorization and Privacy" + "Versioning and Historical Integrity," audit is a baseline invariant. PRD FR-052 enumerated set covers Epics 1+2; this story extends to platform-wide.
+**Acceptance criteria:**
+- Middleware `App\Reliability\Audit\Middleware\RecordAuthDecision` records audit row for every `Gate::authorize` / `$this->authorize` call (decision + actor + resource + outcome)
+- Identity link, unlink, consent grant / revoke emit canonical events (`auth.linked_identity.{linked,unlinked}`, `auth.consent.{granted,revoked}`) by default
+- Profile import emits `profile.field.imported` per imported field with source attribution
+- Stage outcome (publish / open / close / accept / reject) emits canonical event names per Step 5 P7
+- Reads of audit rows continue through `app/Modules/Audit/` (read API stays in the domain module)
+- Architecture test: every controller using `$this->authorize` triggers the middleware
+**Authorization:** This story changes the substrate; call-site authorization unchanged
+**Tenant isolation:** Audit rows carry `organization_id` (server-set, never client-supplied); `BelongsToTenant` on `audit_events`
+**Data + migration impact:** May add `auth_decision_id` foreign key on `audit_events`; migration must be additive (expand pattern)
+**API impact:** Audit-read endpoints unchanged; new event types appear in audit feed
+**UI states:** N/A — substrate; operator-facing audit views are P3 in `Modules/Audit`
+**Failure behaviour:** Audit-write failure must NOT block user action (queued via outbox); failures emit high-severity log + circuit-break after N consecutive failures
+**Audit requirements:** This story IS the audit substrate; itself audited via build-time test that the middleware runs
+**Test expectations:** Feature tests for: authz decision recorded; identity link/unlink recorded; consent grant/revoke recorded; profile import field-level recorded; architecture test asserts middleware is wired on every controller using `$this->authorize`
+**Dependencies:** RA.1 (skeleton); E2 / Story 2.5 (audit substrate data model)
+**Rollback:** Remove middleware from kernel registration; revert migration; existing FR-052 enumerated audit continues via opt-in path
+
+### Story RA.3: Signed-webhook substrate (inbound verifier + outbound signer)
+
+**Type:** Planning candidate
+**Business objective:** Provide an HMAC-signed-webhook substrate for all current and future external integrations (SG trusted-publication outbound, Geidea callbacks inbound at P1b, future webhook subscribers).
+**Actor:** Backend engineer + security reviewer.
+**Business rules:** Per project-context § Identity & email + § Timing-safe equality, all comparisons use `hash_equals`; key rotation ≤ 90 days (NFR-009); replay protection via timestamp + nonce.
+**Acceptance criteria:**
+- Inbound verifier: `App\Reliability\Webhooks\Contracts\WebhookVerifier` + middleware `VerifySignature` (HMAC-SHA256; clock-skew tolerance per config; replay rejection via nonce store with TTL)
+- Outbound signer: `App\Reliability\Webhooks\Contracts\WebhookSigner` (HMAC-SHA256; current-key + previous-key dual-sign during rotation window)
+- HMAC key store + rotation command (artisan; previous key honored 24h overlap)
+- Architecture test: any controller declared as "webhook ingress" carries `VerifySignature` middleware
+- All comparisons use `hash_equals`
+**Authorization:** Webhook ingress runs before standard Sanctum auth; callers authenticated by signature
+**Tenant isolation:** Webhook payload carries `organization_id` candidate; substrate validates against the signing key's tenant binding before tenant context is set
+**Data + migration impact:** New table `webhook_signing_keys (id, organization_id, key_id, secret_hash, status, rotated_at)`; new table `webhook_nonces (nonce, expires_at)` + sweeper job
+**API impact:** Standard route group (`Route::middleware('webhook')->group(...)`); existing endpoints unaffected
+**UI states:** Admin UI for key rotation out of scope (lives in `Modules/Administration` per Story 0.7)
+**Failure behaviour:** Signature failure → 401 with no payload echo; replay collision → 409; clock-skew over tolerance → 401 (`clock_skew` reason); all failures audited per RA.2
+**Audit requirements:** Each webhook receipt audited (verified signature, sender key id, replay status); rotation events audited
+**Test expectations:** Feature tests for: valid sig + valid nonce → accepted; valid sig + reused nonce → 409; expired timestamp → 401; rotated-out key → 401; dual-sign rotation window works
+**Dependencies:** RA.1; RA.2 (audit middleware for receipt audit)
+**Rollback:** Remove route group middleware; webhook endpoints fall back to per-integration handling; revert migrations after data export
+
+### Story RA.4: Generalized outbox (multi-consumer + replay)
+
+**Type:** Planning candidate
+**Business objective:** Extend the P1a outbox (FR-050; single consumer per Epic 2 / Story 2.4) to multi-consumer + replay so Reporting, Notifications, and future P2/P3 features can subscribe without rebuilding substrate.
+**Actor:** Backend engineer.
+**Business rules:** Per project-context § Background jobs + Step 5 P7/P8 — every event carries `event_name`, `event_version`, `event_id`, `organization_id`, `created_at`. Per-aggregate ordering preserved; cross-aggregate ordering NOT guaranteed.
+**Acceptance criteria:**
+- `outbox_consumers` table tracks each consumer's last-seen `event_id` per aggregate
+- New consumer can replay from a stated `event_id` (or beginning) with no impact on others
+- Consumer-side idempotency: duplicate `event_id` rejected
+- Dead-letter queue per consumer (not shared)
+- Architecture test: events emitted from any module carry the 5 required fields
+- Existing Epic 2 single-consumer continues to work without code change
+**Authorization:** N/A — substrate
+**Tenant isolation:** All consumer queries filter `organization_id` explicitly (defense in depth per project-context § Tenant isolation)
+**Data + migration impact:** Add `outbox_consumers (id, name, last_seen_event_id, last_seen_at, status)`; add `dead_letter_events (id, consumer_id, event_id, payload, failed_at, error)`; existing `outbox_events` unchanged
+**API impact:** Internal — consumers register via DI not HTTP
+**UI states:** N/A
+**Failure behaviour:** Consumer crash → relay continues other consumers; circuit breaker per consumer after N consecutive failures; dead-letter does not delete; manual replay command in artisan
+**Audit requirements:** Consumer add / remove + dead-letter ops audited via RA.2
+**Test expectations:** Feature tests: two consumers receive same event independently; replay from event_id works without affecting others; dead-letter receives failed events; consumer A failure doesn't block consumer B
+**Dependencies:** RA.1; E2 / Stories 2.3, 2.4 (existing outbox); RA.2 (audit middleware)
+**Rollback:** Drop `outbox_consumers` + `dead_letter_events` tables; revert to single-consumer code path; existing Epic 2 consumer keeps working
+
+### Story RA.5: Generalized idempotency (platform-wide middleware)
+
+**Type:** Planning candidate
+**Business objective:** Extend the P1a idempotency primitive (FR-051; two endpoints per Epic 2 / Story 2.2) to a platform-wide middleware any controller can opt into (or any POST that wants default protection).
+**Actor:** Backend engineer.
+**Business rules:** Per Step 5 P5 envelope contract + project-context § Mass-assignment.
+**Acceptance criteria:**
+- `App\Reliability\Idempotency\Middleware\IdempotencyMiddleware` reads `Idempotency-Key` header; required on opt-in routes, optional on default-protected POSTs
+- Cache TTL configurable per route (default 24h)
+- Replay returns cached HTTP status + body + headers; original timestamp preserved in `X-Idempotent-Replay` header
+- Request-body hash + idempotency-key collision → 409
+- Architecture test: opt-in routes carry the middleware; configured default-protected POSTs carry it
+- Existing FR-032 + FR-051 endpoints continue without code change
+**Authorization:** N/A — substrate; runs after auth, before controller
+**Tenant isolation:** Cache key includes `organization_id`; cross-tenant replay impossible
+**Data + migration impact:** Existing `idempotency_keys` table unchanged; substrate may add `idempotency_route_config` table or file config
+**API impact:** New optional header standardized; existing endpoints unaffected
+**UI states:** N/A
+**Failure behaviour:** Missing key on required route → 400 with structured error per Step 5 P6; cache write failure → request still processed (best-effort + alerting)
+**Audit requirements:** Replay served events audited via RA.2 with original + replay timestamps
+**Test expectations:** Feature tests: missing-key 400; valid-key first-call processed + cached; valid-key replay returns cached response; body-hash collision 409; cross-tenant replay rejected
+**Dependencies:** RA.1; E2 / Story 2.2 (existing primitive); RA.2 (audit middleware)
+**Rollback:** Remove middleware from route groups; opt-in routes fall back to per-controller idempotency or none
+
+### Story RA.6: NFR-015 architecture test (single-DB topology + analytics-read prohibition)
+
+**Type:** Planning candidate
+**Business objective:** Make ADR-0005's single-DB topology automatically enforceable so future contributors can't accidentally introduce a per-tenant DB or product-code reads from an analytics warehouse.
+**Actor:** Backend engineer.
+**Business rules:** Per ADR-0005 + PRD NFR-015.
+**Acceptance criteria:**
+- `backend/tests/Architecture/DatabaseTopologyTest.php` asserts every Eloquent model's `$connection` resolves to the configured product DB connection (no `connection` override outside whitelisted reporting/admin scopes)
+- Same test asserts no controller, service, job, or Policy imports any class from a configured analytics-store namespace
+- Test fails on new violations; baseline file allowed for one-time pre-existing exceptions (each requires a `// SECURITY: <reason>` comment)
+- CI runs on every PR
+**Authorization:** N/A
+**Tenant isolation:** N/A — test itself
+**Data + migration impact:** N/A
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** CI fails on new violation; PR blocked until removed or whitelisted (whitelist additions need ADR sign-off)
+**Audit requirements:** N/A
+**Test expectations:** Self-test against deliberately-violating fixture
+**Dependencies:** RA.1 (skeleton — for the architecture-test namespace); ADR-0005 (landed)
+**Rollback:** Delete the test file
+
+### Story RA.7: Architecture tests for Step 5 P7 (event naming) + P8 (event versioning)
+
+**Type:** Planning candidate
+**Business objective:** Automate enforcement of Step 5 P7 + P8 (event names match `^[a-z_]+\.[a-z_]+\.[a-z_]+$`; every event payload has `event_version: int`).
+**Actor:** Backend engineer.
+**Business rules:** Per architecture.md Step 5 P7 + P8.
+**Acceptance criteria:**
+- `backend/tests/Architecture/EventNamingTest.php` asserts every dispatched event name matches the regex; inspects `Event::dispatch(...)` and outbox-emitter call sites
+- `backend/tests/Architecture/EventVersioningTest.php` asserts every event payload schema includes `event_version: int`
+- Both tests fail on new violations; baseline allowed for pre-existing
+- CI runs on every PR
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** CI fails on new violation
+**Audit requirements:** N/A
+**Test expectations:** Self-tests against deliberately-violating fixtures
+**Dependencies:** RA.1; RA.4 (outbox emitter the test will inspect)
+**Rollback:** Delete test files
+
+### Story RA.8: Architecture test for Step 5 P3 (API versioning prefix)
+
+**Type:** Planning candidate
+**Business objective:** Automate enforcement of Step 5 P3 (every `api.php` route prefix matches `/api/v{int}/`).
+**Actor:** Backend engineer.
+**Business rules:** Per architecture.md Step 5 P3.
+**Acceptance criteria:**
+- `backend/tests/Architecture/ApiVersioningTest.php` asserts every `api.php` route matches `^/api/v\d+/`
+- Test inspects Laravel's route collection at boot
+- Whitelist for utility endpoints (e.g. `/api/health`) declared in config
+- CI runs on every PR
+**Authorization:** N/A
+**Tenant isolation:** N/A
+**Data + migration impact:** N/A
+**API impact:** Enforces rule going forward; existing routes audited at first run (likely already compliant per current `api.php`)
+**UI states:** N/A
+**Failure behaviour:** CI fails on new unprefixed route
+**Audit requirements:** N/A
+**Test expectations:** Self-test against deliberately-violating fixture
+**Dependencies:** RA.1
+**Rollback:** Delete test file
+
+### Story RA.9: OpenAPI → zod codegen pipeline (frontend toolchain)
+
+**Type:** Planning candidate
+**Business objective:** Close the deferred Step 5 decision (codegen, not hand-author) by wiring a build-time pipeline that generates frontend zod schemas from the Scramble-emitted OpenAPI spec, preventing client / server contract drift.
+**Actor:** Frontend engineer + backend engineer.
+**Business rules:** Per architecture.md Step 5 deferred patterns + Step 6 § Frontend ↔ backend boundary. Generated client is the single source of truth; hand-authored zod schemas at request/response boundaries forbidden.
+**Acceptance criteria:**
+- `frontend/package.json` gains `codegen:zod` script invoking `@hey-api/openapi-ts` or `openapi-zod-client` against `backend/storage/api-docs/openapi.yaml`
+- Generated output lands under `frontend/src/api/__generated__/` (gitignored vs committed: decide and document)
+- Frontend build fails if `__generated__/` stale relative to the spec
+- ESLint rule (or directory restriction) forbids hand-authored zod imports outside `__generated__/`
+- One existing frontend feature (e.g. operator submission list per Epic 2 / Story 2.8) migrated to consume generated client as proof
+**Authorization:** N/A — frontend infra
+**Tenant isolation:** N/A — frontend always queries authenticated endpoints; tenant context server-side
+**Data + migration impact:** None server-side
+**API impact:** Enforces server-side OpenAPI emission discipline (existing Spectral CI gate continues to apply)
+**UI states:** No new states; existing migrated screens unchanged in behaviour
+**Failure behaviour:** Codegen failure → frontend build fails with clear "regenerate via npm run codegen:zod" message
+**Audit requirements:** N/A — frontend
+**Test expectations:** Vitest test imports a generated schema and validates a known payload; Playwright e2e for migrated screen passes
+**Dependencies:** RA.1 (skeleton — for backend OpenAPI emission discipline); Step 5 architecture decision (landed)
+**Rollback:** Remove `codegen:zod` script; revert migrated frontend feature to hand-authored zod; delete `__generated__/`
+
+---
+
+## Field Augmentations — 2026-06-23 (Phase 1)
+
+> Templated 14-field augmentation of the 23 existing stories. Per the field-completeness audit (subagent 2026-06-23): most stories carry 9–11 of 14; consistent gaps are **Rollback (~21 absent)**, **Audit (10 absent)**, **UI states (10 absent)**. Substrate stories and identity stories have *defensibly* absent fields. This appendix carries augmentation entries rather than editing each story body — preserves audit trail and avoids in-place edits to canonical-state stories.
+
+**Template logic:**
+- **Rollback** added per story (universal gap)
+- **Audit** / **Tenant isolation** / **UI states** → `N/A — <one-line justification>` where defensibly absent; real one-line content where the gap is genuine
+- 3 thin stories (**S1.0, S1.5, S4.5**) flagged for follow-up expansion in a separate epics-and-stories pass
+
+### Per-story augmentation entries
+
+**S1.0 Frontend foundation** — **Authorization** N/A (foundation; no protected route); **Tenant isolation** N/A (foundation; components tenant-agnostic by design); **Data + migration** N/A (no data layer); **API impact** N/A; **Audit** N/A (foundation; downstream feature stories carry audit); **Rollback** revert foundation commits; subsequent feature stories must inline their own primitives. **⚠ Flagged thin** — body needs expanded ACs around component boundaries + a11y CI gate's specific assertion set; recommend follow-up story `S1.0a Foundation expansion`.
+
+**S1.1 Sign up + create org** — **Dependencies** S1.0 (frontend foundation); E4 / SP-1 supersedes the SG-OIDC-mock framing in the AC (covered by impact ledger). **Rollback** revert sign-up form + org-creation migration; test-only users continue via direct DB seeding.
+
+**S1.2 Publish program** — **UI states** loading-while-publishing, draft → published transition feedback, error on entitlement-block (P1b reality); **Failure behaviour** publish under entitlement block → 422 with reason; **Test expectations** feature test + tenant-isolation regression; **Dependencies** S1.0, S1.1, FR-060 EntitlementService stub; **Rollback** revert publish endpoint + UI; drafts unaffected.
+
+**S1.3 Publish form** — **UI states** form-builder draft, declarative-validator error inline, published-version-id surfacing; **Rollback** revert publish endpoint; previously-published forms remain immutable.
+
+**S1.4 Open / close cohort** — **Test expectations** feature test for window edges (open / mid / close / closed); **Rollback** revert cohort endpoints; existing cohorts continue per their stored windows.
+
+**S1.5 Operator Home** — **Tenant isolation** all operator views scoped via `BelongsToTenant`; **Data + migration** N/A (read-only); **API impact** GET endpoints for home dashboard tiles; **Audit** N/A — read-only; **Test expectations** feature test for tenant scoping of dashboard tiles; **Dependencies** S1.0, S1.1, S1.2; **Rollback** revert dashboard route. **⚠ Flagged thin** — ACs around dashboard composition need expansion; recommend `S1.5a Home expansion`.
+
+**S2.1 Content-addressed blobs** — **Authorization** N/A — substrate; controllers gate uploads; **Tenant isolation** blob refcount carries `organization_id`; **API impact** N/A — internal; **UI states** N/A; **Audit** N/A — blob ops emit audit via parent submission; **Rollback** revert blob table + content-addressing service; existing uploads remain via direct URL until traffic-cutover.
+
+**S2.2 Idempotency primitive** — **API impact** new `Idempotency-Key` header standardized; **UI states** N/A; **Audit** replay events audited per Step 5; **Dependencies** none; **Rollback** revert middleware; per-controller idempotency or none.
+
+**S2.3 Outbox table + producer** — **Authorization** N/A — substrate; **Tenant isolation** events tagged with `organization_id`; **API impact** N/A; **UI states** N/A; **Audit** N/A — events ARE the audit substrate; **Rollback** revert table + producer; uncommitted state changes only.
+
+**S2.4 Outbox relay** — **Authorization** N/A; **Tenant isolation** relay preserves `organization_id` on dispatch; **API impact** N/A; **UI states** N/A; **Audit** relay failures + DLQ inserts audited; **Rollback** stop relay worker; events accumulate; restart on safe deploy.
+
+**S2.5 Audit trail** — **Authorization** N/A — substrate; **API impact** read endpoint TBD in P3; **UI states** N/A — P3 reads; **Dependencies** S2.3, S2.4; **Rollback** revert `audit_events` table; CLAUDE.md "audit-bearing events" baseline reverts to opt-in.
+
+**S2.6 Submission snapshot** — **Authorization** server-side authz on submission; **API impact** new `POST /api/v1/cohorts/{cohort}/submissions`; **UI states** N/A — public-flow stories handle UI; **Audit** `application.submitted` enumerated; **Rollback** revert snapshot model + endpoint; existing draft submissions discarded.
+
+**S2.7 Public idempotent submit + receipt** — **Authorization** thin pre-augment refined: applicant must be authenticated; rate-limited per session + IP; **Tenant isolation** thin pre-augment refined: cohort URL carries tenant context server-side; client-supplied `organization_id` rejected; **Rollback** revert public submit endpoint + receipt UI; applicants see "submissions closed" until rollforward.
+
+**S2.8 Operator list + funnel** — **Audit** `decisions.exported` not in this story; funnel reads emit no audit (read-only); **Rollback** revert operator list + funnel endpoint; operators fall back to direct DB query (not user-facing).
+
+**S3.1 Score submission** — **Rollback** revert scoring endpoint + rubric snapshot extension; previously-scored submissions retain their immutable snapshots.
+
+**S3.2 Record / reopen decision** — **Authorization** thin pre-augment refined: only `decisions:write` ability holders; reopen requires `decisions:reopen` ability; **Tenant isolation** thin pre-augment refined: decisions scoped via cohort → organization chain; **Rollback** revert decision endpoint + reopen flow; previously-recorded decisions retain their audit rows.
+
+**S3.3 Export CSV** — **Rollback** revert export endpoint; operators fall back to in-product list view (no CSV).
+
+**S4.1 Native accounts model** — **Tenant isolation** N/A — Account is org-agnostic; `organization_memberships` join carries tenant binding; **API impact** new account creation + email-verification endpoints; **UI states** registration form, email-verification pending, verified; **Audit** account creation + email verification audited per RA.2 (pre-RA, audit emit directly); **Rollback** revert account model + endpoints; existing `ExternalUser` rows remain canonical pre-migration.
+
+**S4.2 Native auth backend** — **Tenant isolation** N/A — auth is org-agnostic; **UI states** N/A — backend story; **Rollback** revert auth endpoints; existing SG-OIDC-mock auth path continues.
+
+**S4.3 Native auth frontend** — **Tenant isolation** N/A; **Audit** login + logout audited per RA.2; **Rollback** revert login UI; users redirected to SG-OIDC-mock until rollforward.
+
+**S4.4 SG linked provider** — **Tenant isolation** N/A — link is per-Account; **Test expectations** feature test for link / unlink / sign-in via linked SG; **Rollback** revert link/unlink endpoints + UI; `linked_identities` rows preserved; existing linked-account users continue to sign in.
+
+**S4.5 Multi-role profiles** — **Tenant isolation** role profiles are per-Account; org-level role assignments live in `Modules/RoleAssignments`; **API impact** profile read/write endpoints per role type; **UI states** profile editor per role; **Audit** profile updates audited per RA.2; **Test expectations** feature test for each of the 7 role-profile types; **Rollback** revert profile tables + UI; existing user profile data preserved via migration. **⚠ Flagged thin** — story body lacks explicit 7-role-type breakdown; recommend follow-up `S4.5a` through `S4.5g` (one sub-story per role type).
+
+**S4.6 SG import pipeline** — **Tenant isolation** import is per-Account; targets local profile (org-agnostic); **Rollback** revert import endpoint + UI; consented imports persist as local copies (never auto-overwrite local edits per NFR-006).
+
+### Stories flagged for real expansion (templated patching insufficient)
+
+- **S1.0** — Foundation expansion (component boundaries + a11y CI gate's specific assertion set). Recommend `S1.0a`.
+- **S1.5** — Operator Home expansion (ACs around dashboard composition). Recommend `S1.5a`.
+- **S4.5** — Multi-role profiles expansion (one sub-story per role type). Recommend `S4.5a` through `S4.5g`.
+
+These remain in-flight gaps to be addressed in a subsequent epics-and-stories pass; not blocked.
 
 ---
 
