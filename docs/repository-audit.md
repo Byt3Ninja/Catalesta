@@ -419,10 +419,10 @@ runtime behaviour. Order is loose — most can be done in parallel.
 | 0.1 — Issue ADR-0004 inverting identity ownership; mark ADR-0002 Superseded | F-001 | Critical | — | Done (#42) |
 | 0.2 — Resolve `docs/project-context.md` reference: amend CLAUDE.md to point at canonical homes (or create a thin index) | F-002 | Critical | — | Done (#41) |
 | 0.3 — Refresh `docs/status/implementation-status.md` post-SP-1 (Identity row, frontend column, Epic 4 footnote) | F-003, F-008 | High | SP-1 merge | Done (2026-06-23) |
-| 0.4 — Resolve the four open doc contradictions (workflow tables, mutual feedback, application vs evaluation decisions, `.env.example`) | F-004 | High | — (4 sub-tasks) | Open (needs PM/Eng decisions) |
+| 0.4 — Resolve the four open doc contradictions (workflow tables, mutual feedback, application vs evaluation decisions, `.env.example`) | F-004 | High | — (4 sub-tasks) | Done (2026-06-23 — 3 stale/moot post-reorg, recorded as build-spec notes; `.env.example` aligned) |
 | 0.5 — Add ADRs (or canonical-doc edits) for items 1, 2, 3, 5 in auto-memory | F-005 | Medium | — | Done (ADR-0006/0007/0008 + ADR-0009, 2026-06-23) |
 | 0.6 — Add "Doc authority map" to `MANIFEST.md`; reference from rule 16 | F-006 | Medium | — | Done (2026-06-23) |
-| 0.7 — Roadmap pass for the four Absent modules; assign each to a target phase | F-007 | Medium | — | Open (needs PM phase placement) |
+| 0.7 — Roadmap pass for the four Absent modules; assign each to a target phase | F-007 | Medium | — | Done (2026-06-23 — all 4 in roadmap Deferred backlog; Notifications deferral confirmed) |
 | 0.8 — Reliability/Audit epic carve-out: confirm or add an epic owning outbox + idempotency + enforced audit + signed webhooks | F-009, F-010 | Medium | — | Done (#41/#42) |
 | 0.9 — Expand ADR-0001 and ADR-0003 to the standard ADR schema | F-011 | Low | — | Done (2026-06-23) |
 | 0.10 — Regenerate graphify on SP-1 merge commit | F-012 | Low | SP-1 merge | Satisfied by verification (graph already post-SP-1, 2026-06-22) |

@@ -635,6 +635,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.4: Resolve four open doc contradictions
 
+**Status:** **Done 2026-06-23.** Three of the four sub-items were stale (referenced the pre-reorganization numbered docs pack, now 68 build-specs): (1) workflow table `docs/04` vs `docs/07` — **moot**, build-spec `11` canonical, old docs deleted; (2) `application_decisions` vs `evaluation_decisions` — **moot in docs** (neither term in current specs), recorded as a decide-at-build note in build-specs `08`/`10`; (3) mutual-feedback one-vs-two tables — **moot in docs**, recorded as a decide-at-build note in build-spec `49`. (4) `.env.example` alignment — **done**: added the Epic 2 substrate knobs (blob/idempotency/outbox) + FRONTEND_URL/API_VERSION as documented optional overrides. Per decision 2026-06-23, the two schema questions are deferred to implementation (their features are post-MVP).
 **Type:** Planning candidate (4 sub-tasks; may split before implementation)
 **Business objective:** Eliminate ambiguities in canonical docs that bias affected-story implementation.
 **Actor:** Engineering + PM per contradiction.
@@ -703,6 +704,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.7: Roadmap pass for 4 absent modules
 
+**Status:** **Done 2026-06-23.** All four absent modules placed in `docs/plan/roadmap.md`: FinalEvaluation (`16`), Notifications (`18`), Search (`21`) were already in the Deferred/post-MVP backlog; Administration (`22`) added to it. Per decision 2026-06-23, the roadmap's deferral wins over the audit's "Notifications ~Phase 2" hint, with a named trigger (pull forward only if Epic R/A's signed-webhook substrate needs an in-app sink). Recorded as an "Absent-module placement" section in the roadmap.
 **Type:** Planning candidate
 **Business objective:** Assign each currently-absent module (FinalEvaluation / Notifications / Search / Administration) a target phase so phase-affected stories have a place to land.
 **Actor:** PM with architect consult.

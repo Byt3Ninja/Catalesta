@@ -4,6 +4,15 @@
 
 Implement drafts, autosave, submissions, snapshots, eligibility, reviews, return-for-update, decisions, transfer, withdrawal, and bulk actions.
 
+> **Schema decision — deferred to implementation (Epic 0 / Story 0.4).** The
+> stage/application-outcome **decisions table** name (`application_decisions` vs
+> `evaluation_decisions`) is intentionally not pinned in docs — the old-pack
+> contradiction is moot (neither term exists in current specs). Decide one
+> authoritative table at build time, coordinated with `10-assessment-engine.md`:
+> recommended split is **application-level outcomes here, evaluation scores in the
+> assessment engine**, with a single canonical outcomes table feeding stage
+> transitions. Log the choice in the PRD decision-log when made.
+
 ## Required Reading
 
 - `CLAUDE.md`
