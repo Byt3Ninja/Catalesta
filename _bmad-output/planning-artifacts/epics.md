@@ -779,34 +779,35 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ## Epic R/A: Reliability and Audit Substrate (added 2026-06-23 — planning-candidate scope)
 
-Originated from PRD §7 R/A row (added this session) + architecture.md Step 6 Reliability boundary (Opt 2: cross-cutting `backend/app/Reliability/`). Owns FR-126 (platform-wide audit, reclassified P3 → R/A), signed-webhook substrate, substrate generalization (outbox + idempotency + audit-set extension from P1a's enumerated set), NFR-015 architecture-test acceptance (single-DB topology from ADR-0005), Step 5 P7/P8 enforcement (event naming + versioning), Step 5 P3 enforcement (API versioning), and OpenAPI → zod codegen pipeline.
+Originated from PRD §7 R/A row (added this session) + architecture.md Step 6 Reliability boundary. **Per ADR-0010 the cross-cutting home is the existing `backend/app/Shared/` (namespace `App\Shared\*`), not a new `app/Reliability/`** — Audit/Outbox/Idempotency already live there from Epic 2; only `Webhooks/` is new (RA.3). All `app/Reliability/*` / `App\Reliability\*` strings in the RA stories below read as `app/Shared/*` / `App\Shared\*`. Owns FR-126 (platform-wide audit, reclassified P3 → R/A), signed-webhook substrate, substrate generalization (outbox + idempotency + audit-set extension from P1a's enumerated set), NFR-015 architecture-test acceptance (single-DB topology from ADR-0005), Step 5 P7/P8 enforcement (event naming + versioning), Step 5 P3 enforcement (API versioning), and OpenAPI → zod codegen pipeline.
 
 **Epic dependency:** enters Ready after (a) Epic 2 substrate is stable (FR-050/051/052 production), (b) Epic 0.8 done (this session), (c) SP-1 inversion is merged (so `Account ULID` is the audit actor key). **Epic blocks:** no P2 capability epic (FR-100..108) ships before Epic R/A lands its generalization stories — current P1a substrate works for P1a's enumerated set but becomes a liability when P2's multi-consumer outbox + cross-module idempotency need it.
 
 **FRs covered:** FR-126 (platform-wide audit); generalization of FR-050 / FR-051 / FR-052. **NFRs anchored:** NFR-012 (observability — audit enforced), NFR-015 (DB topology arch test).
 
-### Story RA.1: `app/Reliability/` skeleton (Audit / Outbox / Idempotency / Webhooks)
+### Story RA.1: Adopt `app/Shared/` as the Reliability/Audit substrate home (per ADR-0010)
+
+**Re-scoped 2026-06-23 (ADR-0010).** The original "create greenfield `app/Reliability/` skeleton" is contradicted by reality: cross-cutting substrate already lives under **`app/Shared/`**, and `Audit/`, `Outbox/`, `Idempotency/` were built + tested in Epic 2. So the "establish the home" goal is largely already satisfied; this story shrinks to adopting/recording `app/Shared/` as the home. The two genuinely-new pieces moved to their real carriers: the `Webhooks/` sub-area → **Story RA.3**; deptrac cross-cutting enforcement → a **separate Epic 0 hygiene task** (deptrac is not yet a dependency or CI step).
 
 **Type:** Planning candidate (not Approved for Implementation)
-**Business objective:** Establish the cross-cutting home for the Reliability/Audit substrate so subsequent stories have a place to land.
+**Business objective:** Record `app/Shared/` as the canonical cross-cutting home for the Reliability/Audit substrate so subsequent RA stories target the right namespace.
 **Actor:** Backend engineer.
-**Business rules:** Skeleton matches architecture.md Step 6 § Reliability home; four sub-areas (Audit / Outbox / Idempotency / Webhooks); each carries `Contracts/` + `Services/` + `Middleware/` per canonical skeleton.
+**Business rules:** Home is `app/Shared/<concern>/` (namespace `App\Shared\*`) per ADR-0010; substrate is cross-cutting, not a domain module.
 **Acceptance criteria:**
-- `backend/app/Reliability/` created at sibling level to `app/Tenancy/` and `app/Storage/` (NOT under `app/Modules/`)
-- Four sub-directories created: `Audit/`, `Outbox/`, `Idempotency/`, `Webhooks/`
-- Each sub-directory has empty `Contracts/`, `Services/`, optionally `Middleware/`, optionally `Workers/` (Outbox)
-- `ReliabilityServiceProvider` registered
-- deptrac (Epic 0 hygiene) treats `App\Reliability\*` as cross-cutting (no inbound dependency from `App\Modules\*` except via Contracts)
-**Authorization:** N/A — substrate; controllers continue to use Policy classes
+- ADR-0010 accepted; architecture.md Step 6 corrected to `app/Shared/` (done 2026-06-23, this PR)
+- `app/Shared/{Audit,Outbox,Idempotency}` confirmed as the existing home (no recreation, no migration)
+- `app/Shared/Webhooks/` deferred to RA.3; deptrac standup tracked as a separate hygiene task
+- No new top-level `app/Reliability/` directory exists in the repo
+**Authorization:** N/A — substrate
 **Tenant isolation:** Substrate emits tenant-bound side effects but is not tenant-scoped itself
-**Data + migration impact:** None for the skeleton; subsequent RA stories add tables
-**API impact:** N/A — no controllers
-**UI states:** N/A — no UI
-**Failure behaviour:** ServiceProvider binding failure surfaces at boot; CI catches via Laravel `php artisan optimize`
-**Audit requirements:** N/A — skeleton emits no events
-**Test expectations:** Architecture test asserts `App\Reliability\*` cross-cutting placement; `ReliabilityServiceProvider` registered
-**Dependencies:** None (deptrac config from Epic 0 becomes blocking once it lands)
-**Rollback:** Delete `backend/app/Reliability/`; remove ServiceProvider binding
+**Data + migration impact:** None — doc/record only
+**API impact:** N/A
+**UI states:** N/A
+**Failure behaviour:** N/A — no runtime change
+**Audit requirements:** N/A
+**Test expectations:** Reviewer confirms ADR-0010 + architecture correction; no automated test (no code change)
+**Dependencies:** None
+**Rollback:** `git revert` the ADR + architecture correction
 
 ### Story RA.2: Audit-enforced middleware (FR-126; closes F-010 + CLAUDE.md baseline)
 
