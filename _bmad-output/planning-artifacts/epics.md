@@ -681,7 +681,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.6: Add "Doc authority map" to `MANIFEST.md`
 
-**Status:** **Done (MANIFEST half) 2026-06-23** — MANIFEST.md gains a Doc authority map (artifact type → canonical home) + `_bmad-output`/`docs`/`_bmad` split + conflict-resolution rule. The "reference from rule 16" half was applied locally but **could not be committed**: `.claude/` is gitignored (new finding **F-013**), so `.claude/rules/16-documentation.md` is not version-controlled. The rule-16 reference lands in the repo only after F-013 is resolved (un-ignore the rules tree).
+**Status:** **Done 2026-06-23** — MANIFEST.md gains a Doc authority map (artifact type → canonical home) + `_bmad-output`/`docs`/`_bmad` split + conflict-resolution rule, and `.claude/rules/16-documentation.md` now references it. The rule-16 half landed once **F-013** was resolved (option (a): `.claude/rules/` un-ignored and version-controlled; local settings/skills stay ignored).
 **Type:** Planning candidate
 **Business objective:** Resolve the ambiguity between `_bmad-output/`, `docs/`, and `_bmad/` as competing canonical homes (audit F-006).
 **Actor:** Tech writer / architect.

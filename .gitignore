@@ -33,8 +33,10 @@
 # Mock service
 /services/startup-gate-mock/node_modules
 
-# Local Claude Code plugins/skills/settings (not project source)
-/.claude/
+# Local Claude Code state (not project source): settings, local perms, installed skills.
+# Exception: /.claude/rules/ IS project governance (referenced by CLAUDE.md + MANIFEST.md) — track it.
+/.claude/*
+!/.claude/rules/
 
 # Graphify tooling (local code-graph; not project source)
 /graphify-out/
