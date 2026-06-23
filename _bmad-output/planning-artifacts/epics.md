@@ -610,6 +610,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.3: Refresh `docs/status/implementation-status.md` post-SP-1
 
+**Status:** **Done 2026-06-23** — status doc rewritten to current truth (post-SP-1 identity, Epic 1+2 delivered, 384 tests, Frontend per-module column added, Epic 4 footnote, Audit opt-in/reliability-substrate cross-cutting updated, Last-updated bumped).
 **Type:** Planning candidate (not Approved for Implementation)
 **Business objective:** Restore canonical as-built status to current truth so reviewers can distinguish "shipped" from "claimed."
 **Actor:** Engineering owner of the status doc.
@@ -657,7 +658,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.5: Add ADRs for auto-memory §1, §2, §3 (cohort naming, 24-module scope, repo layout)
 
-**Status:** **Done 2026-06-23** for auto-memory items 1/2/3 (ADR-0006/0007/0008 created). Item 5 (cross-tenant 404-vs-403, auto-memory §5) remains open — it was named in the audit's Epic 0 table summary but is outside this story's acceptance criteria below; tracked as a remaining piece of F-005.
+**Status:** **Done 2026-06-23** — auto-memory items 1/2/3 (ADR-0006/0007/0008) and item 5 (ADR-0009, cross-tenant 404-vs-403, auto-memory §5) all surfaced as ADRs. F-005 fully closed.
 **Type:** Planning candidate
 **Business objective:** Surface decisions currently only in auto-memory as canonical ADRs reviewers can cite by path.
 **Actor:** Architect (PM consult for cohort-naming impact).
@@ -680,6 +681,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.6: Add "Doc authority map" to `MANIFEST.md`
 
+**Status:** **Done (MANIFEST half) 2026-06-23** — MANIFEST.md gains a Doc authority map (artifact type → canonical home) + `_bmad-output`/`docs`/`_bmad` split + conflict-resolution rule. The "reference from rule 16" half was applied locally but **could not be committed**: `.claude/` is gitignored (new finding **F-013**), so `.claude/rules/16-documentation.md` is not version-controlled. The rule-16 reference lands in the repo only after F-013 is resolved (un-ignore the rules tree).
 **Type:** Planning candidate
 **Business objective:** Resolve the ambiguity between `_bmad-output/`, `docs/`, and `_bmad/` as competing canonical homes (audit F-006).
 **Actor:** Tech writer / architect.
@@ -751,6 +753,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.10: Regenerate graphify on next SP-* merge
 
+**Status:** **Satisfied by verification 2026-06-23** — `graphify-out/GRAPH_REPORT.md` is already dated 2026-06-22 (post-SP-1) and reflects the inverted-identity shape (`accounts` + `linked_identities` present, `external_users` absent). No regeneration needed; a fresh ~641k-token pass (per `cost.json`) would not change the conclusion. Minor deviation: no dated snapshot dir for 2026-06-22 (only `2026-06-19/`); the report file itself carries the current date and content. Next structural change still triggers a regen per rule 14.
 **Type:** Planning candidate
 **Business objective:** Keep the knowledge-graph snapshot current with the inverted-identity codebase so AI agents using graphify orient correctly.
 **Actor:** Engineering (whoever lands the next SP-* merge).
