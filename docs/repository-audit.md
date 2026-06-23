@@ -365,8 +365,14 @@ blocks work in an active epic; Medium = will block soon; Low = hygiene).
 - **Recommended remediation:** Repo-owner decision (a vs b). If (a), `git add -f`
   the rules tree and narrow `.gitignore` to only machine-local Claude Code state
   (e.g. `/.claude/settings.local.json`, caches), not the rules.
+- **Resolution:** **Resolved 2026-06-23 — option (a).** `.gitignore` narrowed
+  from `/.claude/` to `/.claude/*` + `!/.claude/rules/`; the 21 governance rule
+  files (incl. README) are now version-controlled. `settings.json`,
+  `settings.local.json`, and `skills/` remain ignored (verified via
+  `git check-ignore`). Secret-audited before adding: all matches were governance
+  prose, no literal credentials.
 - **Dependency:** None.
-- **Proposed epic:** Epic 0 — Repository Stabilization (needs owner decision).
+- **Proposed epic:** Epic 0 — Repository Stabilization (resolved).
 
 ---
 
