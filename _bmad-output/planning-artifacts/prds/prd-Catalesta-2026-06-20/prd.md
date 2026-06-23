@@ -1,10 +1,13 @@
 ---
 title: Catalesta — Product Requirements Document (Full Scope, Phased)
-status: final
+status: update-in-progress
 created: 2026-06-20
-updated: 2026-06-20
-grade: Good
+updated: 2026-06-23
+last_finalized: 2026-06-20
+last_finalized_grade: Good
+update_grade_pending: true
 open_items: [OQ1, OQ2, OQ3, OQ4, OQ5, OQ6, OQ7, OQ8, OQ9]
+update_signal_2026-06-23: 'Six-bucket scope overlay (§6.13); Database Topology subsection (§9.1, pending ADR-0005); §7 readiness-report note; retroactive log of silent post-2026-06-20 edits (identity inversion already applied in §6.1/§9/FR-157)'
 ---
 
 # Catalesta PRD
@@ -68,7 +71,7 @@ open_items: [OQ1, OQ2, OQ3, OQ4, OQ5, OQ6, OQ7, OQ8, OQ9]
 - C3 — Application drop-off rate.
 - C4 — Tenant data-loss on plan-limit / lapse = **0**.
 
-**Validation status & World A/B decision rule.** [ASSUMPTION] no design partner is yet recruited; recruiting one is a **pre-Phase-1 action (OQ6, owner = founder, this week)**. Phase 1a is an **instrumented hypothesis** that resolves the World A/B question via:
+**Validation status & World A/B decision rule.** No design partner is yet recruited; per the 2026-06-23 OQ6 strengthening (option II — aligned with the rubric-walker's original recommendation), **Phase 1a start is contingent on ≥1 signed design partner**. Recruiting one is no longer a "this week" action item but a **hard entry gate**. Owner = founder; gate = §10 OQ6. Phase 1a is an **instrumented hypothesis** that — once entered — resolves the World A/B question via:
 
 > **[Proposed decision band]** After ≥ 2 cohorts across ≥ 2 operators: **World A** if (a) M3 improves ≥ 30% vs baseline AND (b) rubric-edit events occur mid-cohort (selection is a live, contested job) AND (c) ≤ 20% export-then-leave (operators decide *inside* the product). **World B** if operators decide in seconds with untouched rubrics and immediately export to work elsewhere. World B → re-sequence: the renewable job is later in the lifecycle, and Phase 1b billing is **not** built on selection.
 
@@ -117,7 +120,7 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 - **FR-022** No arbitrary code executes in form logic; field definitions are declarative data only (acceptance: a form definition cannot reference code/expressions outside the enumerated field types — see NFR-005 test).
 
 ### 6.4 Application Management — `[P1a]`
-- **FR-030** An authenticated applicant submits an application **bound to a Cohort**. [ASSUMPTION-CONFIRM] this is the core data-model relationship; if intake should bind to Program-without-cohort, FR-031 snapshot keys change — flagged for explicit confirmation.
+- **FR-030** An authenticated applicant submits an application **bound to a Cohort**. *(Resolved-by-shipping 2026-06-23: Epic 2 / Story 2.6 implements this binding; the original `[ASSUMPTION-CONFIRM]` tag is closed — see decision log.)*
 - **FR-031** On submission the system captures an **immutable snapshot** containing: the submitted answer values, uploaded file references (content-addressed), and the **version IDs** of the form, program, and rubric in effect. Later edits to any source artifact never alter a stored snapshot. The snapshot is what is scored and audited.
 - **FR-032** Submission is **idempotent**: a duplicate submit with the same `Idempotency-Key` returns the original result, not a second record.
 - **FR-033** Submission against an unpublished or closed cohort is rejected (422).
@@ -159,16 +162,78 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 ### 6.12 Extended Capabilities & Production Cutover — `[P4]` (capability-level)
 - **FR-150** Interviews/public pages/waitlists; **FR-151** Partners/finance/timesheets; **FR-152** Service marketplace/messaging; **FR-153** Surveys/hackathons/knowledge; **FR-154** Simulation/outcomes/risk; **FR-155** Bulk ops/version migration; **FR-156** *(splits before P4 planning into:)* localization hardening, security hardening, observability, data migration/import-export, performance/production-readiness — each becomes its own FR; **FR-157** Startup Gate as an **optional** linked SSO provider + consented profile import (no authority cutover — SG never becomes the system of record); **FR-158** Admin impersonation with full audit; **FR-159** Tenant offboarding end-to-end + DR.
 
+### 6.13 Six-Bucket Scope Classification — overlay (added 2026-06-23)
+
+> Overlay on the FRs above. Six buckets requested in the 2026-06-23 PRD update: **Existing and verified**, **Existing but incomplete**, **Required for initial release** (sub-tags for in-flight Epic 3 / Epic 4), **Required for later release**, **Optional**, **Out of scope**. Grounded in `_bmad-output/planning-artifacts/implementation-readiness-report-2026-06-23.md` § Coverage Matrix and `docs/status/implementation-status.md` (status doc dated 2026-06-19 — refresh tracked as `docs/repository-audit.md` F-003; readiness report is authoritative where they disagree). Bucket totals: **22** Existing/verified · **1** Existing/incomplete · **7** Required-initial Epic-3 · **2** Required-initial Epic-4 · **1** Required-initial (FR-062 UX banner) · **34** Required-later · §11 enumerates OOS.
+>
+> **Framing note (added 2026-06-23 — adversarial review F-Δ1).** "Existing and verified" here counts code that shipped via Epics 1, 2, and SP-1 in service of the original Phase 1a scope. Per the 2026-06-23 §7 NOTE FOR PM (OQ6 strengthening), that code is — under the strengthened framing — formally "instrument-build" until Phase 1a's entry gate (≥1 signed design partner) is satisfied. The two framings reconcile when OQ6 closes: at that point "Existing and verified" maps cleanly to Phase 1a delivery. Until then, both readings are intentional — traceability against the FR taxonomy uses the bucket name; phase-status reporting uses §7's instrument-build framing.
+
+| FR | Bucket | Source signal |
+|---|---|---|
+| FR-001 | Existing and verified | Reused foundation; SP-1 landed reworks auth provider |
+| FR-002 | Existing and verified | Epic 1 / S1.1; `Organizations` Implemented |
+| FR-003 | Existing and verified | Foundation + AR-6; `BelongsToTenant` Implemented |
+| FR-004 | Existing and verified | Foundation + AR-6; 404-not-403 landed in S1.1 (auto-memory §5) |
+| FR-005 | Existing and verified | Epic 1 / S1.1; `Organizations` RBAC |
+| FR-006 | Existing but incomplete | S1.5 seam against SG mock; SP-4 makes consent local (pending) |
+| FR-007 | Existing and verified | Epic 4 / SP-1 (landed per readiness 2026-06-23) |
+| FR-008 | Required for initial release — Epic 4 in-flight | Epic 4 / SP-2 (next-up, not yet landed) |
+| FR-009 | Required for initial release — Epic 4 in-flight | Epic 4 / SP-4 (next-up, not yet landed) |
+| FR-010 | Existing and verified | Epic 1 / S1.2; `Programs` Implemented |
+| FR-011 | Existing and verified | Epic 1 / S1.4; `Cohorts` Implemented |
+| FR-012 | Existing and verified | Epic 1 / S1.2, S1.3; `Stages` + `Programs` Implemented |
+| FR-013 | Existing and verified | Epic 1 / S1.2; `Programs` clone + templates Implemented |
+| FR-020 | Existing and verified | Epic 1 / S1.3 (status doc stale on Forms — F-003) |
+| FR-021 | Existing and verified | Epic 1 / S1.4 (status doc stale on Forms — F-003) |
+| FR-022 | Existing and verified | Epic 1 / S1.3 + NFR-005 acceptance test |
+| FR-030 | Existing and verified | Epic 2 / S2.6; `[ASSUMPTION-CONFIRM]` resolved-by-shipping 2026-06-23 — see decision log |
+| FR-031 | Existing and verified | Epic 2 / S2.6 |
+| FR-032 | Existing and verified | Epic 2 / S2.7 + idempotency primitive S2.2 |
+| FR-033 | Existing and verified | Epic 2 / S2.7 |
+| FR-034 | Existing and verified | Epic 2 / S2.8 |
+| FR-040 | Required for initial release — Epic 3 in-flight | Epic 3 / S3.1 (epic claim only; Epic 3 not yet landed) |
+| FR-041 | Required for initial release — Epic 3 in-flight | Epic 3 / S3.1 |
+| FR-042 | Required for initial release — Epic 3 in-flight | Epic 3 / S3.2 |
+| FR-043 | Required for initial release — Epic 3 in-flight | Epic 3 / S3.3 |
+| FR-050 | Existing and verified | Epic 2 / S2.3, S2.4; survives-concurrency+crash gate |
+| FR-051 | Existing and verified | Epic 2 / S2.2 primitive; submit-endpoint via S2.7. Payment-callback *endpoint* itself ships P1b (FR-072) |
+| FR-052 | Required for initial release — Epic 3 in-flight | Substrate + Epic-1/2 events shipped via S2.5; 4 of 7 enumerated events (`submission.scored`, `decision.recorded`, `decision.reopened`, `decisions.exported`) wire in with Epic 3 |
+| FR-060 | Existing and verified | Epic 1 / S1.2, S1.4 + Epic 2 / S2.7; architecture test asserts wiring |
+| FR-061 | Required for later release | P1b ⏸ Deferred (gated on OQ3 + World-A) |
+| FR-062 | Required for initial release (UX banner pending) | UX banner is P1a per PRD; not yet story-claimed. Enforcement piece naturally Required-later (P1b) |
+| FR-070 | Existing and verified | P1a callback-idempotency primitive shipped via Epic 2 / S2.2 (consumer-agnostic by design). P1b `PaymentProvider` interface stub tracked alongside FR-071…073 |
+| FR-071 | Required for later release | P1b ⏸ Deferred |
+| FR-072 | Required for later release | P1b ⏸ Deferred |
+| FR-073 | Required for later release | P1b ⏸ Deferred (PCI hygiene — standing NFR-class invariant once billing ships) |
+| FR-080 | Required for initial release — Epic 3 in-flight | Cross-cutting: Epic 2 events shipped (S2.7, S2.8); Epic 3 events (S3.1, S3.2, S3.3) in-flight; full taxonomy gates on Epic 3 |
+| FR-081 | Required for initial release — Epic 3 in-flight | Epic 3 / S3.2 |
+| FR-100…108 | Required for later release | P2 capability-level ⏸ Deferred. Status doc: Documents / Workflows / Mentorship / Training / Graduation = Scaffold; FinalEvaluation = Absent (F-007) |
+| FR-120…125, FR-127 | Required for later release | P3 capability-level ⏸ Deferred. Status doc: Notifications + Search + Administration = Absent (F-007) |
+| FR-126 | Required for initial release — Reliability/Audit epic carve-out | **Reclassified 2026-06-23** (from P3 → Reliability/Audit epic). Decision routes via `docs/repository-audit.md` F-009 + F-010 carve-out (audit-enforced + outbox + idempotency + signed webhooks as one epic, inserted before P2). Aligns CLAUDE.md "audit-bearing events" baseline with implementation timing. See decision log 2026-06-23 |
+| FR-130…133 | Required for later release | P3 production commercial plane ⏸ Deferred (subscription billing, full metering, custom domains, branding) |
+| FR-150…155 | Required for later release | P4 ⏸ Deferred |
+| FR-156 | Required for later release — pre-split pending | P4 ⏸. PRD already notes this FR splits into 5 sub-FRs (localization hardening, security hardening, observability, data migration / import-export, performance / production-readiness) before P4 planning |
+| FR-157 | Required for later release ✓ | P4 ⏸. Text already aligned with 2026-06-21 inversion: "SG never becomes the system of record" |
+| FR-158 | Required for later release | P4 ⏸ |
+| FR-159 | Required for later release | P4 ⏸. NFR-010 (RPO/RTO) ratification is P1a-exit-gating (OQ8) — see §10 |
+
 ## 7. Implementation Phases (roadmap)
 
 > Authoritative sequence: `docs/plan/roadmap.md`. `[NOTE FOR PM]` The roadmap's Phase-1 entry currently reads "Selection MVP + billing" as one unit. This PRD **splits it into 1a then 1b, with 1b gated on the World-A result**. Update the roadmap entry to match, or reconcile the divergence — do not leave the two SSOT-level statements disagreeing.
+>
+> `[NOTE FOR PM 2026-06-23]` `_bmad-output/planning-artifacts/implementation-readiness-report-2026-06-23.md` supersedes any prior phase-progress framing in this section. As of 2026-06-23: **Epics 1 + 2 are landed; SP-1 is landed.** Epic 3 (Stories 3.1–3.3 → FRs 040–043, 081) and Epic 4 SP-2 / SP-3 / SP-4 (→ FRs 008, 009) are in-flight or next-up. Phase 1a is not yet complete. Phase 1b remains gated on the World-A result + OQ3 ratification, unchanged.
+>
+> `[NOTE FOR PM 2026-06-23 — Phase 1a *entry* gate]` **Phase 1a start is contingent on OQ6 — ≥1 signed design partner.** Strengthened from "≥1 operator call this week" to close the PRD-vs-rubric divergence (rubric-walker's original recommendation). Engineering work that lands before OQ6 is satisfied is treated as instrument-build, not Phase 1a delivery. Update `docs/plan/roadmap.md` Phase 1a entry to match.
+>
+> `[NOTE FOR PM 2026-06-23 — Reliability/Audit epic carve-out]` **FR-126 (platform-wide audit enforced) is reclassified from P3 to a new Reliability/Audit epic** inserted before P2. The epic owns outbox + idempotency + audit-enforced + signed-webhooks (per `docs/repository-audit.md` F-009 + F-010). Phase-table row for this epic to be added once the epic is scoped; FR-126 source signal in §6.13 reflects the new home.
 
 | Phase | Theme | FRs | Gate / exit criterion |
 |---|---|---|---|
 | **1a** | Selection MVP — instrument-first, **no billing** | FR-001…052, 060 (socket), 070 (primitive), 080–081 | One operator runs a real intake end-to-end (publish→receive→score→decide→export); substrate primitives real (see "slice depth"); instrumentation live; World-A/B band (§3) can be evaluated |
 | **1b** | Billing seam | FR-061, 071–073 | **Entry gate: World-A confirmed (§3 band) AND OQ3 packaging dimensions provisionally ratified.** Exit: Geidea sandbox e2e verified; `active_programs` counter enforced; no real charge |
+| **R/A** | Reliability / Audit epic *(carve-out — added 2026-06-23, before P2)* | FR-126 (moved from P3); signed-webhook substrate (new, not yet FR'd); generalization of FR-050 / 051 / 052 substrate from P1a's enumerated set to platform-wide | Audit-enforced platform-wide (move from opt-in → enforced for every authorization decision, identity link/unlink, consent grant, profile import, stage outcome); signed-webhook substrate live for all external integrations; outbox + idempotency primitives generalized beyond the P1a enumerated call sites. Closes `docs/repository-audit.md` F-009 + F-010 |
 | **2** | Substrate generalization + delivery core | FR-100…108 | Participant lifecycle (mentorship→graduation) runnable; substrate generalized to multi-consumer |
-| **3** | Platform services + production commercial plane | FR-120…133 | Tenant subscribes + pays (production Geidea); reporting, notifications, full forms |
+| **3** | Platform services + production commercial plane | FR-120…125, FR-127, FR-130…133 *(FR-126 moved to R/A — see above)* | Tenant subscribes + pays (production Geidea); reporting, notifications, full forms |
 | **4** | Extended capabilities + production cutover | FR-150…159 | Extended modules; optional Startup Gate SSO + import (FR-157); DR/offboarding/impersonation production-ready |
 
 **"Slice depth" defined.** For Phase 1a, each substrate primitive is built to exactly this depth: **outbox** = table + transactional write + at-least-once relay + one idempotent consumer + dead-letter (FR-050); **idempotency** = key table + middleware on the two named endpoints (FR-051); **audit** = the enumerated action set (FR-052); **entitlement** = interface + three enumerated call sites, allow-all policy (FR-060). "Generalized in P2" = the FR-100 generalization scope above. The substrate is built once at this depth and *extended* (not rewritten) in P2.
@@ -189,8 +254,9 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 - **NFR-010 Availability & DR** — **RPO ≤ 15 min, RTO ≤ 4 h** [Proposed — ratify with first enterprise/procurement requirement]; automated daily full + continuous WAL backup; tested restore runbook. Single-region at P1 (see NFR-013).
 - **NFR-011 Localization & accessibility** — **Phase 1a renders Arabic + RTL** for the public applicant flow (UJ-2) and the core operator screens; full bilingual coverage + WCAG 2.2 AA hardening is P4 (FR-156). "Renders RTL," not "does not preclude."
 - **NFR-012 Observability** — structured logging, metrics, correlation IDs; audit is enforced (FR-052), not opt-in.
-- **NFR-013 Data governance** — Egypt PDPL baseline + GDPR-grade DSR rights. **Residency region must be decided before the first pilot (OQ4), not at P3** — for MENA gov/quasi-gov accelerators it is frequently a contractual precondition, and "single-region" (§11) must be a *named, compliant* region before onboarding a partner. Retention values per `product/data-residency-retention.md` [Proposed].
+- **NFR-013 Data governance** — Egypt PDPL baseline + GDPR-grade DSR rights. **Residency region commitment must be decided before the first pilot (OQ4 — region only, per 2026-06-23 (q) split), not at P3** — for MENA gov/quasi-gov accelerators it is frequently a contractual precondition, and "single-region" (§11) must be a *named, compliant* region before onboarding a partner. **Retention values** per `product/data-residency-retention.md` [Proposed] — **ratified at Phase 1a exit via OQ8** (per 2026-06-23 (q) split).
 - **NFR-014 Performance** — **p95 < 500 ms** for the core operator reads (submission list FR-034, score write FR-040) and public form load (FR-021), measured at **1,000 active cohorts / 100k applications / 50 concurrent operators** [ASSUMPTION load model]; budget ratified before P1a exit.
+- **NFR-015 Database topology** *(added 2026-06-23, pending ADR-0005 — anchors §9.1)*. Single product database (one logical Postgres or MySQL); multi-tenancy is row-level via `organization_id`; per-tenant DB / schema-per-tenant **forbidden**. Strongly-consistent reads (post-write reads, authorization checks, idempotency lookups, OIDC callback verification) target the writer; replicas allowed for non-consistency-sensitive reads. Analytics warehouse / data lake **never** a product-code read path. **Acceptance test:** an architecture test asserts (1) all Eloquent connections resolve to a single configured product DB (no `connection` overrides outside reporting/admin scopes); (2) any controller, service, job, or Policy importing an analytics-store client class fails the test. Canonical rule + enforcement detail: `docs/project-context.md` § Database Topology.
 
 ## 9. Data Ownership & Domain Boundaries
 
@@ -199,25 +265,35 @@ Phase tags: `[P1a]` Selection MVP (instrument-first, no billing) · `[P1b]` Bill
 - **Program Platform (tenant domain):** organizations, programs, cohorts, stages, forms, applications, documents, assessments, workflows, role assignments, tasks, mentorship, training, final evaluation, graduation, reporting. Join key is the **Account id**.
 - **Achievements** flow tenant → Startup Gate only via **trusted publication** (attested, snapshot-backed, consent-gated, idempotent — `features/achievements-trusted-publication.md`).
 
+### 9.1 Database Topology (added 2026-06-23 — pending ADR-0005)
+
+- **Single product database** — one logical PostgreSQL or MySQL. Multi-tenancy is row-level via `organization_id`, **never** database-per-tenant or schema-per-tenant.
+- **Read replicas allowed** via Laravel's `read` / `write` connection split. Strongly-consistent reads — post-write reads, authorization checks, idempotency lookups, OIDC callback verification — target the writer.
+- **Per-tenant database is forbidden.** Any proposal to shard, partition by tenant, or move a single tenant to its own DB requires a superseding ADR.
+- **Out-of-band analytics warehouse / data lake** allowed for Reporting exports, **never as a product-code read path** (controllers, services, jobs, Policies never read from it).
+- **Redis** (cache / queue / session) and **S3** (via Flysystem) are not "the product database" — this rule does not constrain them.
+
+**Decision recorded:** 2026-06-23 (this update). **Pending:** ADR-0005 — Single-Database Topology with Row-Level Tenancy (target: Epic 0 hygiene, alongside ADR-0004 identity-ownership inversion). Canonical rule + enforcement details live in `docs/project-context.md` § Database Topology.
+
 ## 10. Assumptions & Open Questions
 
-**Assumptions (tagged inline):** responsive web + mobile-web public flow, no native app; applicant auth via native Catalesta account (optional linked SG); P1a no billing (seam primitives only); metering = `active_programs` counter + flags (P1b, pending OQ3); applications bind to cohort (FR-030, confirm); P1a form field set as enumerated (FR-020); decimal `DECIMAL(6,2)` half-up (FR-040); outbox retry cap 6; export-then-leave window 24h; rate-limit/perf ceilings as stated.
+**Assumptions (tagged inline):** responsive web + mobile-web public flow, no native app; applicant auth via native Catalesta account (optional linked SG); P1a no billing (seam primitives only); metering = `active_programs` counter + flags (P1b, pending OQ3); applications bind to cohort (FR-030 — ✓ resolved-by-shipping 2026-06-23); P1a form field set as enumerated (FR-020); decimal `DECIMAL(6,2)` half-up (FR-040); outbox retry cap 6; export-then-leave window 24h; rate-limit/perf ceilings as stated.
 
 **Open questions (owner + when):**
 - OQ1 — World A vs B? **Owner:** PM. **Resolved by** the §3 decision band after Phase 1a (≥2 cohorts/≥2 operators). **Gates Phase 1b.**
 - OQ2 — Ratify success-metric targets M1–M5. **Owner:** PM. **By** first-partner data. **Gates GTM.**
 - OQ3 — Metering **dimensions** beyond `active_programs` + pricing/packaging tiers. **Owner:** PM/Founder. **Gates Phase 1b (FR-061) and P3 (FR-130/131).**
-- OQ4 — Data-**residency region** + concrete **retention** values. **Owner:** Founder/Legal. **By** first pilot (procurement gate). **Gates onboarding any partner.**
+- OQ4 — Data-**residency region commitment** (Egypt / GCC / EU / multi-region…). **Owner:** Founder/Legal. **Severity:** High (2026-06-23 — tightened in light of OQ6 strengthening: signed-partner contract requires a residency commitment). **By** first pilot (procurement gate). **Gates onboarding any partner.** *(Retention values moved to OQ8 per the 2026-06-23 (q) split — OQ4 = region only; OQ8 = ratification of retention values + the other Phase-1a-exit numbers.)*
 - OQ5 — Beachhead **ICP** (which accelerator segment first). **Owner:** Founder. **By** before Phase 1a design-partner outreach.
-- OQ6 — Named **design partner(s)** + an acquisition plan. **Owner:** Founder. **Action: secure ≥1 operator call this week** — currently none; the entire validation chain (OQ1, OQ2) routes through this, so it is the top non-engineering action.
+- OQ6 — Named **design partner(s)** + an acquisition plan. **Owner:** Founder. **Gate (2026-06-23 strengthening — aligned with the rubric-walker's original recommendation):** **Phase 1a *start* is contingent on ≥1 signed design partner.** Closes the prior PRD-vs-rubric divergence (PRD had weakened this to "≥1 operator call this week"). Phase 1a cannot begin until this is met; the entire validation chain (OQ1, OQ2) routes through this. See §7 Phase 1a entry-gate note.
 
 ### Tracked open items from validation (revision 2) — carried at finalize
 
 Unresolved findings from the validate gate (Grade: Good), **deferred with owner + revisit condition** — finalization does not pretend they are resolved.
 
 - **OQ7 — World-B monetization path *(High, strategic)*.** If the §3 band returns World B, the PRD currently deletes the revenue mechanism with no replacement (G4 stranded). **Owner:** Founder/PM. **Revisit:** at the World-A/B decision (post-Phase-1a). **Decide:** a World-B monetization fallback, or an explicit "thesis fails → pivot" stance.
-- **OQ8 — Ratify the values that gate Phase-1a exit *(High)*.** NFR-010 (RPO/RTO), NFR-013 (residency/retention), NFR-014 (perf targets + load model), and the **M3 baseline** currently gate 1a exit while still `[Proposed]`/`[ASSUMPTION]`. **Owner:** PM (+ Founder/Legal for residency). **Revisit:** before Phase-1a exit review. **Decide:** ratify each, or demote it from an exit gate.
-- **OQ9 — Roadmap reconciliation *(Medium, SSOT integrity)*.** `docs/plan/roadmap.md` still states Phase 1 = "Selection MVP + billing" as one unit; this PRD splits it into 1a/1b with 1b gated. **Owner:** PM. **Revisit:** next roadmap edit. **Decide:** update the roadmap entry (the two SSOT-level docs must not disagree).
+- **OQ8 — Ratify the values that gate Phase-1a exit *(High)*.** NFR-010 (RPO/RTO), NFR-013 (**retention values only** — region commitment lives in OQ4 per the 2026-06-23 (q) split), NFR-014 (perf targets + load model), and the **M3 baseline** currently gate 1a exit while still `[Proposed]`/`[ASSUMPTION]`. **Owner:** PM (+ Founder/Legal for retention). **Revisit:** before Phase-1a exit review. **Decide:** ratify each, or demote it from an exit gate. *(FR-159 P4 implementation depends on the NFR-010 numbers ratified here; no separate FR-159 OQ is opened — the dependency is captured by OQ8 → FR-159.)*
+- **OQ9 — Roadmap reconciliation *(Medium → bumped to High 2026-06-23 staleness, SSOT integrity)*.** `docs/plan/roadmap.md` still states Phase 1 = "Selection MVP + billing" as one unit; this PRD splits it into 1a/1b with 1b gated. **Owner:** PM. **Revisit:** next roadmap edit. **Decide:** update the roadmap entry (the two SSOT-level docs must not disagree). **Staleness note (2026-06-23):** `_bmad-output/planning-artifacts/implementation-readiness-report-2026-06-23.md` now treats roadmap.md as "source-of-truth sequence" — every passing day creates additional authoritative artifacts depending on a roadmap entry that contradicts this PRD. Severity bumped from Medium to High.
 - **Carried mediums/lows (detail in `validation-report.md`):** phase-tag FR-062 (limit-blocking is 1b); add test predicates for NFR-011 RTL / §7 "band evaluable" / FR-080 completeness / the 1a payment-callback contract; right-size 1a NFRs (drop the 100k-app perf bar + provider-key rotation until a partner/real key exists); confirm FR-030 cohort-binding + FR-040 precision before the 1a schema freeze.
 
 ## 11. Out of Scope
