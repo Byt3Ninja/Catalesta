@@ -610,6 +610,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.3: Refresh `docs/status/implementation-status.md` post-SP-1
 
+**Status:** **Done 2026-06-23** — status doc rewritten to current truth (post-SP-1 identity, Epic 1+2 delivered, 384 tests, Frontend per-module column added, Epic 4 footnote, Audit opt-in/reliability-substrate cross-cutting updated, Last-updated bumped).
 **Type:** Planning candidate (not Approved for Implementation)
 **Business objective:** Restore canonical as-built status to current truth so reviewers can distinguish "shipped" from "claimed."
 **Actor:** Engineering owner of the status doc.
@@ -634,6 +635,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.4: Resolve four open doc contradictions
 
+**Status:** **Done 2026-06-23.** Three of the four sub-items were stale (referenced the pre-reorganization numbered docs pack, now 68 build-specs): (1) workflow table `docs/04` vs `docs/07` — **moot**, build-spec `11` canonical, old docs deleted; (2) `application_decisions` vs `evaluation_decisions` — **moot in docs** (neither term in current specs), recorded as a decide-at-build note in build-specs `08`/`10`; (3) mutual-feedback one-vs-two tables — **moot in docs**, recorded as a decide-at-build note in build-spec `49`. (4) `.env.example` alignment — **done**: added the Epic 2 substrate knobs (blob/idempotency/outbox) + FRONTEND_URL/API_VERSION as documented optional overrides. Per decision 2026-06-23, the two schema questions are deferred to implementation (their features are post-MVP).
 **Type:** Planning candidate (4 sub-tasks; may split before implementation)
 **Business objective:** Eliminate ambiguities in canonical docs that bias affected-story implementation.
 **Actor:** Engineering + PM per contradiction.
@@ -657,7 +659,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.5: Add ADRs for auto-memory §1, §2, §3 (cohort naming, 24-module scope, repo layout)
 
-**Status:** **Done 2026-06-23** for auto-memory items 1/2/3 (ADR-0006/0007/0008 created). Item 5 (cross-tenant 404-vs-403, auto-memory §5) remains open — it was named in the audit's Epic 0 table summary but is outside this story's acceptance criteria below; tracked as a remaining piece of F-005.
+**Status:** **Done 2026-06-23** — auto-memory items 1/2/3 (ADR-0006/0007/0008) and item 5 (ADR-0009, cross-tenant 404-vs-403, auto-memory §5) all surfaced as ADRs. F-005 fully closed.
 **Type:** Planning candidate
 **Business objective:** Surface decisions currently only in auto-memory as canonical ADRs reviewers can cite by path.
 **Actor:** Architect (PM consult for cohort-naming impact).
@@ -680,6 +682,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.6: Add "Doc authority map" to `MANIFEST.md`
 
+**Status:** **Done 2026-06-23** — MANIFEST.md gains a Doc authority map (artifact type → canonical home) + `_bmad-output`/`docs`/`_bmad` split + conflict-resolution rule, and `.claude/rules/16-documentation.md` now references it. The rule-16 half landed once **F-013** was resolved (option (a): `.claude/rules/` un-ignored and version-controlled; local settings/skills stay ignored).
 **Type:** Planning candidate
 **Business objective:** Resolve the ambiguity between `_bmad-output/`, `docs/`, and `_bmad/` as competing canonical homes (audit F-006).
 **Actor:** Tech writer / architect.
@@ -701,6 +704,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.7: Roadmap pass for 4 absent modules
 
+**Status:** **Done 2026-06-23.** All four absent modules placed in `docs/plan/roadmap.md`: FinalEvaluation (`16`), Notifications (`18`), Search (`21`) were already in the Deferred/post-MVP backlog; Administration (`22`) added to it. Per decision 2026-06-23, the roadmap's deferral wins over the audit's "Notifications ~Phase 2" hint, with a named trigger (pull forward only if Epic R/A's signed-webhook substrate needs an in-app sink). Recorded as an "Absent-module placement" section in the roadmap.
 **Type:** Planning candidate
 **Business objective:** Assign each currently-absent module (FinalEvaluation / Notifications / Search / Administration) a target phase so phase-affected stories have a place to land.
 **Actor:** PM with architect consult.
@@ -751,6 +755,7 @@ Originated from `docs/repository-audit.md` (12 findings: 2 Critical, 2 High, 5 M
 
 ### Story 0.10: Regenerate graphify on next SP-* merge
 
+**Status:** **Satisfied by verification 2026-06-23** — `graphify-out/GRAPH_REPORT.md` is already dated 2026-06-22 (post-SP-1) and reflects the inverted-identity shape (`accounts` + `linked_identities` present, `external_users` absent). No regeneration needed; a fresh ~641k-token pass (per `cost.json`) would not change the conclusion. Minor deviation: no dated snapshot dir for 2026-06-22 (only `2026-06-19/`); the report file itself carries the current date and content. Next structural change still triggers a regen per rule 14.
 **Type:** Planning candidate
 **Business objective:** Keep the knowledge-graph snapshot current with the inverted-identity codebase so AI agents using graphify orient correctly.
 **Actor:** Engineering (whoever lands the next SP-* merge).

@@ -62,6 +62,7 @@ Sequenced after the MVP. Each references its register entry.
 | Calendar/meeting integrations | `19` |
 | Reporting & dashboards | `20` |
 | Search & directories | `21` |
+| Administration & configuration | `22` |
 | Localization & accessibility | `25` |
 | UX experience layer | `34`–`41` |
 | Extended capabilities | `42`–`57` (see register Extended scope) |
@@ -71,6 +72,20 @@ Sequenced after the MVP. Each references its register entry.
 | Full DR targets beyond baseline | `../architecture/resilience-dr.md` |
 
 ---
+
+## Absent-module placement (audit F-007, resolved 2026-06-23)
+
+The four modules with no scaffold yet — **FinalEvaluation (`16`)**, **Notifications
+(`18`)**, **Search (`21`)**, **Administration (`22`)** — are all placed in the
+**Deferred backlog** above (post-MVP). This is the plan-of-record decision:
+the 1a Selection-MVP slice does not require them.
+
+**Notifications exception:** keep deferred **unless** Epic R/A's signed-webhook
+substrate concretely needs an in-app notification sink earlier — at which point
+Notifications (or just its delivery seam) may be pulled to ~Phase 2 alongside the
+reliability substrates. Do not front-load it speculatively. (Resolves the audit's
+"Notifications ~Phase 2" hint vs this roadmap's deferral in favour of the
+roadmap, with a named trigger for revisiting.)
 
 ## Dependency reference
 
