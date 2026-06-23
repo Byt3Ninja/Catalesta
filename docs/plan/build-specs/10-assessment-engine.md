@@ -4,6 +4,13 @@
 
 Implement templates, criteria, rubrics, evidence, evaluator assignment, blind review, decimal scoring, aggregation, disqualification, and audit.
 
+> **Schema decision — deferred to implementation (Epic 0 / Story 0.4).** This
+> engine owns **evaluation scores/aggregation**; the **stage-outcome decisions
+> table** (the old `application_decisions` vs `evaluation_decisions` question, now
+> moot in docs) is owned by `08-application-management.md`. At build time, keep
+> scoring here and outcomes there feeding one canonical decisions table — do not
+> create a second parallel outcomes table. Log the choice in the PRD decision-log.
+
 ## Required Reading
 
 - `CLAUDE.md`
