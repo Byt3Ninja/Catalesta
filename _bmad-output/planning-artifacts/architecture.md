@@ -281,34 +281,40 @@ Catalesta/
 | Integrations | FR-008, FR-009 SG integration; trusted publication | Epic 4 / SP-2, SP-4 |
 | Workflows, Mentorship, Training, Graduation, Reporting, RoleAssignments, Tasks, Startups | FR-100…108 capability set | P2 / P3 capabilities |
 
-### Cross-cutting (under `app/`, not `app/Modules/`)
+### Cross-cutting (under `app/Shared/`, not `app/Modules/`)
+
+> **Corrected 2026-06-23 — see [ADR-0010](../../adr/0010-cross-cutting-substrate-home-app-shared.md).** Earlier drafts placed cross-cutting concerns at top-level `app/<concern>/` and proposed a new `app/Reliability/`. The as-built reality: all cross-cutting substrate lives under **`app/Shared/`**, and the Reliability substrate (Audit/Outbox/Idempotency) already exists there from Epic 2. Paths below are corrected; any remaining `app/Reliability/*` reference elsewhere in this doc reads as `app/Shared/*` per ADR-0010.
 
 | Path | Purpose | Status |
 |---|---|---|
-| `app/Tenancy/` | `BelongsToTenant` + `SetTenantContext` middleware; row-level scoping per ADR-0005 | Implemented |
-| `app/Storage/` | Flysystem facade; tenant-disk pattern (`s3-tenant-{id}`) | Scaffold |
-| `app/Reliability/` (**new — see below**) | Reliability/Audit epic carve-out — Audit enforcement, Outbox, Idempotency, Webhooks | New (to be scoped) |
+| `app/Shared/Tenancy/` | `BelongsToTenant` + `SetTenantContext` middleware; row-level scoping per ADR-0005 | Implemented |
+| `app/Shared/Storage/` | Content-addressed blob store (`ContentAddressedStore`); S3/MinIO disk | Implemented |
+| `app/Shared/Audit/` | Audit substrate (enforcement-layer home) | Implemented (opt-in); enforcement in RA.2 |
+| `app/Shared/Outbox/` | Transactional outbox + relay worker (Epic 2 P1a) | Implemented |
+| `app/Shared/Idempotency/` | Idempotency-key store + middleware (Epic 2 P1a) | Implemented |
+| `app/Shared/Webhooks/` | Signed-webhook substrate | New — added by Story RA.3 |
+| `app/Shared/{Entitlement,Telemetry,Rules,Versioning,Support}/` | Other cross-cutting concerns | Implemented / scaffold |
 
-### Reliability/Audit home — decision (2026-06-23, Step-6 advanced elicitation)
+### Reliability/Audit home — decision (2026-06-23; corrected by ADR-0010)
 
-A comparative-analysis matrix scored three candidates: (1) sibling module `app/Modules/Reliability/`, (2) cross-cutting `app/Reliability/`, (3) spread across existing modules. **Opt 2 won (425 vs 310 vs 280)** — the boundary-integrity criterion is decisive: Reliability/Audit is *substrate*, not a domain, and the repo already houses substrate at `app/<concern>/` (`app/Tenancy/`, `app/Storage/`). Treating it as a domain module would silently weaken the modules-as-domains discipline that deptrac is being set up to enforce.
+A comparative-analysis matrix scored three candidates: (1) sibling module `app/Modules/Reliability/`, (2) a cross-cutting home, (3) spread across existing modules. **Opt 2 won (425 vs 310 vs 280)** — the substrate is *cross-cutting*, not a domain; modelling it as a domain module would weaken the modules-as-domains discipline deptrac is meant to enforce. **Per ADR-0010 the cross-cutting home is the existing `app/Shared/`**, not a new top-level `app/Reliability/`. The original premise that the repo houses substrate at top-level `app/<concern>/` was incorrect — it houses it at `app/Shared/<concern>/`, where Audit/Outbox/Idempotency already live (Epic 2).
 
-**Canonical shape:**
+**Canonical shape (`App\Shared\*`; Audit/Outbox/Idempotency already exist, Webhooks added by RA.3):**
 
 ```
-backend/app/Reliability/
-├─ Audit/                        # Enforcement layer for FR-126 (platform-wide audit)
+backend/app/Shared/
+├─ Audit/                        # Enforcement-layer home for FR-126 (platform-wide audit)
 │  ├─ Contracts/AuditEmitter.php
-│  ├─ Middleware/RecordAuthDecision.php
+│  ├─ Middleware/RecordAuthDecision.php   # added by RA.2
 │  └─ Services/EnforcedAuditWriter.php
-├─ Outbox/                       # Generalized outbox (lifted from P1a enumerated set)
+├─ Outbox/                       # Transactional outbox (Epic 2 P1a; generalized by RA.4)
 │  ├─ Contracts/EventDispatcher.php
 │  ├─ Models/OutboxEvent.php
 │  └─ Workers/RelayWorker.php
-├─ Idempotency/                  # Generalized idempotency-key store + middleware
+├─ Idempotency/                  # Idempotency-key store + middleware (Epic 2 P1a; generalized by RA.5)
 │  ├─ Contracts/IdempotencyStore.php
 │  └─ Middleware/IdempotencyMiddleware.php
-└─ Webhooks/                     # Signed-webhook substrate (new)
+└─ Webhooks/                     # Signed-webhook substrate (new — RA.3)
    ├─ Contracts/WebhookSigner.php
    ├─ Contracts/WebhookVerifier.php
    └─ Middleware/VerifySignature.php
@@ -316,14 +322,14 @@ backend/app/Reliability/
 
 Division of responsibility:
 - `app/Modules/Audit/` keeps its existing domain role (audit log query / read API).
-- `app/Reliability/Audit/` owns the **enforcement** layer — the middleware that makes authorization decisions, identity link / unlink, consent grants, profile imports, and stage outcomes record audit rows by default, closing F-010 + CLAUDE.md "audit-bearing events" baseline.
-- `app/Modules/Integrations/StartupGate/` keeps SG-specific code (firebase/php-jwt, trusted-publication payloads). Signed-webhook plumbing comes from `app/Reliability/Webhooks/`.
+- `app/Shared/Audit/` owns the **enforcement** layer — the middleware that makes authorization decisions, identity link / unlink, consent grants, profile imports, and stage outcomes record audit rows by default, closing F-010 + CLAUDE.md "audit-bearing events" baseline.
+- `app/Modules/Integrations/StartupGate/` keeps SG-specific code (firebase/php-jwt, trusted-publication payloads). Signed-webhook plumbing comes from `app/Shared/Webhooks/`.
 
 ### Deltas this session adds (folders + files to be created in scoping stories)
 
 | Path | Purpose | Carrier story |
 |---|---|---|
-| `backend/app/Reliability/` (+ Audit/, Outbox/, Idempotency/, Webhooks/) | Cross-cutting home for the Reliability/Audit epic — see above | Reliability/Audit epic scoping story |
+| `backend/app/Shared/Webhooks/` | Only new sub-area — signed-webhook substrate (Audit/Outbox/Idempotency already exist under `app/Shared/`; see ADR-0010) | Story RA.3 |
 | `backend/app/Modules/FinalEvaluation/` | New module — currently absent (F-007); part of P2 | F-007 / P2 epic |
 | `backend/app/Modules/Notifications/` | New module — currently absent (F-007); needed before audit/event consumers | F-007 / Reliability/Audit epic |
 | `backend/app/Modules/Search/` | New module — currently absent (F-007); P3 | F-007 / P3 |
@@ -415,7 +421,7 @@ backend/app/Modules/<ModuleName>/
 - Step 5 P8 (event versioning) addresses Reporting's downstream consumer durability.
 
 **Structure Alignment:**
-- Step 6 Reliability home (Opt 2: cross-cutting `app/Reliability/`) honors the existing precedent (`app/Tenancy/`, `app/Storage/`) and preserves the modules-as-domains discipline that deptrac is being set up to enforce.
+- Step 6 Reliability home (Opt 2: cross-cutting substrate) honors the existing precedent (`app/Shared/Tenancy/`, `app/Shared/Storage/`) and preserves the modules-as-domains discipline that deptrac is being set up to enforce. **Per ADR-0010 the home is the existing `app/Shared/`, not a new `app/Reliability/`.**
 - Canonical module skeleton matches the 20 existing scaffolded modules; no relocation churn introduced.
 - Boundary contracts (`App\Modules\<X>\Contracts\`) align with the cross-module access rule in project-context § Module boundaries.
 
