@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
 import { ConsentProvider } from './ConsentProvider'
@@ -23,19 +24,6 @@ import { getSession } from '../api/session'
 import { listOrganizations } from '../api/organizations'
 import type { Organization } from '../schemas/organizations'
 
-/** No router is installed — match routes off the pathname. */
-const APPLY_ROUTE = /^\/apply\/([^/]+)\/?$/
-const LOGIN_ROUTE = /^\/login\/?$/
-const CALLBACK_ROUTE = /^\/auth\/callback\/?$/
-const REGISTER_ROUTE = /^\/register\/?$/
-const FORGOT_ROUTE = /^\/forgot-password\/?$/
-const RESET_ROUTE = /^\/auth\/reset-password\/?$/
-const EMAIL_VERIFIED_ROUTE = /^\/auth\/email-verified\/?$/
-const HEALTH_ROUTE = /^\/health\/?$/
-const PROGRAMS_ROUTE = /^\/programs\/?$/
-// Detail must be tested before the list route (more specific first).
-const SUBMISSION_DETAIL_ROUTE = /^\/cohorts\/([^/]+)\/submissions\/([^/]+)\/?$/
-const SUBMISSIONS_ROUTE = /^\/cohorts\/([^/]+)\/submissions\/?$/
 
 /**
  * No-org gate (Story 1.1, AC-1/2/3). Drives a session + org query and decides:
@@ -122,63 +110,41 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
   )
 }
 
-function resolveRoute() {
-  const path = window.location.pathname
+// --- Route elements -------------------------------------------------------
+// Thin wrappers read params from react-router (already URL-decoded — no manual
+// decodeURIComponent) and pass the existing props into the existing pages.
+// Behavior matches the previous regex resolver one-for-one.
 
-  const apply = APPLY_ROUTE.exec(path)
-  if (apply) {
-    return <ApplyPage cohortId={decodeURIComponent(apply[1])} />
-  }
-  if (HEALTH_ROUTE.test(path)) {
-    return <HealthPage />
-  }
-  if (LOGIN_ROUTE.test(path)) {
-    return <LoginPage />
-  }
-  if (CALLBACK_ROUTE.test(path)) {
-    return <AuthCallbackPage />
-  }
-  if (REGISTER_ROUTE.test(path)) {
-    return <RegisterPage />
-  }
-  if (FORGOT_ROUTE.test(path)) {
-    return <ForgotPasswordPage />
-  }
-  if (RESET_ROUTE.test(path)) {
-    return <ResetPasswordPage />
-  }
-  if (EMAIL_VERIFIED_ROUTE.test(path)) {
-    return <EmailVerifiedPage />
-  }
-  if (PROGRAMS_ROUTE.test(path)) {
-    return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
-  }
-  const detail = SUBMISSION_DETAIL_ROUTE.exec(path)
-  if (detail) {
-    return (
-      <ConsoleGate>
-        {(org) => (
-          <SubmissionDetailPage
-            cohortId={decodeURIComponent(detail[1])}
-            submissionId={decodeURIComponent(detail[2])}
-            organization={org}
-          />
-        )}
-      </ConsoleGate>
-    )
-  }
-  const submissions = SUBMISSIONS_ROUTE.exec(path)
-  if (submissions) {
-    return (
-      <ConsoleGate>
-        {(org) => (
-          <SubmissionsPage cohortId={decodeURIComponent(submissions[1])} organization={org} />
-        )}
-      </ConsoleGate>
-    )
-  }
-  // Root and any other console/onboarding route → the gate decides. Home is the
-  // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
+function ApplyRoute() {
+  const { cohortId } = useParams()
+  return <ApplyPage cohortId={cohortId!} />
+}
+
+function ProgramsRoute() {
+  return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
+}
+
+function SubmissionsRoute() {
+  const { cohortId } = useParams()
+  return (
+    <ConsoleGate>{(org) => <SubmissionsPage cohortId={cohortId!} organization={org} />}</ConsoleGate>
+  )
+}
+
+function SubmissionDetailRoute() {
+  const { cohortId, submissionId } = useParams()
+  return (
+    <ConsoleGate>
+      {(org) => (
+        <SubmissionDetailPage cohortId={cohortId!} submissionId={submissionId!} organization={org} />
+      )}
+    </ConsoleGate>
+  )
+}
+
+// Root and any unknown console/onboarding path → the gate decides. Home is the
+// consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
+function HomeRoute() {
   return (
     <ConsoleGate>
       {(org) => (
@@ -190,6 +156,40 @@ function resolveRoute() {
   )
 }
 
+export function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public — render directly, no gate. */}
+      <Route path="/health" element={<HealthPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/auth/email-verified" element={<EmailVerifiedPage />} />
+      <Route path="/apply/:cohortId" element={<ApplyRoute />} />
+
+      {/* Console — gated by ConsoleGate (server-side session/org). */}
+      <Route path="/programs" element={<ProgramsRoute />} />
+      <Route
+        path="/cohorts/:cohortId/submissions/:submissionId"
+        element={<SubmissionDetailRoute />}
+      />
+      <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
+
+      {/* Root and any other route → gate decides (today's fallthrough). */}
+      <Route path="/" element={<HomeRoute />} />
+      <Route path="*" element={<HomeRoute />} />
+    </Routes>
+  )
+}
+
 export function App() {
-  return <QueryClientProvider client={queryClient}>{resolveRoute()}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </QueryClientProvider>
+  )
 }

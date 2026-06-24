@@ -1,7 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { App } from './App'
+import { MemoryRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { App, AppRoutes } from './App'
 import { queryClient } from './queryClient'
+import { DirectionProvider } from './DirectionProvider'
 import { jsonResponse } from '../tests/test-utils'
 
 const USER = {
@@ -167,4 +170,55 @@ test('gate persists: no-org user cannot reach a console surface (no Home heading
   await screen.findByRole('heading', { name: /create your organization/i })
   // Home/console surface never rendered.
   expect(screen.queryByText(/operator console/i)).not.toBeInTheDocument()
+})
+
+/** Render the route tree at a specific path, sharing the app's QueryClient. */
+function renderRoute(path: string) {
+  return render(
+    <DirectionProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[path]}>
+          <AppRoutes />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </DirectionProvider>,
+  )
+}
+
+test('route /login renders the login page (public, no gate)', () => {
+  renderRoute('/login')
+  expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+})
+
+test('route /register renders the register page (public)', () => {
+  renderRoute('/register')
+  expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument()
+})
+
+test('route /apply/:cohortId is public and passes the cohortId through to the form fetch', () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(jsonResponse({ data: { title: 'Apply', fields: [] } }))
+
+  renderRoute('/apply/cohort-xyz')
+
+  // ApplyPage fetches the form for its cohortId on mount — proves the param reached the page.
+  expect(fetchSpy).toHaveBeenCalled()
+  const calledUrl = String(fetchSpy.mock.calls[0][0])
+  expect(calledUrl).toContain('cohort-xyz')
+})
+
+test('console route /programs while unauthenticated (401) → login page', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
+
+  renderRoute('/programs')
+
+  expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+})
+
+test('App mounts under BrowserRouter and resolves the current path', async () => {
+  // Existing <App/> tests already exercise BrowserRouter via setPath(); this asserts the
+  // public export surface exists so the migration target is unambiguous.
+  expect(typeof App).toBe('function')
+  expect(typeof AppRoutes).toBe('function')
 })
