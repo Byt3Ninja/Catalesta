@@ -15,6 +15,7 @@ import { VerifyEmailNotice } from '../pages/VerifyEmailNotice'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
 import { ProgramsPage } from '../pages/ProgramsPage'
+import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { Spinner } from '../components/Loading'
@@ -124,6 +125,12 @@ function ProgramsRoute() {
   return <ConsoleGate>{(org) => <ProgramsPage organization={org} />}</ConsoleGate>
 }
 
+function ProgramDetailRoute() {
+  const { programId } = useParams()
+  // Gate admits the console surface; the detail page needs only the id.
+  return <ConsoleGate>{() => <ProgramDetailPage programId={programId!} />}</ConsoleGate>
+}
+
 function SubmissionsRoute() {
   const { cohortId } = useParams()
   return (
@@ -171,6 +178,7 @@ export function AppRoutes() {
 
       {/* Console — gated by ConsoleGate (server-side session/org). */}
       <Route path="/programs" element={<ProgramsRoute />} />
+      <Route path="/programs/:programId" element={<ProgramDetailRoute />} />
       <Route
         path="/cohorts/:cohortId/submissions/:submissionId"
         element={<SubmissionDetailRoute />}

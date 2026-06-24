@@ -222,3 +222,27 @@ test('App mounts under BrowserRouter and resolves the current path', async () =>
   expect(typeof App).toBe('function')
   expect(typeof AppRoutes).toBe('function')
 })
+
+test('route /programs/:programId renders the program detail for an org user', async () => {
+  vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
+    .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations
+    .mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          id: '01J0PROG',
+          name: 'Spring Accelerator',
+          slug: 'spring-accelerator',
+          status: 'draft',
+          description: null,
+          settings: null,
+          created_at: '2026-06-20T10:00:00+00:00',
+          updated_at: '2026-06-20T10:00:00+00:00',
+        },
+      }),
+    ) // getProgram
+
+  renderRoute('/programs/01J0PROG')
+
+  expect(await screen.findByRole('heading', { name: 'Spring Accelerator' })).toBeInTheDocument()
+})
