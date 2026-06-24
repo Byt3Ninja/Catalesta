@@ -32,6 +32,9 @@ jobs:
       - name: Static analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
+      - name: Architecture boundaries (Deptrac)
+        run: ./vendor/bin/deptrac analyse --config-file=deptrac.yaml --no-progress
+
       - name: Prepare test environment
         run: |
           cp .env.example .env

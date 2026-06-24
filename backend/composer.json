@@ -17,6 +17,7 @@
     },
     "require-dev": {
         "dedoc/scramble": "^0.13.28",
+        "deptrac/deptrac": "^4.6",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.10",
         "laravel/pail": "^1.2.5",

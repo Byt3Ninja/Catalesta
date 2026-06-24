@@ -6,7 +6,7 @@ namespace App\Modules\Cohorts\Http;
 
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Forms\Domain\Models\FormVersion;
-use App\Shared\Telemetry\LearningTelemetry;
+use App\Modules\Reporting\Application\LearningTelemetry;
 use App\Shared\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

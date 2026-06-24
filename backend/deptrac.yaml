@@ -1,0 +1,70 @@
+deptrac:
+  paths:
+    - ./app
+
+  layers:
+    - name: Shared
+      collectors:
+        - type: directory
+          value: app/Shared/.*
+    - name: Modules
+      collectors:
+        - type: directory
+          value: app/Modules/.*
+    - name: Http
+      collectors:
+        - type: directory
+          value: app/Http/.*
+    - name: Models
+      collectors:
+        - type: directory
+          value: app/Models/.*
+    - name: Console
+      collectors:
+        - type: directory
+          value: app/Console/.*
+    - name: Providers
+      collectors:
+        - type: directory
+          value: app/Providers/.*
+    - name: StartupGateMock
+      collectors:
+        - type: directory
+          value: app/StartupGateMock/.*
+
+  # Boundary intent (ADR-0001 modular monolith, ADR-0010 substrate home, CLAUDE.md
+  # § Architecture Ownership):
+  #   - Shared = cross-cutting substrate. It MUST NOT depend on Modules or Http.
+  #   - Modules = domains. They depend on Shared (via Contracts) and Models.
+  #   - Http/Console/Providers = composition root; may wire everything.
+  # ponytail: Modules is a single layer for now, so module->module deps are allowed.
+  #   Per-module layering (CLAUDE.md "a module may depend on another only through
+  #   published Contracts/") is the next tightening — split Modules into per-module
+  #   layers when the inter-module Contracts discipline is enforced.
+  ruleset:
+    Shared:
+      - Models
+    Models:
+      - Shared
+    Modules:
+      - Shared
+      - Models
+      - Modules
+    StartupGateMock:
+      - Shared
+      - Models
+    Http:
+      - Modules
+      - Shared
+      - Models
+    Console:
+      - Modules
+      - Shared
+      - Models
+    Providers:
+      - Modules
+      - Shared
+      - Models
+      - Http
+      - Console
+      - StartupGateMock

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Reporting;
 
-use App\Shared\Telemetry\LearningTelemetry;
+use App\Modules\Reporting\Application\LearningTelemetry;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
