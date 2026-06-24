@@ -7,12 +7,9 @@ import { Field } from '../components/Field'
 import { FormLayout } from '../components/FormLayout'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
-import { createProgram, listPrograms, publishProgram } from '../api/programs'
-import {
-  CreateProgramError,
-  PublishProgramError,
-  type Program,
-} from '../schemas/programs'
+import { Link } from '../components/Link'
+import { createProgram, listPrograms } from '../api/programs'
+import { CreateProgramError, type Program } from '../schemas/programs'
 import type { Organization } from '../schemas/organizations'
 
 /** Human-readable label for a program status (text, never colour-alone). */
@@ -24,10 +21,9 @@ const STATUS_LABEL: Record<Program['status'], string> = {
 }
 
 /**
- * Programs console (Story 1.2, Task 3). Lists the tenant's programs, creates new
- * draft programs, and publishes drafts. Publishing is versioned — not
- * destructive — so it is a single action with an explanatory banner, NOT a modal.
- * A console surface, so it renders inside AppShell.
+ * Programs console (Story 1.2, Task 3). Lists the tenant's programs and creates
+ * new draft programs. Each row links to the program detail page where lifecycle
+ * actions (publish, clone) live. A console surface, so it renders inside AppShell.
  */
 export function ProgramsPage({ organization }: { organization: Organization }) {
   const queryClient = useQueryClient()
@@ -49,11 +45,6 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
     },
   })
 
-  const publishMutation = useMutation({
-    mutationFn: (id: string) => publishProgram(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
-  })
-
   const onSubmit = (event: FormEvent) => {
     event.preventDefault()
     if (name.trim().length === 0) return
@@ -69,11 +60,11 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
 
         <Banner variant="info">
           Publishing a program records an immutable version. Editing a published
-          program later creates a new version — it never changes what was published.
+          program changes the live program (and is audited) — it does not create a
+          new version.
         </Banner>
 
         {renderCreateError(createMutation.error)}
-        {renderPublishError(publishMutation.error)}
 
         <form onSubmit={onSubmit} noValidate>
           <FormLayout>
@@ -119,22 +110,12 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
           <ul aria-labelledby="programs-list-heading">
             {programs.map((program) => (
               <li key={program.id}>
-                <span>{program.name}</span>{' '}
+                <Link href={`/programs/${program.id}`}>
+                  <bdi>{program.name}</bdi>
+                </Link>{' '}
                 <span className="ds-badge" data-status={program.status}>
                   {STATUS_LABEL[program.status]}
                 </span>
-                {program.status === 'draft' ? (
-                  <Button
-                    variant="secondary"
-                    loading={
-                      publishMutation.isPending &&
-                      publishMutation.variables === program.id
-                    }
-                    onClick={() => publishMutation.mutate(program.id)}
-                  >
-                    Publish
-                  </Button>
-                ) : null}
               </li>
             ))}
           </ul>
@@ -155,20 +136,4 @@ function renderCreateError(error: unknown) {
     }
   }
   return <Banner variant="error">We could not create the program. Please try again.</Banner>
-}
-
-function renderPublishError(error: unknown) {
-  if (!error) return null
-  if (error instanceof PublishProgramError) {
-    if (error.code === 'FORBIDDEN') {
-      return <Banner variant="error">You do not have permission to publish this program.</Banner>
-    }
-    if (error.code === 'NOT_FOUND') {
-      return <Banner variant="error">That program no longer exists.</Banner>
-    }
-    if (error.code === 'UNAUTHENTICATED') {
-      return <Banner variant="error">Your session expired. Please sign in again.</Banner>
-    }
-  }
-  return <Banner variant="error">We could not publish the program. Please try again.</Banner>
 }

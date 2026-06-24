@@ -70,19 +70,25 @@ test('empty → create → the new program appears in the list', async () => {
   expect(await screen.findByText('Spring Accelerator')).toBeInTheDocument()
 })
 
-test('publishing a draft flips its status to Published', async () => {
-  vi.spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(jsonResponse({ data: [DRAFT] })) // initial list
-    .mockResolvedValueOnce(jsonResponse({ data: { ...DRAFT, status: 'published' } })) // publish
-    .mockResolvedValueOnce(jsonResponse({ data: [{ ...DRAFT, status: 'published' }] })) // refetch
-
+test('a program row links to its detail page', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [DRAFT] }))
   renderPage()
+  const link = await screen.findByRole('link', { name: /spring accelerator/i })
+  expect(link).toHaveAttribute('href', '/programs/01J0PROG')
+})
 
-  fireEvent.click(await screen.findByRole('button', { name: /publish/i }))
-
-  expect(await screen.findByText('Published')).toBeInTheDocument()
-  // A published program shows no publish button.
+test('list rows no longer carry an inline Publish button', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [DRAFT] }))
+  renderPage()
+  await screen.findByRole('link', { name: /spring accelerator/i })
   expect(screen.queryByRole('button', { name: /publish/i })).not.toBeInTheDocument()
+})
+
+test('the versioning banner does not claim editing creates a new version', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [] }))
+  renderPage()
+  await screen.findByText(/no programs yet/i)
+  expect(screen.queryByText(/creates a new version/i)).not.toBeInTheDocument()
 })
 
 test('create error preserves the entered name and shows a banner', async () => {
