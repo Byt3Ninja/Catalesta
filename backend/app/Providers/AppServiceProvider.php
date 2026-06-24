@@ -17,6 +17,7 @@ use App\Modules\Programs\Domain\Models\Track;
 use App\Modules\Programs\Policies\ProgramPolicy;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Policies\StagePolicy;
+use App\Shared\Audit\AuthorizationAuditRecorder;
 use App\Shared\Entitlement\AllowAllEntitlementService;
 use App\Shared\Entitlement\EntitlementService;
 use App\Shared\Outbox\Consumers\LogOutboxConsumer;
@@ -71,5 +72,8 @@ class AppServiceProvider extends ServiceProvider
         // ponytail: env gate; require an admin role here if staging docs must be locked down.
         // Nullable user param so the gate runs for unauthenticated docs requests (guests).
         Gate::define('viewApiDocs', fn (?Authenticatable $user) => $this->app->environment('staging'));
+
+        // RA.2: enforced audit of authorization decisions (denials + sensitive allows).
+        $this->app->make(AuthorizationAuditRecorder::class)->register();
     }
 }
