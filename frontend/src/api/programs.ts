@@ -2,8 +2,11 @@ import { API_BASE_URL } from './client'
 import { csrfFetch } from './csrf'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
+  CloneProgramError,
   CreateProgramError,
+  GetProgramError,
   PublishProgramError,
+  UpdateProgramError,
   programListResponseSchema,
   programResponseSchema,
   type Program,
@@ -79,4 +82,90 @@ export async function publishProgram(id: string): Promise<Program> {
     throw new PublishProgramError('NOT_FOUND')
   }
   throw new PublishProgramError('UNKNOWN', `publish program failed: ${response.status}`)
+}
+
+/**
+ * GET /programs/{id} (auth:sanctum). 404 → the program is gone/never existed.
+ * [Source: backend ProgramController::show]
+ */
+export async function getProgram(id: string): Promise<Program> {
+  const response = await fetch(`${API_BASE_URL}/programs/${id}`, {
+    credentials: 'include',
+  })
+  if (response.status === 200) {
+    const json: unknown = await response.json()
+    return programResponseSchema.parse(json).data
+  }
+  if (response.status === 401) {
+    throw new GetProgramError('UNAUTHENTICATED')
+  }
+  if (response.status === 404) {
+    throw new GetProgramError('NOT_FOUND')
+  }
+  throw new GetProgramError('UNKNOWN', `get program failed: ${response.status}`)
+}
+
+/**
+ * PATCH /programs/{id} (auth:sanctum). Mutates the live program in place (audited);
+ * works on published programs too — editing does NOT create a new version.
+ * [Source: backend ProgramController::update]
+ */
+export async function updateProgram(
+  id: string,
+  input: { name?: string; description?: string | null },
+): Promise<Program> {
+  const response = await csrfFetch(`/programs/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+
+  if (response.status === 200) {
+    const json: unknown = await response.json()
+    return programResponseSchema.parse(json).data
+  }
+  if (response.status === 401) {
+    throw new UpdateProgramError('UNAUTHENTICATED')
+  }
+  if (response.status === 403) {
+    throw new UpdateProgramError('FORBIDDEN')
+  }
+  if (response.status === 404) {
+    throw new UpdateProgramError('NOT_FOUND')
+  }
+  if (response.status === 422) {
+    const message = firstValidationMessage(await readValidationDetails(response))
+    throw new UpdateProgramError('VALIDATION', message ?? 'Please check your entries and try again.')
+  }
+  throw new UpdateProgramError('UNKNOWN', `update program failed: ${response.status}`)
+}
+
+/**
+ * POST /programs/{id}/clone (auth:sanctum). Deep-copies into a new DRAFT; the 201
+ * body is the new program. Requires a name.
+ * [Source: backend ProgramController::clone]
+ */
+export async function cloneProgram(id: string, name: string): Promise<Program> {
+  const response = await csrfFetch(`/programs/${id}/clone`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+
+  if (response.status === 201) {
+    const json: unknown = await response.json()
+    return programResponseSchema.parse(json).data
+  }
+  if (response.status === 401) {
+    throw new CloneProgramError('UNAUTHENTICATED')
+  }
+  if (response.status === 403) {
+    throw new CloneProgramError('FORBIDDEN')
+  }
+  if (response.status === 404) {
+    throw new CloneProgramError('NOT_FOUND')
+  }
+  if (response.status === 422) {
+    const message = firstValidationMessage(await readValidationDetails(response))
+    throw new CloneProgramError('VALIDATION', message ?? 'Please check the name and try again.')
+  }
+  throw new CloneProgramError('UNKNOWN', `clone program failed: ${response.status}`)
 }

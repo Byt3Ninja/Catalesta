@@ -50,3 +50,43 @@ export class PublishProgramError extends ApiError<PublishProgramErrorCode> {
     this.name = 'PublishProgramError'
   }
 }
+
+/** Typed get-program error the ProgramDetailPage renders. */
+export type GetProgramErrorCode = 'NOT_FOUND' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class GetProgramError extends ApiError<GetProgramErrorCode> {
+  constructor(code: GetProgramErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'GetProgramError'
+  }
+}
+
+/** Typed update-program error. */
+export type UpdateProgramErrorCode =
+  | 'VALIDATION'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'UNKNOWN'
+
+export class UpdateProgramError extends ApiError<UpdateProgramErrorCode> {
+  constructor(code: UpdateProgramErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'UpdateProgramError'
+  }
+}
+
+/** Typed clone-program error. */
+export type CloneProgramErrorCode =
+  | 'VALIDATION'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'UNKNOWN'
+
+export class CloneProgramError extends ApiError<CloneProgramErrorCode> {
+  constructor(code: CloneProgramErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'CloneProgramError'
+  }
+}
