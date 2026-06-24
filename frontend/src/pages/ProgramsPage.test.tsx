@@ -38,8 +38,8 @@ function renderPage(): void {
   render(ui)
 }
 
-// createProgram + publishProgram now route through csrfFetch (PR #26 follow-up).
-// Pre-seed the XSRF cookie so the preflight is skipped and sequential fetch mocks stay aligned.
+// createProgram routes through csrfFetch (PR #26 follow-up). Pre-seed the XSRF
+// cookie so the preflight is skipped and sequential fetch mocks stay aligned.
 beforeEach(() => {
   Object.defineProperty(document, 'cookie', {
     value: 'XSRF-TOKEN=t',
