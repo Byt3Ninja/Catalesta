@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ApiError } from '../api/errors'
 
 /**
  * Cohort resource (Story 1.4 shape). The list endpoint (Story 1.5) adds
@@ -28,3 +29,47 @@ export type Cohort = z.infer<typeof cohortSchema>
 export const cohortListResponseSchema = z.object({
   data: z.array(cohortSchema),
 })
+
+export const cohortResponseSchema = z.object({
+  data: cohortSchema,
+})
+
+/** Typed get-cohort error the CohortDetailPage renders. */
+export type GetCohortErrorCode = 'NOT_FOUND' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class GetCohortError extends ApiError<GetCohortErrorCode> {
+  constructor(code: GetCohortErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'GetCohortError'
+  }
+}
+
+/** Typed create-cohort error. */
+export type CreateCohortErrorCode =
+  | 'VALIDATION'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'UNKNOWN'
+
+export class CreateCohortError extends ApiError<CreateCohortErrorCode> {
+  constructor(code: CreateCohortErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'CreateCohortError'
+  }
+}
+
+/** Typed update-cohort error. */
+export type UpdateCohortErrorCode =
+  | 'VALIDATION'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'UNKNOWN'
+
+export class UpdateCohortError extends ApiError<UpdateCohortErrorCode> {
+  constructor(code: UpdateCohortErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'UpdateCohortError'
+  }
+}

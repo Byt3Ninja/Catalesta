@@ -1,5 +1,5 @@
-import { afterEach, expect, test, vi } from 'vitest'
-import { listCohorts } from './cohorts'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { createCohort, getCohort, listCohorts, updateCohort } from './cohorts'
 import { jsonResponse } from '../tests/test-utils'
 
 const COHORT = {
@@ -19,6 +19,16 @@ const COHORT = {
   created_at: '2026-06-20T10:00:00+00:00',
   updated_at: '2026-06-20T10:00:00+00:00',
 }
+
+// create/update route through csrfFetch — pre-seed the XSRF cookie so the
+// preflight is skipped and a single fetch mock stays aligned.
+beforeEach(() => {
+  Object.defineProperty(document, 'cookie', {
+    value: 'XSRF-TOKEN=t',
+    writable: true,
+    configurable: true,
+  })
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -44,4 +54,83 @@ test('listCohorts throws on a non-ok response', async () => {
 test('listCohorts rejects a malformed payload', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [{ id: 1 }] }))
   await expect(listCohorts()).rejects.toThrow()
+})
+
+test('getCohort returns the cohort on 200', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: COHORT }))
+  await expect(getCohort('01J0COH')).resolves.toMatchObject({ slug: 'spring-2026' })
+})
+
+test('getCohort maps 404 → NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(getCohort('missing')).rejects.toMatchObject({
+    name: 'GetCohortError',
+    code: 'NOT_FOUND',
+  })
+})
+
+test('getCohort maps 401 → UNAUTHENTICATED', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 401 }))
+  await expect(getCohort('01J0COH')).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+})
+
+test('createCohort POSTs under the program and returns the draft on 201', async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: { ...COHORT, status: 'draft' } }, 201))
+  await expect(createCohort('01J0PROG', { name: 'Spring 2026' })).resolves.toMatchObject({
+    status: 'draft',
+  })
+  const [url, init] = fetchSpy.mock.calls[0]
+  expect(String(url)).toContain('/programs/01J0PROG/cohorts')
+  expect(init?.method).toBe('POST')
+  expect(JSON.parse((init?.body as string) ?? '{}')).toEqual({ name: 'Spring 2026' })
+})
+
+test('createCohort maps 422 → VALIDATION with the first field message', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse(
+      { error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } },
+      422,
+    ),
+  )
+  await expect(createCohort('01J0PROG', { name: '' })).rejects.toMatchObject({
+    name: 'CreateCohortError',
+    code: 'VALIDATION',
+    message: 'The name field is required.',
+  })
+})
+
+test('createCohort maps 403 → FORBIDDEN', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 403 }))
+  await expect(createCohort('01J0PROG', { name: 'x' })).rejects.toMatchObject({ code: 'FORBIDDEN' })
+})
+
+test('updateCohort PATCHes the metadata and returns the cohort on 200', async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: { ...COHORT, capacity: 50 } }))
+  await expect(
+    updateCohort('01J0COH', { name: 'Spring 2026', capacity: 50, enrollment_opens_at: '2026-07-01' }),
+  ).resolves.toMatchObject({ capacity: 50 })
+  const init = fetchSpy.mock.calls[0][1]
+  expect(init?.method).toBe('PATCH')
+  expect(JSON.parse((init?.body as string) ?? '{}')).toEqual({
+    name: 'Spring 2026',
+    capacity: 50,
+    enrollment_opens_at: '2026-07-01',
+  })
+})
+
+test('updateCohort maps 422 → VALIDATION', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse(
+      { error: { code: 'VALIDATION_ERROR', details: { ends_at: ['The ends at must be a date after starts at.'] } } },
+      422,
+    ),
+  )
+  await expect(updateCohort('01J0COH', { ends_at: '2020-01-01' })).rejects.toMatchObject({
+    name: 'UpdateCohortError',
+    code: 'VALIDATION',
+  })
 })
