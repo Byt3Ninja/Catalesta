@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Shared\Telemetry;
+namespace App\Modules\Reporting\Application;
 
 use App\Modules\Reporting\Domain\Models\LearningEvent;
 
@@ -15,6 +15,10 @@ use App\Modules\Reporting\Domain\Models\LearningEvent;
  * applicant submit/audit path (AuditLogger's explicit-org contract). Deliberately
  * NOT idempotent — routing pageviews through the idempotency kernel is the wrong
  * tradeoff; the funnel's `viewed >= started` clamp absorbs the lossiness.
+ *
+ * Lives in the Reporting module (it owns LearningEvent) rather than app/Shared/:
+ * a cross-cutting class must not depend on a domain model (ADR-0010; enforced by
+ * deptrac). Cohorts' apply page calls it as a normal cross-module dependency.
  */
 final class LearningTelemetry
 {
