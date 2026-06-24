@@ -811,6 +811,7 @@ Originated from PRD §7 R/A row (added this session) + architecture.md Step 6 Re
 
 ### Story RA.2: Audit-enforced middleware (FR-126; closes F-010 + CLAUDE.md baseline)
 
+**Status:** **Slice 1 done 2026-06-23** — AC#1 (authorization decisions recorded). `App\Shared\Audit\AuthorizationAuditRecorder` registers a `Gate::after` hook (the correct mechanism; HTTP middleware cannot observe in-controller `$this->authorize` calls) recording `authz.{ability}` rows with actor/target/outcome. Per 2026-06-23 scoping: records all **denials** + allows on **non-read** abilities (read-allow noise skipped); **best-effort synchronous** write (swallows failures, never blocks the decision). Threads the Gate-resolved user as actor via a new optional `AuditLogger::record(actorAccountId:)` param. Tests: denial recorded, sensitive-allow recorded, read-allow skipped, write-failure non-blocking (4 tests). **Deferred:** AC#2–#5 (identity link/unlink, consent, profile-import field-level, stage-outcome canonical events — independent emission points); recording every allow; outbox-queued writes + circuit-breaker (→ RA.4); AC#6 static architecture test that controllers use `$this->authorize`.
 **Type:** Planning candidate
 **Business objective:** Move audit from opt-in (current `app/Modules/Audit/` scaffold) to enforced for every audit-bearing event named in CLAUDE.md.
 **Actor:** Backend engineer + security reviewer.
