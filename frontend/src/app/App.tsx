@@ -16,6 +16,7 @@ import { OnboardingPage } from '../pages/OnboardingPage'
 import { HomePage } from '../pages/HomePage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { ProgramDetailPage } from '../pages/ProgramDetailPage'
+import { CohortDetailPage } from '../pages/CohortDetailPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { Spinner } from '../components/Loading'
@@ -131,6 +132,11 @@ function ProgramDetailRoute() {
   return <ConsoleGate>{() => <ProgramDetailPage programId={programId!} />}</ConsoleGate>
 }
 
+function CohortDetailRoute() {
+  const { cohortId } = useParams()
+  return <ConsoleGate>{() => <CohortDetailPage cohortId={cohortId!} />}</ConsoleGate>
+}
+
 function SubmissionsRoute() {
   const { cohortId } = useParams()
   return (
@@ -183,6 +189,7 @@ export function AppRoutes() {
         path="/cohorts/:cohortId/submissions/:submissionId"
         element={<SubmissionDetailRoute />}
       />
+      <Route path="/cohorts/:cohortId" element={<CohortDetailRoute />} />
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
 
       {/* Root and any other route → gate decides (today's fallthrough). */}

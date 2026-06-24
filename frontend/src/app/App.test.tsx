@@ -246,3 +246,34 @@ test('route /programs/:programId renders the program detail for an org user', as
 
   expect(await screen.findByRole('heading', { name: 'Spring Accelerator' })).toBeInTheDocument()
 })
+
+test('route /cohorts/:cohortId renders the cohort detail for an org user', async () => {
+  vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
+    .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations
+    .mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          id: '01J0COH',
+          organization_id: '01J0ORG',
+          program_id: '01J0PROG',
+          name: 'Spring 2026',
+          slug: 'spring-2026',
+          status: 'draft',
+          capacity: null,
+          enrollment_opens_at: null,
+          enrollment_closes_at: null,
+          starts_at: null,
+          ends_at: null,
+          timeline: null,
+          submissions_count: 0,
+          created_at: '2026-06-20T10:00:00+00:00',
+          updated_at: '2026-06-20T10:00:00+00:00',
+        },
+      }),
+    ) // getCohort
+
+  renderRoute('/cohorts/01J0COH')
+
+  expect(await screen.findByRole('heading', { name: 'Spring 2026' })).toBeInTheDocument()
+})
