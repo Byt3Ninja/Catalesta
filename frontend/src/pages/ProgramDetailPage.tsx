@@ -10,6 +10,7 @@ import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { cloneProgram, getProgram, publishProgram, updateProgram } from '../api/programs'
+import { ProgramCohortsSection } from './ProgramCohortsSection'
 import {
   CloneProgramError,
   GetProgramError,
@@ -216,6 +217,7 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
                 </Button>
               </form>
             ) : null}
+            <ProgramCohortsSection programId={programId} />
           </>
         ) : null}
       </section>

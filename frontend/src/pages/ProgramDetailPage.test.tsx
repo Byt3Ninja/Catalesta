@@ -24,6 +24,25 @@ const DRAFT = {
   updated_at: '2026-06-20T10:00:00+00:00',
 }
 
+/**
+ * Route GET …/cohorts (the embedded ProgramCohortsSection list) to a fixed
+ * cohorts array; every other call (getProgram, PATCH, clone POST, createCohort
+ * POST) is served from an ordered program queue. Deterministic regardless of
+ * which mount-time query fires first.
+ */
+function mockApi(programQueue: Response[], cohorts: unknown[] = []) {
+  const queue = [...programQueue]
+  return vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    const url = String(input)
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (method === 'GET' && /\/cohorts$/.test(url)) {
+      return Promise.resolve(jsonResponse({ data: cohorts }))
+    }
+    const next = queue.shift()
+    return Promise.resolve(next ?? new Response(null, { status: 500 }))
+  })
+}
+
 function renderDetail(programId = '01J0PROG'): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const ui: ReactElement = (
@@ -49,7 +68,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 test('renders the program name, status and description', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: DRAFT }))
+  mockApi([jsonResponse({ data: DRAFT })])
   renderDetail()
   expect(await screen.findByRole('heading', { name: 'Spring Accelerator' })).toBeInTheDocument()
   expect(screen.getByText('Draft')).toBeInTheDocument()
@@ -57,16 +76,17 @@ test('renders the program name, status and description', async () => {
 })
 
 test('a 404 shows the "no longer exists" state', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  mockApi([new Response(null, { status: 404 })])
   renderDetail('missing')
   expect(await screen.findByText(/that program no longer exists/i)).toBeInTheDocument()
 })
 
 test('edit → save updates the displayed name', async () => {
-  vi.spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(jsonResponse({ data: DRAFT })) // initial load
-    .mockResolvedValueOnce(jsonResponse({ data: { ...DRAFT, name: 'Renamed' } })) // PATCH
-    .mockResolvedValueOnce(jsonResponse({ data: { ...DRAFT, name: 'Renamed' } })) // refetch
+  mockApi([
+    jsonResponse({ data: DRAFT }), // initial load
+    jsonResponse({ data: { ...DRAFT, name: 'Renamed' } }), // PATCH
+    jsonResponse({ data: { ...DRAFT, name: 'Renamed' } }), // refetch
+  ])
   renderDetail()
 
   fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
@@ -77,14 +97,13 @@ test('edit → save updates the displayed name', async () => {
 })
 
 test('edit → 422 shows the validation message and stays in edit mode', async () => {
-  vi.spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(jsonResponse({ data: DRAFT })) // initial load
-    .mockResolvedValueOnce(
-      jsonResponse(
-        { error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } },
-        422,
-      ),
-    ) // PATCH 422
+  mockApi([
+    jsonResponse({ data: DRAFT }),
+    jsonResponse(
+      { error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } },
+      422,
+    ),
+  ])
   renderDetail()
 
   fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
@@ -92,13 +111,11 @@ test('edit → 422 shows the validation message and stays in edit mode', async (
   fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
   expect(await screen.findByText(/the name field is required/i)).toBeInTheDocument()
-  expect(screen.getByLabelText('Program name')).toBeInTheDocument() // still editing
+  expect(screen.getByLabelText('Program name')).toBeInTheDocument()
 })
 
 test('clone → navigates to the new draft on success', async () => {
-  vi.spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(jsonResponse({ data: DRAFT })) // initial load
-    .mockResolvedValueOnce(jsonResponse({ data: { ...DRAFT, id: '01J0NEW' } }, 201)) // clone
+  mockApi([jsonResponse({ data: DRAFT }), jsonResponse({ data: { ...DRAFT, id: '01J0NEW' } }, 201)])
   renderDetail()
 
   fireEvent.click(await screen.findByRole('button', { name: 'Clone' }))
@@ -109,9 +126,7 @@ test('clone → navigates to the new draft on success', async () => {
 })
 
 test('clone → 403 shows a permission banner', async () => {
-  vi.spyOn(globalThis, 'fetch')
-    .mockResolvedValueOnce(jsonResponse({ data: DRAFT })) // initial load
-    .mockResolvedValueOnce(new Response(null, { status: 403 })) // clone forbidden
+  mockApi([jsonResponse({ data: DRAFT }), new Response(null, { status: 403 })])
   renderDetail()
 
   fireEvent.click(await screen.findByRole('button', { name: 'Clone' }))
@@ -121,17 +136,41 @@ test('clone → 403 shows a permission banner', async () => {
   expect(await screen.findByText(/do not have permission/i)).toBeInTheDocument()
 })
 
-test('Publish shows for a draft and is absent for a published program', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: DRAFT }))
+test('Publish shows for a draft', async () => {
+  mockApi([jsonResponse({ data: DRAFT })])
   renderDetail()
   expect(await screen.findByRole('button', { name: 'Publish' })).toBeInTheDocument()
 })
 
 test('Publish is absent for a published program', async () => {
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-    jsonResponse({ data: { ...DRAFT, status: 'published' } }),
-  )
+  mockApi([jsonResponse({ data: { ...DRAFT, status: 'published' } })])
   renderDetail()
   await screen.findByRole('heading', { name: 'Spring Accelerator' })
   expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
+})
+
+test('shows the program\'s cohorts section with a linked cohort', async () => {
+  const cohort = {
+    id: '01J0COH',
+    organization_id: '01J0ORG',
+    program_id: '01J0PROG',
+    name: 'Spring 2026',
+    slug: 'spring-2026',
+    status: 'draft',
+    capacity: null,
+    enrollment_opens_at: null,
+    enrollment_closes_at: null,
+    starts_at: null,
+    ends_at: null,
+    timeline: null,
+    submissions_count: 0,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  }
+  mockApi([jsonResponse({ data: DRAFT })], [cohort])
+  renderDetail()
+  expect(await screen.findByRole('link', { name: /spring 2026/i })).toHaveAttribute(
+    'href',
+    '/cohorts/01J0COH',
+  )
 })
