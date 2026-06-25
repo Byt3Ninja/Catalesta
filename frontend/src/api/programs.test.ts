@@ -8,6 +8,7 @@ import {
   updateProgram,
 } from './programs'
 import { jsonResponse } from '../tests/test-utils'
+import { setActiveOrganizationId } from './tenant'
 
 const PROGRAM = {
   id: '01J0PROG',
@@ -30,6 +31,7 @@ function setCookie(value: string) {
 beforeEach(() => setCookie('XSRF-TOKEN=t'))
 afterEach(() => {
   vi.restoreAllMocks()
+  setActiveOrganizationId(null)
 })
 
 test('listPrograms returns the data array (empty when none)', async () => {
@@ -171,4 +173,13 @@ test('cloneProgram maps 403 → FORBIDDEN', async () => {
     name: 'CloneProgramError',
     code: 'FORBIDDEN',
   })
+})
+
+test('listPrograms sends X-Organization-Id when an org is active', async () => {
+  setActiveOrganizationId('org-3')
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [] }))
+
+  await listPrograms()
+
+  expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('X-Organization-Id')).toBe('org-3')
 })

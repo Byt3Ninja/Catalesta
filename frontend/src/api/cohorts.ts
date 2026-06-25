@@ -1,5 +1,5 @@
-import { API_BASE_URL } from './client'
 import { csrfFetch } from './csrf'
+import { apiFetch } from './tenant'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   CreateCohortError,
@@ -16,9 +16,7 @@ import {
  * operator Home day-one state). [Source: backend CohortController@index]
  */
 export async function listCohorts(): Promise<Cohort[]> {
-  const response = await fetch(`${API_BASE_URL}/cohorts`, {
-    credentials: 'include',
-  })
+  const response = await apiFetch('/cohorts')
   if (!response.ok) {
     throw new Error(`cohorts list failed: ${response.status}`)
   }
@@ -31,9 +29,7 @@ export async function listCohorts(): Promise<Cohort[]> {
  * [Source: backend CohortController::show]
  */
 export async function getCohort(id: string): Promise<Cohort> {
-  const response = await fetch(`${API_BASE_URL}/cohorts/${id}`, {
-    credentials: 'include',
-  })
+  const response = await apiFetch(`/cohorts/${id}`)
   if (response.status === 200) {
     const json: unknown = await response.json()
     return cohortResponseSchema.parse(json).data

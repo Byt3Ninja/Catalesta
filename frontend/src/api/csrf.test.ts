@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { csrfFetch, CsrfPreflightError } from './csrf'
 import { jsonResponse } from '../tests/test-utils'
+import { setActiveOrganizationId } from './tenant'
 
 function setCookie(value: string) {
   Object.defineProperty(document, 'cookie', { value, writable: true, configurable: true })
@@ -10,6 +11,7 @@ beforeEach(() => setCookie(''))
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  setActiveOrganizationId(null)
 })
 
 test('preflights the csrf cookie when XSRF-TOKEN is absent, then sends the decoded header', async () => {
@@ -66,4 +68,16 @@ test('does NOT set Content-Type for FormData bodies (browser sets multipart boun
 
   const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
   expect(headers.has('Content-Type')).toBe(false)
+})
+
+test('includes X-Organization-Id when an org is active, omits it otherwise', async () => {
+  setCookie('XSRF-TOKEN=already')
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ ok: true }))
+
+  await csrfFetch('/programs', { method: 'POST', body: '{}' })
+  expect(new Headers(fetchMock.mock.calls[0][1]?.headers).has('X-Organization-Id')).toBe(false)
+
+  setActiveOrganizationId('org-9')
+  await csrfFetch('/programs', { method: 'POST', body: '{}' })
+  expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get('X-Organization-Id')).toBe('org-9')
 })

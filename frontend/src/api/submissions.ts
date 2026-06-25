@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './client'
+import { apiFetch } from './tenant'
 import {
   funnelResponseSchema,
   submissionDetailResponseSchema,
@@ -14,10 +14,7 @@ import {
  * [Source: backend SubmissionController@index]
  */
 export async function listSubmissions(cohortId: string): Promise<Submission[]> {
-  const response = await fetch(
-    `${API_BASE_URL}/cohorts/${encodeURIComponent(cohortId)}/submissions`,
-    { credentials: 'include' },
-  )
+  const response = await apiFetch(`/cohorts/${encodeURIComponent(cohortId)}/submissions`)
   if (!response.ok) {
     throw new Error(`submissions list failed: ${response.status}`)
   }
@@ -33,9 +30,8 @@ export async function getSubmission(
   cohortId: string,
   submissionId: string,
 ): Promise<SubmissionDetail> {
-  const response = await fetch(
-    `${API_BASE_URL}/cohorts/${encodeURIComponent(cohortId)}/submissions/${encodeURIComponent(submissionId)}`,
-    { credentials: 'include' },
+  const response = await apiFetch(
+    `/cohorts/${encodeURIComponent(cohortId)}/submissions/${encodeURIComponent(submissionId)}`,
   )
   if (!response.ok) {
     throw new Error(`submission fetch failed: ${response.status}`)
@@ -50,10 +46,7 @@ export async function getSubmission(
  * [Source: backend FunnelController]
  */
 export async function getFunnel(cohortId: string): Promise<Funnel> {
-  const response = await fetch(
-    `${API_BASE_URL}/cohorts/${encodeURIComponent(cohortId)}/funnel`,
-    { credentials: 'include' },
-  )
+  const response = await apiFetch(`/cohorts/${encodeURIComponent(cohortId)}/funnel`)
   if (!response.ok) {
     throw new Error(`funnel fetch failed: ${response.status}`)
   }

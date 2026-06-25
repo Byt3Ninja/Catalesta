@@ -1,5 +1,5 @@
-import { API_BASE_URL } from './client'
 import { csrfFetch } from './csrf'
+import { apiFetch } from './tenant'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   CloneProgramError,
@@ -17,9 +17,7 @@ import {
  * when the tenant has none yet (drives the first-use empty state).
  */
 export async function listPrograms(): Promise<Program[]> {
-  const response = await fetch(`${API_BASE_URL}/programs`, {
-    credentials: 'include',
-  })
+  const response = await apiFetch('/programs')
   if (!response.ok) {
     throw new Error(`programs list failed: ${response.status}`)
   }
@@ -89,9 +87,7 @@ export async function publishProgram(id: string): Promise<Program> {
  * [Source: backend ProgramController::show]
  */
 export async function getProgram(id: string): Promise<Program> {
-  const response = await fetch(`${API_BASE_URL}/programs/${id}`, {
-    credentials: 'include',
-  })
+  const response = await apiFetch(`/programs/${id}`)
   if (response.status === 200) {
     const json: unknown = await response.json()
     return programResponseSchema.parse(json).data

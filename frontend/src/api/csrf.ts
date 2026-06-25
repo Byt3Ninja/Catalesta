@@ -1,4 +1,5 @@
 import { API_BASE_URL, APP_BASE_URL } from './client'
+import { getActiveOrganizationId } from './tenant'
 
 /** Read a cookie value by name from document.cookie, or undefined. */
 function readCookie(name: string): string | undefined {
@@ -54,6 +55,10 @@ export async function csrfFetch(path: string, init: RequestInit = {}): Promise<R
   }
   if (token !== undefined) {
     headers.set('X-XSRF-TOKEN', decodeURIComponent(token))
+  }
+  const orgId = getActiveOrganizationId()
+  if (orgId !== null) {
+    headers.set('X-Organization-Id', orgId)
   }
   return fetch(`${API_BASE_URL}${path}`, { ...init, credentials: 'include', headers })
 }
