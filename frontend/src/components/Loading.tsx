@@ -15,7 +15,7 @@ export function Skeleton({ lines = 1 }: { lines?: number }) {
   return (
     <div aria-busy="true" aria-hidden="true" className="grid gap-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <span key={i} className="h-4 w-full animate-pulse rounded bg-muted" />
+        <span key={i} data-testid="skeleton-line" className="h-4 w-full animate-pulse rounded bg-muted" />
       ))}
     </div>
   )

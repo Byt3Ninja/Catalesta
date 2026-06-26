@@ -19,5 +19,5 @@ test('skeleton is decorative (aria-busy, hidden) with the requested line count',
   const root = container.firstElementChild
   expect(root).toHaveAttribute('aria-busy', 'true')
   expect(root).toHaveAttribute('aria-hidden', 'true')
-  expect(root?.querySelectorAll('span')).toHaveLength(3)
+  expect(screen.getAllByTestId('skeleton-line')).toHaveLength(3)
 })

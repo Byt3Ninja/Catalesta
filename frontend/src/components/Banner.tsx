@@ -9,6 +9,7 @@ export function Banner({ variant = 'info', children }: { variant?: BannerVariant
   return (
     <Alert
       variant={VARIANT_MAP[variant]}
+      // role overrides Alert's default role="alert" — relies on shadcn spreading props after its hardcoded role
       role={variant === 'error' ? 'alert' : 'status'}
       data-variant={variant}
       className={variant === 'success' ? 'border-green-600 text-green-700 dark:text-green-400' : undefined}
