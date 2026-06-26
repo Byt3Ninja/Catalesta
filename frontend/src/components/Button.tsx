@@ -1,6 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
+import { Button as UiButton } from './ui/button'
 
 type Variant = 'primary' | 'secondary'
+const VARIANT_MAP = { primary: 'default', secondary: 'secondary' } as const
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
@@ -8,20 +11,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
 }
 
-/**
- * Primary button — one per screen by convention. While loading it is disabled and
- * marked aria-busy so it never double-fires (pairs with idempotent submit).
- */
-export function Button({ variant = 'primary', loading = false, disabled, children, ...rest }: ButtonProps) {
+/** Primary action button. While loading it is disabled + aria-busy so it never double-fires. */
+export function Button({ variant = 'primary', loading = false, disabled, type = 'button', children, ...rest }: ButtonProps) {
   return (
-    <button
-      type="button"
-      className={`ds-btn ds-btn--${variant} ds-focusable`}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      {...rest}
-    >
-      {loading ? '…' : children}
-    </button>
+    <UiButton type={type} variant={VARIANT_MAP[variant]} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
+      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : children}
+    </UiButton>
   )
 }

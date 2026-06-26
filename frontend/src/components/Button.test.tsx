@@ -7,14 +7,19 @@ test('renders its label and is enabled by default', () => {
   expect(screen.getByRole('button', { name: 'Publish' })).toBeEnabled()
 })
 
-test('loading disables the button and marks it aria-busy', () => {
-  render(<Button loading>Publish</Button>)
+test('loading button is disabled and aria-busy', () => {
+  render(<Button loading>Save</Button>)
   const btn = screen.getByRole('button')
   expect(btn).toBeDisabled()
   expect(btn).toHaveAttribute('aria-busy', 'true')
 })
 
-test('primary variant applies the accent-button class', () => {
-  render(<Button variant="primary">Go</Button>)
-  expect(screen.getByRole('button')).toHaveClass('ds-btn--primary')
+test('loading button shows spinner icon instead of label text', () => {
+  render(<Button loading>Save</Button>)
+  expect(screen.queryByText('Save')).not.toBeInTheDocument()
+})
+
+test('secondary variant renders a button element', () => {
+  render(<Button variant="secondary">Cancel</Button>)
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
 })
