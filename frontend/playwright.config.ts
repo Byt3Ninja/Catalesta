@@ -18,6 +18,18 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: '**/fe-ui-slice0.spec.ts', // Docker-stack specs only
+    },
+    {
+      name: 'msw-dev',
+      testMatch: '**/fe-ui-slice0.spec.ts',
+      use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5173' },
     },
   ],
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 })
