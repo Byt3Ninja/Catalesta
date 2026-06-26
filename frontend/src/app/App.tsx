@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
@@ -24,7 +24,7 @@ import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { getSession } from '../api/session'
 import { listOrganizations } from '../api/organizations'
-import { setActiveOrganizationId } from '../api/tenant'
+import { setActiveOrganizationId, getActiveOrganizationId } from '../api/tenant'
 import type { Organization } from '../schemas/organizations'
 
 
@@ -54,11 +54,17 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
 
   // Publish the resolved tenant org so tenant-scoped API calls can send
   // X-Organization-Id (ResolveTenant requires it). Null until an org resolves.
+  //
+  // Published SYNCHRONOUSLY during render, not in a useEffect: child console
+  // surfaces fetch from a child effect, and child effects fire BEFORE a parent
+  // effect — so an effect here would publish the org only after the child's
+  // first tenant-scoped read already went out headerless and 400'd. The guard
+  // keeps the render pure-enough (idempotent: only writes when the value changes).
   const resolvedOrgId =
     orgsQuery.isSuccess && (orgsQuery.data?.length ?? 0) > 0 ? orgsQuery.data![0].id : null
-  useEffect(() => {
+  if (getActiveOrganizationId() !== resolvedOrgId) {
     setActiveOrganizationId(resolvedOrgId)
-  }, [resolvedOrgId])
+  }
 
   if (sessionQuery.isLoading) {
     return (
