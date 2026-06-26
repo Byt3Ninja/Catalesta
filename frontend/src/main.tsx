@@ -23,12 +23,14 @@ async function enableMocks(): Promise<void> {
   await worker.start({ onUnhandledRequest: 'bypass' })
 }
 
-enableMocks().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <DirectionProvider initialTheme={initialTheme()}>
-        <App />
-      </DirectionProvider>
-    </StrictMode>,
-  )
-})
+enableMocks()
+  .catch((err) => console.error('[MSW] worker failed to start; continuing without mocks', err))
+  .then(() => {
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <DirectionProvider initialTheme={initialTheme()}>
+          <App />
+        </DirectionProvider>
+      </StrictMode>,
+    )
+  })
