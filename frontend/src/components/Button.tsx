@@ -15,7 +15,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Button({ variant = 'primary', loading = false, disabled, type = 'button', children, ...rest }: ButtonProps) {
   return (
     <UiButton type={type} variant={VARIANT_MAP[variant]} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
-      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : children}
+      {loading ? (
+        <>
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          <span className="sr-only">{children}</span>
+        </>
+      ) : (
+        children
+      )}
     </UiButton>
   )
 }

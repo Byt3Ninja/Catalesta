@@ -14,9 +14,10 @@ test('loading button is disabled and aria-busy', () => {
   expect(btn).toHaveAttribute('aria-busy', 'true')
 })
 
-test('loading button shows spinner icon instead of label text', () => {
+test('loading button keeps its accessible name and shows a spinner', () => {
   render(<Button loading>Save</Button>)
-  expect(screen.queryByText('Save')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+  expect(document.querySelector('svg')).toBeInTheDocument()
 })
 
 test('secondary variant renders a button element', () => {
