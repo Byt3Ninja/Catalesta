@@ -115,9 +115,11 @@ describe('a11y gate (axe-core)', () => {
 
   it('AppShell — rail + main', async () => {
     await expectNoViolations(
-      <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
-        <h1>Work area</h1>
-      </AppShell>,
+      <DirectionProvider>
+        <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
+          <h1>Work area</h1>
+        </AppShell>
+      </DirectionProvider>,
     )
   })
 

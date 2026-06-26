@@ -8,6 +8,7 @@ import { Link } from '../components/Link'
 import { beginLogin } from '../api/session'
 import { passwordLogin, NativeAuthError } from '../api/auth'
 import { consumePostLoginRedirect } from '../api/postLoginRedirect'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
 
 /**
  * Sign-in (FR-007). Native email/password is primary; Startup Gate SSO is offered
@@ -53,47 +54,54 @@ export function LoginPage() {
     : undefined
 
   return (
-    <section aria-labelledby="login-heading">
-      <h1 id="login-heading">Sign in</h1>
-      {loginError ? <Banner variant="error">{loginError}</Banner> : null}
-      <form onSubmit={onSubmit} noValidate>
-        <FormLayout>
-          <Field
-            label="Email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Field
-            label="Password"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </FormLayout>
-        <Button type="submit" loading={mutation.isPending} disabled={!email.trim() || !password}>
-          Sign in
-        </Button>
-      </form>
-      <p>
-        <Link href="/forgot-password">Forgot password?</Link> ·{' '}
-        <Link href="/register">Create an account</Link>
-      </p>
+    <main className="grid min-h-dvh place-items-center bg-background px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <h1 id="login-heading" className="leading-none font-semibold">Sign in</h1>
+          <p className="text-sm text-muted-foreground">to Catalesta</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {loginError ? <Banner variant="error">{loginError}</Banner> : null}
+          <form onSubmit={onSubmit} noValidate>
+            <FormLayout>
+              <Field
+                label="Email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Field
+                label="Password"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormLayout>
+            <Button type="submit" loading={mutation.isPending} disabled={!email.trim() || !password}>
+              Sign in
+            </Button>
+          </form>
+          <p>
+            <Link href="/forgot-password">Forgot password?</Link> ·{' '}
+            <Link href="/register">Create an account</Link>
+          </p>
 
-      <hr />
-      <p>Or sign in with Startup Gate.</p>
-      {ssoError ? (
-        <Banner variant="error">We could not start sign-in. Please try again.</Banner>
-      ) : null}
-      <Button variant="secondary" onClick={onSso} loading={ssoPending}>
-        Sign in with Startup Gate
-      </Button>
-    </section>
+          <hr />
+          <p>Or sign in with Startup Gate.</p>
+          {ssoError ? (
+            <Banner variant="error">We could not start sign-in. Please try again.</Banner>
+          ) : null}
+          <Button variant="secondary" onClick={onSso} loading={ssoPending}>
+            Sign in with Startup Gate
+          </Button>
+        </CardContent>
+      </Card>
+    </main>
   )
 }

@@ -1,25 +1,16 @@
 import type { ReactNode } from 'react'
+import { Card, CardContent } from './ui/card'
 
 type StateVariant = 'empty' | 'error' | 'offline'
 
-/**
- * Empty / error / offline state — one component, three messages. Every list and
- * first-use screen explains the state + the single next action (a11y: text, not
- * color-alone).
- */
-export function StateBlock({
-  variant,
-  message,
-  action,
-}: {
-  variant: StateVariant
-  message: string
-  action?: ReactNode
-}) {
+/** Empty / error / offline state — message + single next action (a11y: text, not colour-alone). */
+export function StateBlock({ variant, message, action }: { variant: StateVariant; message: string; action?: ReactNode }) {
   return (
-    <div className="ds-state" role={variant === 'error' ? 'alert' : 'status'} data-variant={variant}>
-      <p>{message}</p>
-      {action}
-    </div>
+    <Card role={variant === 'error' ? 'alert' : 'status'} data-variant={variant} className="border-dashed">
+      <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+        <p className="text-sm text-muted-foreground">{message}</p>
+        {action}
+      </CardContent>
+    </Card>
   )
 }

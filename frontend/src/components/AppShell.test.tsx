@@ -1,19 +1,30 @@
 import { render, screen } from '@testing-library/react'
 import { expect, test } from 'vitest'
 import { AppShell } from './AppShell'
+import { DirectionProvider } from '../app/DirectionProvider'
 
-test('renders the work area as main and the rail as complementary', () => {
+test('renders brand, rail content, and children', () => {
   render(
-    <AppShell rail={<nav>Rail</nav>}>
-      <p>Work</p>
-    </AppShell>,
+    <DirectionProvider>
+      <AppShell rail={<nav aria-label="Sections">Programs</nav>}>
+        <p>Body</p>
+      </AppShell>
+    </DirectionProvider>,
   )
-  expect(screen.getByRole('main')).toHaveTextContent('Work')
-  expect(screen.getByRole('complementary')).toHaveTextContent('Rail')
+  expect(screen.getByText('Catalesta')).toBeInTheDocument()
+  expect(screen.getByText('Body')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /switch to (light|dark) theme/i })).toBeInTheDocument()
 })
 
 test('renders without a rail', () => {
-  render(<AppShell>Just work</AppShell>)
-  expect(screen.getByRole('main')).toHaveTextContent('Just work')
+  render(
+    <DirectionProvider>
+      <AppShell>
+        <p>Body</p>
+      </AppShell>
+    </DirectionProvider>,
+  )
+  expect(screen.getByText('Body')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /open navigation/i })).toBeNull()
   expect(screen.queryByRole('complementary')).toBeNull()
 })

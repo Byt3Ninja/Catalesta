@@ -31,6 +31,8 @@ function setPath(path: string) {
   window.history.pushState({}, '', path)
 }
 
+const renderApp = () => render(<DirectionProvider><App /></DirectionProvider>)
+
 beforeEach(() => {
   // The app uses a module-level QueryClient; staleTime on the gate queries would
   // otherwise leak cached results across tests. Clear it for per-test isolation.
@@ -54,7 +56,7 @@ afterEach(() => {
 test('gate: unauthenticated (401 session) → login page', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
 
-  render(<App />)
+  renderApp()
 
   expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
   expect(
@@ -67,7 +69,7 @@ test('gate: authenticated with no org → forced onboarding (non-skippable)', as
     .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
     .mockResolvedValueOnce(jsonResponse({ data: [] })) // organizations
 
-  render(<App />)
+  renderApp()
 
   expect(
     await screen.findByRole('heading', { name: /create your organization/i }),
@@ -90,7 +92,7 @@ test('gate: unverified native account → verify-email notice (before onboarding
   // Only the session call is needed — the notice short-circuits before the org query.
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ user: UNVERIFIED })) // session
 
-  render(<App />)
+  renderApp()
 
   expect(await screen.findByRole('heading', { name: /verify your email/i })).toBeInTheDocument()
   // Did not fall through to onboarding or Home.
@@ -104,7 +106,7 @@ test('gate: authenticated with an org → operator Home (AppShell)', async () =>
     .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
     .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations
 
-  render(<App />)
+  renderApp()
 
   expect(await screen.findByRole('heading', { name: 'Acme Incubator' })).toBeInTheDocument()
   expect(screen.getByText(/operator console/i)).toBeInTheDocument()
@@ -117,7 +119,7 @@ test('create success → lands on Home', async () => {
     .mockResolvedValueOnce(jsonResponse({ data: ORG }, 201)) // create
     .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations refetch
 
-  render(<App />)
+  renderApp()
 
   const input = (await screen.findByLabelText('Organization name')) as HTMLInputElement
   fireEvent.change(input, { target: { value: 'Acme Incubator' } })
@@ -143,7 +145,7 @@ test('duplicate-name 422 preserves the entered name and shows the message', asyn
       ),
     )
 
-  render(<App />)
+  renderApp()
 
   const input = (await screen.findByLabelText('Organization name')) as HTMLInputElement
   fireEvent.change(input, { target: { value: 'Acme Incubator' } })
@@ -167,7 +169,7 @@ test('gate persists: no-org user cannot reach a console surface (no Home heading
     .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
     .mockResolvedValueOnce(jsonResponse({ data: [] })) // organizations
 
-  render(<App />)
+  renderApp()
 
   await screen.findByRole('heading', { name: /create your organization/i })
   // Home/console surface never rendered.
@@ -285,7 +287,7 @@ test('the gate publishes the resolved org id to the tenant holder', async () => 
     .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
     .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations
 
-  render(<App />)
+  renderApp()
 
   expect(await screen.findByRole('heading', { name: 'Acme Incubator' })).toBeInTheDocument()
   expect(getActiveOrganizationId()).toBe(ORG.id)
@@ -294,7 +296,7 @@ test('the gate publishes the resolved org id to the tenant holder', async () => 
 test('an unauthenticated gate leaves the tenant holder null', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
 
-  render(<App />)
+  renderApp()
 
   expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
   expect(getActiveOrganizationId()).toBeNull()

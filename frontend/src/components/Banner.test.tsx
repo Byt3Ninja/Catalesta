@@ -11,3 +11,8 @@ test('non-error banner uses role=status', () => {
   render(<Banner variant="success">Saved</Banner>)
   expect(screen.getByRole('status')).toHaveTextContent('Saved')
 })
+
+test('info banner uses role=status', () => {
+  render(<Banner variant="info">Notice</Banner>)
+  expect(screen.getByRole('status')).toHaveTextContent('Notice')
+})

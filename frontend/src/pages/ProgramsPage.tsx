@@ -54,72 +54,52 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
   const programs = programsQuery.data ?? []
 
   return (
-    <AppShell rail={<nav aria-label="Sections">Programs</nav>}>
-      <section aria-labelledby="programs-heading">
-        <h1 id="programs-heading">{organization.name} — Programs</h1>
-
+    <AppShell
+      rail={<nav aria-label="Sections" className="grid gap-1 text-sm"><a href="/programs" className="font-medium">Programs</a></nav>}
+      pageHeader={
+        <div className="flex items-center justify-between">
+          <h1 id="programs-heading" className="text-2xl font-semibold"><bdi>{organization.name}</bdi> — Programs</h1>
+        </div>
+      }
+    >
+      <section aria-labelledby="programs-heading" className="grid gap-6">
         <Banner variant="info">
-          Publishing a program records an immutable version. Editing a published
-          program changes the live program (and is audited) — it does not create a
-          new version.
+          Publishing a program records an immutable version. Editing a published program changes the live program (and is audited).
         </Banner>
 
         {renderCreateError(createMutation.error)}
 
-        <form onSubmit={onSubmit} noValidate>
+        <form onSubmit={onSubmit} noValidate className="grid gap-4 rounded-lg border border-border p-4">
           <FormLayout>
-            <Field
-              label="Program name"
-              name="program-name"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-            <Field
-              label="Description"
-              name="program-description"
-              help="Optional."
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
+            <Field label="Program name" name="program-name" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Field label="Description" name="program-description" help="Optional." value={description} onChange={(e) => setDescription(e.target.value)} />
           </FormLayout>
-          <Button
-            type="submit"
-            loading={createMutation.isPending}
-            disabled={name.trim().length === 0}
-          >
-            Create program
-          </Button>
+          <div>
+            <Button type="submit" loading={createMutation.isPending} disabled={name.trim().length === 0}>Create program</Button>
+          </div>
         </form>
 
-        <h2 id="programs-list-heading">Your programs</h2>
-        {programsQuery.isLoading ? (
-          <Spinner label="Loading programs…" />
-        ) : programsQuery.isError ? (
-          <StateBlock
-            variant="error"
-            message="We could not load your programs."
-            action={<Button onClick={() => programsQuery.refetch()}>Try again</Button>}
-          />
-        ) : programs.length === 0 ? (
-          <StateBlock
-            variant="empty"
-            message="No programs yet. Create your first program above."
-          />
-        ) : (
-          <ul aria-labelledby="programs-list-heading">
-            {programs.map((program) => (
-              <li key={program.id}>
-                <Link href={`/programs/${program.id}`}>
-                  <bdi>{program.name}</bdi>
-                </Link>{' '}
-                <span className="ds-badge" data-status={program.status}>
-                  {STATUS_LABEL[program.status]}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="grid gap-3">
+          <h2 id="programs-list-heading" className="text-lg font-medium">Your programs</h2>
+          {programsQuery.isLoading ? (
+            <Spinner label="Loading programs…" />
+          ) : programsQuery.isError ? (
+            <StateBlock variant="error" message="We could not load your programs." action={<Button onClick={() => programsQuery.refetch()}>Try again</Button>} />
+          ) : programs.length === 0 ? (
+            <StateBlock variant="empty" message="No programs yet. Create your first program above." />
+          ) : (
+            <ul aria-labelledby="programs-list-heading" className="grid gap-2">
+              {programs.map((program) => (
+                <li key={program.id} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+                  <Link href={`/programs/${program.id}`}><bdi>{program.name}</bdi></Link>
+                  <span data-status={program.status} className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                    {STATUS_LABEL[program.status]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
     </AppShell>
   )
