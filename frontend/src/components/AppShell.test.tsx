@@ -15,3 +15,16 @@ test('renders brand, rail content, and children', () => {
   expect(screen.getByText('Body')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /switch to (light|dark) theme/i })).toBeInTheDocument()
 })
+
+test('renders without a rail', () => {
+  render(
+    <DirectionProvider>
+      <AppShell>
+        <p>Body</p>
+      </AppShell>
+    </DirectionProvider>,
+  )
+  expect(screen.getByText('Body')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /open navigation/i })).toBeNull()
+  expect(screen.queryByRole('complementary')).toBeNull()
+})

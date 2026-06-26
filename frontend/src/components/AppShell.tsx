@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Menu } from 'lucide-react'
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet'
 import { Button } from './ui/button'
 import { ThemeToggle } from './ThemeToggle'
 import { ContextSelector } from './ContextSelector'
+import { useDirection } from '../app/direction-context'
 
 /**
  * Application frame: sticky header (brand + context + theme), a sidebar that holds
@@ -12,6 +13,7 @@ import { ContextSelector } from './ContextSelector'
  */
 export function AppShell({ rail, pageHeader, children }: { rail?: ReactNode; pageHeader?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const { dir } = useDirection()
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur">
@@ -22,7 +24,10 @@ export function AppShell({ rail, pageHeader, children }: { rail?: ReactNode; pag
                 <Menu className="size-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-4">{rail}</SheetContent>
+            <SheetContent side={dir === 'rtl' ? 'right' : 'left'} className="w-64 p-4">
+                <SheetTitle className="sr-only">Navigation</SheetTitle>
+                {rail}
+              </SheetContent>
           </Sheet>
         ) : null}
         <span className="font-semibold">Catalesta</span>
