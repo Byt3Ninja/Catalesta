@@ -47,14 +47,22 @@ selector**, add an **MSW** mock-data harness, and prove it on two flagship pages
 - `components.json`: shadcn config in Tailwind-v4 mode (`"tailwind": { "config":
   "", "css": "src/index.css", "baseColor": "zinc", "cssVariables": true }`,
   aliases pointing at `@/components`, `@/lib/utils`).
-- **One stylesheet:** rewrite `src/index.css` → `@import "tailwindcss";` +
-  `@custom-variant dark` + `@theme`/`:root`/`.dark` variables. **Delete
-  `src/styles/tokens.css`.** `main.tsx` imports only `./index.css`.
+- **New theme stylesheet:** rewrite `src/index.css` → `@import "tailwindcss";` +
+  `@custom-variant dark` + `@theme`/`:root`/`.dark` variables. **Keep
+  `src/styles/tokens.css` for now** — the ~13 unmigrated pages still use raw
+  `ds-*` classes (e.g. `ds-badge`), so deleting it would unstyle them. `main.tsx`
+  imports both `./index.css` (new) and `./styles/tokens.css` (legacy) through
+  slice 0; `tokens.css` is removed in the later slice that migrates the last
+  `ds-*` consumer.
 
 ### B. Theme — zinc + indigo, light / dark / RTL
-- shadcn CSS variables for `:root` (light) and `.dark`; `--primary` = indigo
-  `#6366f1`; zinc neutral ramp. Map to Tailwind v4 `@theme inline` tokens
-  (`--color-background`, `--color-primary`, …).
+- shadcn CSS variables for `:root` (light) and `.dark`; zinc neutral ramp. Map to
+  Tailwind v4 `@theme inline` tokens (`--color-background`, `--color-primary`, …).
+- **Indigo, contrast-gated:** the primary button (`--primary`, white text) uses
+  **indigo-600 `#4f46e5`** (≈6.3:1 on white — passes the 4.5 floor); indigo-500
+  `#6366f1` fails at ≈4.47:1 and is used only for the **focus ring** (`--ring`,
+  non-text, 3:1 floor). Input borders (`--input`) use **zinc-500 `#71717a`**
+  (≈4.8:1, clears the 3:1 floor) — shadcn's default near-white border would fail.
 - **Dark mode:** new `src/app/ThemeProvider.tsx` (+ `theme-context.ts`) toggles
   `.dark` on `<html>`, persisted to `localStorage` (`catalesta.theme`), default
   = system preference. Header gets a theme toggle.
@@ -127,8 +135,10 @@ Rewrite `components/AppShell.tsx` as the real frame:
 ## Acceptance criteria
 1. Tailwind 4 + shadcn installed; `@/*` resolves in app **and** tests; `cn()`
    available; `@tailwindcss/vite` active.
-2. Single `index.css` (Tailwind import + theme); `tokens.css` deleted; no `ds-*`
-   references remain in source or tests.
+2. New `index.css` (Tailwind import + theme) is the system for all migrated code;
+   the 6 primitives + 2 flagship pages carry **no `ds-*` classes**. `tokens.css`
+   is retained (still referenced by unmigrated pages) and removed in a later
+   slice. The contrast gate validates the new zinc/indigo tokens.
 3. Theme renders zinc/indigo in light + dark; dark toggle persists; RTL flips
    layout and switches to Tajawal.
 4. All listed primitives + `AppShell` (with context selector) rebuilt on shadcn
