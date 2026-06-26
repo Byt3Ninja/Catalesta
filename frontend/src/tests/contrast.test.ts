@@ -10,24 +10,24 @@ import { contrastRatio } from '../styles/contrast'
  */
 
 const light = {
-  bg: '#f7f7fb',
+  bg: '#ffffff',
   surface: '#ffffff',
-  surfaceAlt: '#f1effa',
-  ink: '#1a1430',
-  inkMuted: '#5b5470',
-  accentBtn: '#5a38e6',
-  inputBorder: '#79718f',
+  surfaceAlt: '#f4f4f5',
+  ink: '#09090b',
+  inkMuted: '#52525b',
+  accentBtn: '#4f46e5',
+  inputBorder: '#71717a',
   onAccent: '#ffffff',
 }
 
 const dark = {
-  bg: '#14121f',
-  surface: '#1e1b2e',
-  surfaceAlt: '#26223a',
-  ink: '#ece9f7',
-  inkMuted: '#a9a2c2',
-  accentBtn: '#5a38e6',
-  inputBorder: '#6e6788',
+  bg: '#09090b',
+  surface: '#18181b',
+  surfaceAlt: '#27272a',
+  ink: '#fafafa',
+  inkMuted: '#a1a1aa',
+  accentBtn: '#4f46e5',
+  inputBorder: '#71717a',
   onAccent: '#ffffff',
 }
 
