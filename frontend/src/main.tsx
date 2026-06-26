@@ -16,10 +16,19 @@ function initialTheme(): Theme {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <DirectionProvider initialTheme={initialTheme()}>
-      <App />
-    </DirectionProvider>
-  </StrictMode>,
-)
+async function enableMocks(): Promise<void> {
+  if (!import.meta.env.DEV) return
+  if (import.meta.env.VITE_USE_MOCKS === 'false') return
+  const { worker } = await import('./mocks/browser')
+  await worker.start({ onUnhandledRequest: 'bypass' })
+}
+
+enableMocks().then(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <DirectionProvider initialTheme={initialTheme()}>
+        <App />
+      </DirectionProvider>
+    </StrictMode>,
+  )
+})
