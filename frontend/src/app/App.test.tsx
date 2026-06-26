@@ -6,6 +6,7 @@ import { App, AppRoutes } from './App'
 import { queryClient } from './queryClient'
 import { DirectionProvider } from './DirectionProvider'
 import { jsonResponse } from '../tests/test-utils'
+import { getActiveOrganizationId, setActiveOrganizationId } from '../api/tenant'
 
 const USER = {
   id: 'user-1',
@@ -47,6 +48,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks()
   setPath('/')
+  setActiveOrganizationId(null)
 })
 
 test('gate: unauthenticated (401 session) → login page', async () => {
@@ -276,4 +278,24 @@ test('route /cohorts/:cohortId renders the cohort detail for an org user', async
   renderRoute('/cohorts/01J0COH')
 
   expect(await screen.findByRole('heading', { name: 'Spring 2026' })).toBeInTheDocument()
+})
+
+test('the gate publishes the resolved org id to the tenant holder', async () => {
+  vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ user: USER })) // session
+    .mockResolvedValueOnce(jsonResponse({ data: [ORG] })) // organizations
+
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { name: 'Acme Incubator' })).toBeInTheDocument()
+  expect(getActiveOrganizationId()).toBe(ORG.id)
+})
+
+test('an unauthenticated gate leaves the tenant holder null', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
+
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+  expect(getActiveOrganizationId()).toBeNull()
 })

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { queryClient } from './queryClient'
@@ -24,6 +24,7 @@ import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { getSession } from '../api/session'
 import { listOrganizations } from '../api/organizations'
+import { setActiveOrganizationId } from '../api/tenant'
 import type { Organization } from '../schemas/organizations'
 
 
@@ -50,6 +51,14 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
     enabled: sessionQuery.isSuccess,
     staleTime: 60_000,
   })
+
+  // Publish the resolved tenant org so tenant-scoped API calls can send
+  // X-Organization-Id (ResolveTenant requires it). Null until an org resolves.
+  const resolvedOrgId =
+    orgsQuery.isSuccess && (orgsQuery.data?.length ?? 0) > 0 ? orgsQuery.data![0].id : null
+  useEffect(() => {
+    setActiveOrganizationId(resolvedOrgId)
+  }, [resolvedOrgId])
 
   if (sessionQuery.isLoading) {
     return (
