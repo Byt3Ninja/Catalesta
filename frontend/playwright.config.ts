@@ -18,11 +18,11 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: '**/fe-ui-slice0.spec.ts', // Docker-stack specs only
+      testIgnore: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts'], // MSW-dev-server specs only
     },
     {
       name: 'msw-dev',
-      testMatch: '**/fe-ui-slice0.spec.ts',
+      testMatch: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts'],
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5173' },
     },
   ],
