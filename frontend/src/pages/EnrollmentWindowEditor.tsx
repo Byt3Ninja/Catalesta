@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
 import { Banner } from '../components/Banner'
@@ -27,14 +27,17 @@ export function EnrollmentWindowEditor({ cohortId }: { cohortId: string }) {
   const [closes, setCloses] = useState('')
   const [capacity, setCapacity] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [seededId, setSeededId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (cohortQuery.data) {
-      setOpens(toDateInput(cohortQuery.data.enrollment_opens_at))
-      setCloses(toDateInput(cohortQuery.data.enrollment_closes_at))
-      setCapacity(cohortQuery.data.capacity == null ? '' : String(cohortQuery.data.capacity))
-    }
-  }, [cohortQuery.data])
+  // Seed the form from the loaded cohort by resetting state during render when the
+  // cohort changes (React's "adjust state when a prop changes" pattern) — not in an
+  // effect, which would trip react-hooks/set-state-in-effect and cascade renders.
+  if (cohortQuery.data && cohortQuery.data.id !== seededId) {
+    setSeededId(cohortQuery.data.id)
+    setOpens(toDateInput(cohortQuery.data.enrollment_opens_at))
+    setCloses(toDateInput(cohortQuery.data.enrollment_closes_at))
+    setCapacity(cohortQuery.data.capacity == null ? '' : String(cohortQuery.data.capacity))
+  }
 
   const saveMutation = useMutation({
     mutationFn: () =>
