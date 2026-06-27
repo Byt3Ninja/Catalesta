@@ -7,6 +7,10 @@ import { ConsentProvider } from '../app/ConsentProvider'
 import { HomePage } from './HomePage'
 import { jsonResponse } from '../tests/test-utils'
 
+// ContextSelector (rendered by AppShell) fetches /me/roles; stub it so these
+// content tests aren't coupled to the role switcher's query (≤1 role → plain label).
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
+
 const ORG = {
   id: '01J0ORG',
   name: 'Acme Incubator',
@@ -145,6 +149,6 @@ test('renders in RTL + dark with bdi-isolated interpolated values (UX-DR5/6)', a
   // Await the cohort row (the query must settle), then assert org + cohort names
   // render and interpolated values are bdi-isolated.
   expect(await screen.findByText('دفعة الربيع')).toBeInTheDocument()
-  expect(screen.getByText('Acme Incubator')).toBeInTheDocument()
+  expect(screen.getAllByText('Acme Incubator').length).toBeGreaterThan(0)
   expect(container.querySelector('bdi')).not.toBeNull()
 })

@@ -6,6 +6,10 @@ import { DirectionProvider } from '../app/DirectionProvider'
 import { ProgramsPage } from './ProgramsPage'
 import { jsonResponse } from '../tests/test-utils'
 
+// ContextSelector (rendered by AppShell) fetches /me/roles; stub it so these
+// content tests aren't coupled to the role switcher's query (≤1 role → plain label).
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
+
 const ORG = {
   id: '01J0ORG',
   name: 'Acme Incubator',
