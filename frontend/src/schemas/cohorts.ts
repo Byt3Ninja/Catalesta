@@ -73,3 +73,13 @@ export class UpdateCohortError extends ApiError<UpdateCohortErrorCode> {
     this.name = 'UpdateCohortError'
   }
 }
+
+/** Typed open-cohort error. */
+export type OpenCohortErrorCode = 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class OpenCohortError extends ApiError<OpenCohortErrorCode> {
+  constructor(code: OpenCohortErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'OpenCohortError'
+  }
+}

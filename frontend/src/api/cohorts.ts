@@ -4,6 +4,7 @@ import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   CreateCohortError,
   GetCohortError,
+  OpenCohortError,
   UpdateCohortError,
   cohortListResponseSchema,
   cohortResponseSchema,
@@ -113,4 +114,23 @@ export async function updateCohort(
     throw new UpdateCohortError('VALIDATION', message ?? 'Please check your entries and try again.')
   }
   throw new UpdateCohortError('UNKNOWN', `update cohort failed: ${response.status}`)
+}
+
+export { OpenCohortError }
+
+/**
+ * POST /cohorts/{id}/open (auth:sanctum + tenant). Transitions the cohort from
+ * draft → open, making enrollment available. 409 when the cohort is already open
+ * or in a terminal state. [Source: backend CohortController::open]
+ */
+export async function openCohort(id: string): Promise<Cohort> {
+  const response = await csrfFetch(`/cohorts/${id}/open`, { method: 'POST' })
+  if (response.status === 200) {
+    return cohortResponseSchema.parse(await response.json()).data
+  }
+  if (response.status === 401) throw new OpenCohortError('UNAUTHENTICATED')
+  if (response.status === 403) throw new OpenCohortError('FORBIDDEN')
+  if (response.status === 404) throw new OpenCohortError('NOT_FOUND')
+  if (response.status === 409) throw new OpenCohortError('CONFLICT', 'Cohort cannot be opened in its current state.')
+  throw new OpenCohortError('UNKNOWN', `Unexpected status ${response.status}`)
 }

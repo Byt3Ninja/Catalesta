@@ -170,6 +170,58 @@ export const handlers = [
   http.get('*/api/v1/organizations', () => HttpResponse.json({ data: [org] })),
   http.get('*/api/v1/programs', () => HttpResponse.json({ data: programs })),
   http.get('*/api/v1/cohorts', () => HttpResponse.json({ data: cohorts })),
+  http.get('*/api/v1/cohorts/:id', ({ params }) => {
+    const found = cohorts.find((c) => c.id === params.id)
+    if (!found) return new HttpResponse(null, { status: 404 })
+    return HttpResponse.json({ data: found })
+  }),
+  http.post('*/api/v1/programs/:programId/cohorts', async ({ params, request }) => {
+    const body = (await request.json()) as { name?: string }
+    const name = (body.name ?? '').trim()
+    if (!name) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } },
+        { status: 422 },
+      )
+    }
+    const now = new Date().toISOString()
+    const created = {
+      id: `coh_${cohorts.length + 1}`,
+      organization_id: 'org_demo',
+      program_id: String(params.programId),
+      name,
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      status: 'draft' as const,
+      capacity: null,
+      enrollment_opens_at: null,
+      enrollment_closes_at: null,
+      starts_at: null,
+      ends_at: null,
+      timeline: null,
+      submissions_count: 0,
+      created_at: now,
+      updated_at: now,
+    }
+    cohorts.push(created)
+    return HttpResponse.json({ data: created }, { status: 201 })
+  }),
+  http.patch('*/api/v1/cohorts/:id', async ({ params, request }) => {
+    const found = cohorts.find((c) => c.id === params.id)
+    if (!found) return new HttpResponse(null, { status: 404 })
+    const body = (await request.json()) as Record<string, unknown>
+    for (const key of ['name', 'capacity', 'enrollment_opens_at', 'enrollment_closes_at', 'starts_at', 'ends_at'] as const) {
+      if (key in body) (found as Record<string, unknown>)[key] = body[key]
+    }
+    found.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: found })
+  }),
+  http.post('*/api/v1/cohorts/:id/open', ({ params }) => {
+    const found = cohorts.find((c) => c.id === params.id)
+    if (!found) return new HttpResponse(null, { status: 404 })
+    found.status = 'open'
+    found.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: found })
+  }),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey
