@@ -28,6 +28,17 @@ const DRAFT = {
   updated_at: '2026-06-20T10:00:00+00:00',
 }
 
+const PROGRAM = {
+  id: 'prog_1',
+  name: 'Published Program',
+  slug: 'published-program',
+  status: 'published',
+  description: null,
+  settings: null,
+  created_at: '2026-06-20T10:00:00+00:00',
+  updated_at: '2026-06-20T10:00:00+00:00',
+}
+
 /**
  * Route GET …/cohorts (the embedded ProgramCohortsSection list) to a fixed
  * cohorts array; every other call (getProgram, PATCH, clone POST, createCohort
@@ -151,6 +162,24 @@ test('Publish is absent for a published program', async () => {
   renderDetail()
   await screen.findByRole('heading', { name: 'Spring Accelerator' })
   expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
+})
+
+test('renders shadcn badge and a Configure program link', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    const url = String(input)
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (method === 'GET' && /\/cohorts$/.test(url)) {
+      return Promise.resolve(jsonResponse({ data: [] }))
+    }
+    return Promise.resolve(jsonResponse({ data: PROGRAM }))
+  })
+  renderDetail('prog_1')
+  // Wait for the page to load then find the status badge by its data-status attribute
+  await screen.findByRole('heading', { name: 'Published Program' })
+  const badge = document.querySelector('[data-status="published"]') as HTMLElement
+  expect(badge).not.toBeNull()
+  expect(badge).toHaveClass('bg-secondary')
+  expect(screen.getByRole('link', { name: /configure program/i })).toHaveAttribute('href', '/programs/prog_1/config')
 })
 
 test('shows the program\'s cohorts section with a linked cohort', async () => {
