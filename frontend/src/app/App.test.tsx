@@ -8,6 +8,8 @@ import { DirectionProvider } from './DirectionProvider'
 import { jsonResponse } from '../tests/test-utils'
 import { getActiveOrganizationId, setActiveOrganizationId } from '../api/tenant'
 
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
+
 const USER = {
   id: 'user-1',
   startup_gate_subject_id: 'sub-1',
@@ -109,7 +111,7 @@ test('gate: authenticated with an org → operator Home (AppShell)', async () =>
   renderApp()
 
   expect(await screen.findByRole('heading', { name: 'Acme Incubator' })).toBeInTheDocument()
-  expect(screen.getByText(/operator console/i)).toBeInTheDocument()
+  expect(screen.getByText(/your action center\./i)).toBeInTheDocument()
 })
 
 test('create success → lands on Home', async () => {
@@ -173,7 +175,7 @@ test('gate persists: no-org user cannot reach a console surface (no Home heading
 
   await screen.findByRole('heading', { name: /create your organization/i })
   // Home/console surface never rendered.
-  expect(screen.queryByText(/operator console/i)).not.toBeInTheDocument()
+  expect(screen.queryByText(/your action center\./i)).not.toBeInTheDocument()
 })
 
 /** Render the route tree at a specific path, sharing the app's QueryClient. */

@@ -1,9 +1,11 @@
 import { render } from '@testing-library/react'
 import axe from 'axe-core'
 import type { ReactElement } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
+
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { Field } from '../components/Field'
@@ -114,11 +116,14 @@ describe('a11y gate (axe-core)', () => {
   })
 
   it('AppShell — rail + main', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     await expectNoViolations(
       <DirectionProvider>
-        <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
-          <h1>Work area</h1>
-        </AppShell>
+        <QueryClientProvider client={client}>
+          <AppShell rail={<nav aria-label="Sections">Rail</nav>}>
+            <h1>Work area</h1>
+          </AppShell>
+        </QueryClientProvider>
       </DirectionProvider>,
     )
   })
