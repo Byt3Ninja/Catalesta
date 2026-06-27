@@ -28,11 +28,17 @@ export function CohortSetupWizard({ programId }: { programId: string }) {
     onSuccess: (c) => { setCohort(c); setStep(1) },
   })
   const datesMutation = useMutation({
-    mutationFn: () => updateCohort(cohort!.id, { enrollment_opens_at: toIso(opens), enrollment_closes_at: toIso(closes) }),
+    mutationFn: () => {
+      if (!cohort) return Promise.reject(new Error('No cohort to update'))
+      return updateCohort(cohort.id, { enrollment_opens_at: toIso(opens), enrollment_closes_at: toIso(closes) })
+    },
     onSuccess: () => setStep(4),
   })
   const openMutation = useMutation({
-    mutationFn: () => openCohort(cohort!.id),
+    mutationFn: () => {
+      if (!cohort) return Promise.reject(new Error('No cohort to open'))
+      return openCohort(cohort.id)
+    },
     onSuccess: () => setOpened(true),
   })
 
