@@ -56,6 +56,7 @@ export function EnrollmentWindowEditor({ cohortId }: { cohortId: string }) {
       setValidationError('The close date must be after the open date.')
       return
     }
+    saveMutation.reset()
     saveMutation.mutate()
   }
 
@@ -89,6 +90,7 @@ export function EnrollmentWindowEditor({ cohortId }: { cohortId: string }) {
                 name="capacity"
                 type="number"
                 min={0}
+                step={1}
                 value={capacity}
                 help="Leave blank for unlimited."
                 onChange={(e) => setCapacity(e.target.value)}

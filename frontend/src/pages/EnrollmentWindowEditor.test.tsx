@@ -50,6 +50,7 @@ test('loads the cohort window and saves a PATCH with the edited dates + capacity
   const patch = spy.mock.calls.find((c) => c[1]?.method === 'PATCH')?.[1]
   const body = JSON.parse((patch?.body as string) ?? '{}')
   expect(body.capacity).toBe(30)
+  expect(body.enrollment_opens_at).toBe('2026-07-01T00:00:00+00:00')
 })
 
 test('rejects a close date that is not after the open date', async () => {
