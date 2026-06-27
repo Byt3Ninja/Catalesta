@@ -93,14 +93,22 @@ final class StartupGateIdentityProvider implements IdentityProvider
     {
         $issuer = (string) config('identity.oidc.issuer');
 
-        $response = Http::asForm()->post($issuer.'/oauth/token', [
-            'grant_type' => 'authorization_code',
-            'client_id' => config('identity.oidc.client_id'),
-            'client_secret' => config('identity.oidc.client_secret'),
-            'redirect_uri' => config('identity.oidc.redirect_uri'),
-            'code' => $code,
-            'code_verifier' => $codeVerifier,
-        ]);
+        // Startup Gate advertises token_endpoint_auth_methods_supported=["client_secret_basic"]:
+        // client credentials travel in the HTTP Basic Authorization header, never in the body.
+        $response = Http::asForm()
+            ->withBasicAuth(
+                (string) config('identity.oidc.client_id'),
+                (string) config('identity.oidc.client_secret'),
+            )
+            ->post($issuer.'/oauth/token', [
+                'grant_type' => 'authorization_code',
+                // client_id stays in the body for client *identification* (the mock
+                // OIDC server reads it here); the secret authenticates via Basic only.
+                'client_id' => config('identity.oidc.client_id'),
+                'redirect_uri' => config('identity.oidc.redirect_uri'),
+                'code' => $code,
+                'code_verifier' => $codeVerifier,
+            ]);
 
         $response->throw();
 
@@ -115,12 +123,15 @@ final class StartupGateIdentityProvider implements IdentityProvider
     {
         $issuer = (string) config('identity.oidc.issuer');
 
-        $response = Http::asForm()->post($issuer.'/oauth/token', [
-            'grant_type' => 'refresh_token',
-            'client_id' => config('identity.oidc.client_id'),
-            'client_secret' => config('identity.oidc.client_secret'),
-            'refresh_token' => $refreshToken,
-        ]);
+        $response = Http::asForm()
+            ->withBasicAuth(
+                (string) config('identity.oidc.client_id'),
+                (string) config('identity.oidc.client_secret'),
+            )
+            ->post($issuer.'/oauth/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken,
+            ]);
 
         $response->throw();
 
@@ -135,11 +146,14 @@ final class StartupGateIdentityProvider implements IdentityProvider
     {
         $issuer = (string) config('identity.oidc.issuer');
 
-        Http::asForm()->post($issuer.'/oauth/revoke', [
-            'client_id' => config('identity.oidc.client_id'),
-            'client_secret' => config('identity.oidc.client_secret'),
-            'token' => $token,
-        ]);
+        Http::asForm()
+            ->withBasicAuth(
+                (string) config('identity.oidc.client_id'),
+                (string) config('identity.oidc.client_secret'),
+            )
+            ->post($issuer.'/oauth/revoke', [
+                'token' => $token,
+            ]);
     }
 
     /**
@@ -147,9 +161,12 @@ final class StartupGateIdentityProvider implements IdentityProvider
      */
     public function userinfo(string $accessToken): array
     {
-        $issuer = (string) config('identity.oidc.issuer');
+        // UserInfo lives at the discovery `userinfo_endpoint`, which Startup Gate
+        // serves under the profile API base (e.g. https://startup-gate.net/sg/api/v1/me),
+        // not at issuer + /oauth/userinfo.
+        $userinfoEndpoint = rtrim((string) config('identity.profile_api_base_url'), '/').'/me';
 
-        $response = Http::withToken($accessToken)->get($issuer.'/oauth/userinfo');
+        $response = Http::withToken($accessToken)->get($userinfoEndpoint);
 
         $response->throw();
 
