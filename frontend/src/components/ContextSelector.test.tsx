@@ -38,6 +38,21 @@ test('shows the active role label after roles load', async () => {
   expect(await screen.findByRole('button', { name: /program manager/i })).toBeInTheDocument()
 })
 
+test('renders program + cohort scope pickers without fetching them at mount', async () => {
+  // Only the roles query should fire on mount; program/cohort are lazy (fetched
+  // when their menu opens) so the shell stays idle-fetch-free beyond roles.
+  const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: ROLES }))
+
+  renderSelector()
+
+  expect(await screen.findByRole('button', { name: /all programs/i })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /all cohorts/i })).toBeInTheDocument()
+
+  const urls = spy.mock.calls.map((c) => String(c[0]))
+  expect(urls.some((u) => u.includes('/programs'))).toBe(false)
+  expect(urls.some((u) => u.includes('/cohorts'))).toBe(false)
+})
+
 test('switching role via setActiveRole updates the displayed label', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
     jsonResponse({ data: ROLES }),
