@@ -6,6 +6,7 @@ import { Button } from './ui/button'
 import { ThemeToggle } from './ThemeToggle'
 import { ContextSelector } from './ContextSelector'
 import { useDirection } from '../app/direction-context'
+import { GlobalSearch } from './GlobalSearch'
 
 /**
  * Application frame: sticky header (brand + context + theme), a sidebar that holds
@@ -33,6 +34,7 @@ export function AppShell({ rail, pageHeader, children }: { rail?: ReactNode; pag
         ) : null}
         <span className="font-semibold">Catalesta</span>
         <div className="ms-2 flex-1"><ContextSelector /></div>
+        <GlobalSearch />
         <Link href="/notifications" aria-label="Notifications" className="inline-flex items-center p-2">
           <Bell className="size-4" />
         </Link>
