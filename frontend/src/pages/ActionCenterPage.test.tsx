@@ -35,7 +35,7 @@ const FOUNDER_ITEMS = [
 /**
  * URL-routing fetch mock: ActionCenterPage fires two queries (profile via
  * ConsentProvider and action-center by role), in no guaranteed order — route by
- * path rather than call order, same pattern as HomePage.test.tsx.
+ * path rather than call order.
  */
 function mockApi(opts: {
   role?: string

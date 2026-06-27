@@ -17,7 +17,7 @@ import { ApplyField } from '../pages/ApplyField'
 import { DirectionProvider } from '../app/DirectionProvider'
 import { LoginPage } from '../pages/LoginPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
-import { HomePage } from '../pages/HomePage'
+import { ActionCenterPage } from '../pages/ActionCenterPage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { ConsentProvider } from '../app/ConsentProvider'
@@ -136,11 +136,11 @@ describe('a11y gate (axe-core)', () => {
     await expectNoViolations(withProviders(<OnboardingPage />))
   })
 
-  it('HomePage — operator home, cohorts + consent seam (Story 1.5)', async () => {
+  it('ActionCenterPage — role-scoped home + consent seam (Story 1.5)', async () => {
     await expectNoViolations(
       withProviders(
         <ConsentProvider>
-          <HomePage organization={ORG} />
+          <ActionCenterPage organization={ORG} />
         </ConsentProvider>,
       ),
     )
