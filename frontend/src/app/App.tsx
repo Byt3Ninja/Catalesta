@@ -13,7 +13,7 @@ import { ResetPasswordPage } from '../pages/ResetPasswordPage'
 import { EmailVerifiedPage } from '../pages/EmailVerifiedPage'
 import { VerifyEmailNotice } from '../pages/VerifyEmailNotice'
 import { OnboardingPage } from '../pages/OnboardingPage'
-import { HomePage } from '../pages/HomePage'
+import { ActionCenterPage } from '../pages/ActionCenterPage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { CohortDetailPage } from '../pages/CohortDetailPage'
@@ -123,7 +123,7 @@ function ConsoleGate({ children }: { children?: (org: Organization) => ReactNode
     children(orgs[0])
   ) : (
     <ConsentProvider>
-      <HomePage organization={orgs[0]} />
+      <ActionCenterPage organization={orgs[0]} />
     </ConsentProvider>
   )
 }
@@ -182,7 +182,7 @@ function HomeRoute() {
     <ConsoleGate>
       {(org) => (
         <ConsentProvider>
-          <HomePage organization={org} />
+          <ActionCenterPage organization={org} />
         </ConsentProvider>
       )}
     </ConsoleGate>
