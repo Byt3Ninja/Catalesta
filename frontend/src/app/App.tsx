@@ -19,6 +19,7 @@ import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { CohortDetailPage } from '../pages/CohortDetailPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
+import { ComingSoonPage } from '../pages/ComingSoonPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -170,6 +171,10 @@ function SubmissionDetailRoute() {
   )
 }
 
+function PreviewRoute() {
+  return <ConsoleGate>{() => <ComingSoonPage />}</ConsoleGate>
+}
+
 // Root and any unknown console/onboarding path → the gate decides. Home is the
 // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
 function HomeRoute() {
@@ -206,6 +211,8 @@ export function AppRoutes() {
       />
       <Route path="/cohorts/:cohortId" element={<CohortDetailRoute />} />
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
+
+      <Route path="/preview/:section" element={<PreviewRoute />} />
 
       {/* Root and any other route → gate decides (today's fallthrough). */}
       <Route path="/" element={<HomeRoute />} />
