@@ -125,6 +125,15 @@ const ACTION_CENTER: Record<RoleKey, ActionItem[]> = {
 }
 
 export const handlers = [
+  // --- Auth mutations (prototype: always succeed; no real credential check) ---
+  // Sanctum CSRF preflight lives at the app root (not under /api/v1).
+  http.get('*/sanctum/csrf-cookie', () => new HttpResponse(null, { status: 204 })),
+  http.post('*/api/v1/auth/register', () => HttpResponse.json({ user }, { status: 201 })),
+  http.post('*/api/v1/auth/password/login', () => HttpResponse.json({ user })),
+  http.post('*/api/v1/auth/password/forgot', () => new HttpResponse(null, { status: 200 })),
+  http.post('*/api/v1/auth/password/reset', () => new HttpResponse(null, { status: 200 })),
+  http.post('*/api/v1/auth/email/resend', () => new HttpResponse(null, { status: 204 })),
+
   http.get('*/api/v1/auth/session', () => HttpResponse.json({ user })),
   http.get('*/api/v1/organizations', () => HttpResponse.json({ data: [org] })),
   http.get('*/api/v1/programs', () => HttpResponse.json({ data: programs })),
