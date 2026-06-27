@@ -6,6 +6,7 @@ import { Field } from '../components/Field'
 import { FormLayout } from '../components/FormLayout'
 import { createOrganization } from '../api/organizations'
 import { CreateOrgError } from '../schemas/organizations'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
 
 /**
  * Create-organization onboarding (Story 1.1, AC-1/2/4). Non-skippable: there is
@@ -32,31 +33,36 @@ export function OnboardingPage() {
   }
 
   return (
-    <section aria-labelledby="onboarding-heading">
-      <h1 id="onboarding-heading">Create your organization</h1>
-      <p>Name your organization to set up your tenant workspace. You become its admin.</p>
+    <main className="grid min-h-dvh place-items-center bg-background px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <h1 id="onboarding-heading" className="leading-none font-semibold">Create your organization</h1>
+          <p className="text-sm text-muted-foreground">Name your organization to set up your tenant workspace. You become its admin.</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {renderError(mutation.error)}
 
-      {renderError(mutation.error)}
-
-      <form onSubmit={onSubmit} noValidate>
-        <FormLayout>
-          <Field
-            label="Organization name"
-            name="organization-name"
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </FormLayout>
-        <Button
-          type="submit"
-          loading={mutation.isPending}
-          disabled={name.trim().length === 0}
-        >
-          Create organization
-        </Button>
-      </form>
-    </section>
+          <form onSubmit={onSubmit} noValidate>
+            <FormLayout>
+              <Field
+                label="Organization name"
+                name="organization-name"
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </FormLayout>
+            <Button
+              type="submit"
+              loading={mutation.isPending}
+              disabled={name.trim().length === 0}
+            >
+              Create organization
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </main>
   )
 }
 

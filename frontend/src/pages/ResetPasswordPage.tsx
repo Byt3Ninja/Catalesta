@@ -6,6 +6,7 @@ import { Field } from '../components/Field'
 import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { resetPassword, NativeAuthError } from '../api/auth'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
 
 /**
  * Choose a new password from a reset link (FR-007). The token+email arrive in the URL
@@ -25,24 +26,36 @@ export function ResetPasswordPage() {
 
   if (!token || !email) {
     return (
-      <section aria-labelledby="reset-heading">
-        <h1 id="reset-heading">Reset your password</h1>
-        <Banner variant="error">
-          This reset link is invalid or incomplete. <Link href="/forgot-password">Request a new one</Link>.
-        </Banner>
-      </section>
+      <main className="grid min-h-dvh place-items-center bg-background px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <h1 id="reset-heading" className="leading-none font-semibold">Reset your password</h1>
+          </CardHeader>
+          <CardContent>
+            <Banner variant="error">
+              This reset link is invalid or incomplete. <Link href="/forgot-password">Request a new one</Link>.
+            </Banner>
+          </CardContent>
+        </Card>
+      </main>
     )
   }
 
   if (mutation.isSuccess) {
     return (
-      <section aria-labelledby="reset-heading">
-        <h1 id="reset-heading">Password reset</h1>
-        <p>Your password has been reset. You can now sign in.</p>
-        <p>
-          <Link href="/login">Go to sign in</Link>
-        </p>
-      </section>
+      <main className="grid min-h-dvh place-items-center bg-background px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <h1 id="reset-heading" className="leading-none font-semibold">Password reset</h1>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p>Your password has been reset. You can now sign in.</p>
+            <p>
+              <Link href="/login">Go to sign in</Link>
+            </p>
+          </CardContent>
+        </Card>
+      </main>
     )
   }
 
@@ -65,36 +78,42 @@ export function ResetPasswordPage() {
     : undefined
 
   return (
-    <section aria-labelledby="reset-heading">
-      <h1 id="reset-heading">Choose a new password</h1>
-      {bannerError ? (
-        <Banner variant="error">
-          {bannerError}
-          {invalidToken ? (
-            <>
-              {' '}
-              <Link href="/forgot-password">Request a new link</Link>.
-            </>
+    <main className="grid min-h-dvh place-items-center bg-background px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <h1 id="reset-heading" className="leading-none font-semibold">Choose a new password</h1>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {bannerError ? (
+            <Banner variant="error">
+              {bannerError}
+              {invalidToken ? (
+                <>
+                  {' '}
+                  <Link href="/forgot-password">Request a new link</Link>.
+                </>
+              ) : null}
+            </Banner>
           ) : null}
-        </Banner>
-      ) : null}
-      <form onSubmit={onSubmit} noValidate>
-        <FormLayout>
-          <Field
-            label="New password"
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            required
-            value={password}
-            help="At least 8 characters."
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </FormLayout>
-        <Button type="submit" loading={mutation.isPending} disabled={password.length < 8}>
-          Reset password
-        </Button>
-      </form>
-    </section>
+          <form onSubmit={onSubmit} noValidate>
+            <FormLayout>
+              <Field
+                label="New password"
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                required
+                value={password}
+                help="At least 8 characters."
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormLayout>
+            <Button type="submit" loading={mutation.isPending} disabled={password.length < 8}>
+              Reset password
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </main>
   )
 }

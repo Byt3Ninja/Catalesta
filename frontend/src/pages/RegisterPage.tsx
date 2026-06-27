@@ -7,6 +7,7 @@ import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { register, NativeAuthError } from '../api/auth'
 import { consumePostLoginRedirect } from '../api/postLoginRedirect'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
 
 /**
  * Native registration (FR-007). Creates an account, issues an (unverified) session,
@@ -46,46 +47,52 @@ export function RegisterPage() {
       : undefined
 
   return (
-    <section aria-labelledby="register-heading">
-      <h1 id="register-heading">Create your account</h1>
-      <p>Register with your email and a password.</p>
-      {bannerError ? <Banner variant="error">{bannerError}</Banner> : null}
-      <form onSubmit={onSubmit} noValidate>
-        <FormLayout>
-          <Field
-            label="Email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            error={emailError}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Field
-            label="Password"
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            required
-            value={password}
-            help="At least 8 characters."
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Field
-            label="Display name (optional)"
-            name="display_name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-        </FormLayout>
-        <Button type="submit" loading={mutation.isPending} disabled={!email.trim() || !password}>
-          Create account
-        </Button>
-      </form>
-      <p>
-        Already have an account? <Link href="/login">Sign in</Link>
-      </p>
-    </section>
+    <main className="grid min-h-dvh place-items-center bg-background px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <h1 id="register-heading" className="leading-none font-semibold">Create your account</h1>
+          <p className="text-sm text-muted-foreground">Register with your email and a password.</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {bannerError ? <Banner variant="error">{bannerError}</Banner> : null}
+          <form onSubmit={onSubmit} noValidate>
+            <FormLayout>
+              <Field
+                label="Email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                value={email}
+                error={emailError}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Field
+                label="Password"
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                required
+                value={password}
+                help="At least 8 characters."
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Field
+                label="Display name (optional)"
+                name="display_name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </FormLayout>
+            <Button type="submit" loading={mutation.isPending} disabled={!email.trim() || !password}>
+              Create account
+            </Button>
+          </form>
+          <p>
+            Already have an account? <Link href="/login">Sign in</Link>
+          </p>
+        </CardContent>
+      </Card>
+    </main>
   )
 }
