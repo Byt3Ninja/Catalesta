@@ -7,6 +7,7 @@ import type { Role } from '@/schemas/roles'
 import type { ActionItem } from '@/schemas/actionCenter'
 import type { RoleKey } from '@/schemas/roles'
 import type { Notification } from '@/schemas/notifications'
+import type { SearchGroup } from '@/schemas/search'
 
 const NOW = '2026-06-01T00:00:00Z'
 
@@ -132,6 +133,22 @@ const NOTIFICATIONS: Notification[] = [
   { id: 'n3', type: 'system', title: 'Cohort Spring 2026 opened', body: 'Enrollment is now open.', created_at: '2026-06-24T08:00:00Z', read_at: '2026-06-24T10:00:00Z', href: null },
 ]
 
+const SEARCH_INDEX: SearchGroup[] = [
+  { category: 'people', items: [
+    { id: 'p1', label: 'Alice Founder', sublabel: 'Founder · Acme', href: '/preview/people/p1' },
+    { id: 'p2', label: 'Layla Mentor', sublabel: 'Mentor', href: '/preview/people/p2' },
+  ] },
+  { category: 'programs', items: [
+    { id: 'prog_1', label: 'FinTech Accelerator 2026', sublabel: 'Published', href: '/programs/prog_1' },
+  ] },
+  { category: 'cohorts', items: [
+    { id: 'coh_1', label: 'Spring 2026', sublabel: 'Open', href: '/cohorts/coh_1' },
+  ] },
+  { category: 'documents', items: [
+    { id: 'd1', label: 'Pitch deck v2', sublabel: 'PDF', href: '/preview/documents/d1' },
+  ] },
+]
+
 export const handlers = [
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
@@ -160,5 +177,14 @@ export const handlers = [
     const found = NOTIFICATIONS.find((n) => n.id === params.id)
     if (found && found.read_at === null) found.read_at = NOW
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/v1/search', ({ request }) => {
+    const q = (new URL(request.url).searchParams.get('q') ?? '').trim().toLowerCase()
+    if (q === '') return HttpResponse.json({ data: [] })
+    const data = SEARCH_INDEX
+      .map((g) => ({ category: g.category, items: g.items.filter((i) => `${i.label} ${i.sublabel ?? ''}`.toLowerCase().includes(q)) }))
+      .filter((g) => g.items.length > 0)
+    return HttpResponse.json({ data })
   }),
 ]
