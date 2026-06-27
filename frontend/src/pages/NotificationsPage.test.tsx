@@ -48,6 +48,23 @@ test('mark-all-read calls the endpoint and refetches', async () => {
   await waitFor(() => expect(screen.getByText(/0 unread/i)).toBeInTheDocument())
 })
 
+test('mark-one-read calls the per-item endpoint and refetches', async () => {
+  const readData = DATA.map((n) => n.id === 'n1' ? { ...n, read_at: '2026-06-27T00:00:00Z' } : n)
+  const spy = vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: DATA }))           // initial list
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))    // mark n1 read
+    .mockResolvedValue(jsonResponse({ data: readData }))            // refetch
+  renderPage()
+  await screen.findByText('Review applications')
+  const markReadButtons = screen.getAllByRole('button', { name: /mark read/i })
+  fireEvent.click(markReadButtons[0])
+  await waitFor(() => expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining('/notifications/n1/read'),
+    expect.objectContaining({ method: 'POST' }),
+  ))
+  await waitFor(() => expect(screen.getByText(/0 unread/i)).toBeInTheDocument())
+})
+
 test('shows an empty state when there are none', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: [] }))
   renderPage()

@@ -15,10 +15,16 @@ type Filter = 'all' | NotificationType
 export function NotificationsPage() {
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<Filter>('all')
+  const [pendingId, setPendingId] = useState<string | null>(null)
   const query = useQuery({ queryKey: ['notifications'], queryFn: listNotifications, retry: false })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
-  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: invalidate })
+  const markOne = useMutation({
+    mutationFn: markNotificationRead,
+    onMutate: (id) => setPendingId(id),
+    onSettled: () => setPendingId(null),
+    onSuccess: invalidate,
+  })
   const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: invalidate })
 
   const items = query.data ?? []
@@ -31,7 +37,7 @@ export function NotificationsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 id="notif-heading" className="text-2xl font-semibold">Notifications</h1>
-            <p className="text-muted-foreground">{unread} unread</p>
+            {!query.isLoading && <p className="text-muted-foreground">{unread} unread</p>}
           </div>
           <div className="flex items-center gap-2">
             <Link href="/notifications/preferences" className="text-sm">Preferences</Link>
@@ -68,7 +74,7 @@ export function NotificationsPage() {
                     {n.href ? <Link href={n.href} className="text-sm">Open</Link> : null}
                   </div>
                   {n.read_at === null ? (
-                    <Button variant="secondary" onClick={() => markOne.mutate(n.id)} disabled={markOne.isPending}>Mark read</Button>
+                    <Button variant="secondary" onClick={() => markOne.mutate(n.id)} disabled={pendingId === n.id}>Mark read</Button>
                   ) : null}
                 </div>
               </li>
