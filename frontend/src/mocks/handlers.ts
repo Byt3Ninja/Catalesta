@@ -6,8 +6,17 @@ import type { Cohort } from '@/schemas/cohorts'
 import type { Role } from '@/schemas/roles'
 import type { ActionItem } from '@/schemas/actionCenter'
 import type { RoleKey } from '@/schemas/roles'
+import type { Notification } from '@/schemas/notifications'
+import type { SearchGroup } from '@/schemas/search'
+import type { ConsentCategory } from '@/schemas/consent'
 
 const NOW = '2026-06-01T00:00:00Z'
+
+// Mock consent state — `profile` starts NOT granted so the consent gate is
+// demonstrable (profile read 403s until granted on the consent screen).
+const CONSENT_STATE: Record<ConsentCategory, boolean> = { profile: false, contact: false, documents: false }
+
+const PROFILE = { display_name: 'Alice', email: 'alice@catalesta.test', organization: 'Acme Incubator', title: 'Founder' }
 
 const user: SessionUser = {
   id: 'acc_demo',
@@ -124,6 +133,29 @@ const ACTION_CENTER: Record<RoleKey, ActionItem[]> = {
   ],
 }
 
+// Module-level mock state: notification read-status mutates within a session.
+const NOTIFICATIONS: Notification[] = [
+  { id: 'n1', type: 'action', title: 'Review delayed applications', body: '4 applications are past the screening SLA.', created_at: '2026-06-26T09:00:00Z', read_at: null, href: '/preview/applicants' },
+  { id: 'n2', type: 'message', title: 'New message from Layla', body: 'Confirming Thursday 3pm mentor session.', created_at: '2026-06-25T14:30:00Z', read_at: null, href: '/preview/sessions' },
+  { id: 'n3', type: 'system', title: 'Cohort Spring 2026 opened', body: 'Enrollment is now open.', created_at: '2026-06-24T08:00:00Z', read_at: '2026-06-24T10:00:00Z', href: null },
+]
+
+const SEARCH_INDEX: SearchGroup[] = [
+  { category: 'people', items: [
+    { id: 'p1', label: 'Alice Founder', sublabel: 'Founder · Acme', href: '/preview/people/p1' },
+    { id: 'p2', label: 'Layla Mentor', sublabel: 'Mentor', href: '/preview/people/p2' },
+  ] },
+  { category: 'programs', items: [
+    { id: 'prog_1', label: 'FinTech Accelerator 2026', sublabel: 'Published', href: '/programs/prog_1' },
+  ] },
+  { category: 'cohorts', items: [
+    { id: 'coh_1', label: 'Spring 2026', sublabel: 'Open', href: '/cohorts/coh_1' },
+  ] },
+  { category: 'documents', items: [
+    { id: 'd1', label: 'Pitch deck v2', sublabel: 'PDF', href: '/preview/documents/d1' },
+  ] },
+]
+
 export const handlers = [
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
@@ -142,5 +174,36 @@ export const handlers = [
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey
     return HttpResponse.json({ data: ACTION_CENTER[role] ?? [] })
+  }),
+  http.get('*/api/v1/notifications', () => HttpResponse.json({ data: NOTIFICATIONS })),
+  http.post('*/api/v1/notifications/read-all', () => {
+    for (const n of NOTIFICATIONS) if (n.read_at === null) n.read_at = NOW
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.post('*/api/v1/notifications/:id/read', ({ params }) => {
+    const found = NOTIFICATIONS.find((n) => n.id === params.id)
+    if (found && found.read_at === null) found.read_at = NOW
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/v1/search', ({ request }) => {
+    const q = (new URL(request.url).searchParams.get('q') ?? '').trim().toLowerCase()
+    if (q === '') return HttpResponse.json({ data: [] })
+    const data = SEARCH_INDEX
+      .map((g) => ({ category: g.category, items: g.items.filter((i) => `${i.label} ${i.sublabel ?? ''}`.toLowerCase().includes(q)) }))
+      .filter((g) => g.items.length > 0)
+    return HttpResponse.json({ data })
+  }),
+
+  http.get('*/api/v1/me/profile', () =>
+    CONSENT_STATE.profile ? HttpResponse.json(PROFILE) : new HttpResponse('forbidden', { status: 403 }),
+  ),
+  http.get('*/api/v1/me/consent', () =>
+    HttpResponse.json({ data: (Object.keys(CONSENT_STATE) as ConsentCategory[]).map((category) => ({ category, granted: CONSENT_STATE[category] })) }),
+  ),
+  http.post('*/api/v1/me/consent', async ({ request }) => {
+    const body = (await request.json()) as { category: ConsentCategory; granted: boolean }
+    CONSENT_STATE[body.category] = body.granted
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

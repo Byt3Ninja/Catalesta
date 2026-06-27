@@ -14,12 +14,16 @@ import { EmailVerifiedPage } from '../pages/EmailVerifiedPage'
 import { VerifyEmailNotice } from '../pages/VerifyEmailNotice'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { ActionCenterPage } from '../pages/ActionCenterPage'
+import { NotificationsPage } from '../pages/NotificationsPage'
+import { NotificationPreferencesPage } from '../pages/NotificationPreferencesPage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { CohortDetailPage } from '../pages/CohortDetailPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
+import { ProfilePage } from '../pages/ProfilePage'
+import { ConsentManagementPage } from '../pages/ConsentManagementPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -211,6 +215,11 @@ export function AppRoutes() {
       />
       <Route path="/cohorts/:cohortId" element={<CohortDetailRoute />} />
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
+
+      <Route path="/profile" element={<ConsoleGate>{() => <ConsentProvider><ProfilePage /></ConsentProvider>}</ConsoleGate>} />
+      <Route path="/consent" element={<ConsoleGate>{() => <ConsentManagementPage />}</ConsoleGate>} />
+      <Route path="/notifications" element={<ConsoleGate>{() => <NotificationsPage />}</ConsoleGate>} />
+      <Route path="/notifications/preferences" element={<ConsoleGate>{() => <NotificationPreferencesPage />}</ConsoleGate>} />
 
       <Route path="/preview/:section" element={<PreviewRoute />} />
 
