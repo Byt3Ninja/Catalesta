@@ -22,6 +22,7 @@ import { CohortDetailPage } from '../pages/CohortDetailPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
+import { ProfilePage } from '../pages/ProfilePage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
@@ -214,6 +215,7 @@ export function AppRoutes() {
       <Route path="/cohorts/:cohortId" element={<CohortDetailRoute />} />
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
 
+      <Route path="/profile" element={<ConsoleGate>{() => <ConsentProvider><ProfilePage /></ConsentProvider>}</ConsoleGate>} />
       <Route path="/notifications" element={<ConsoleGate>{() => <NotificationsPage />}</ConsoleGate>} />
       <Route path="/notifications/preferences" element={<ConsoleGate>{() => <NotificationPreferencesPage />}</ConsoleGate>} />
 

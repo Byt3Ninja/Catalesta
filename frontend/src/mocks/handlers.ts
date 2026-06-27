@@ -8,8 +8,15 @@ import type { ActionItem } from '@/schemas/actionCenter'
 import type { RoleKey } from '@/schemas/roles'
 import type { Notification } from '@/schemas/notifications'
 import type { SearchGroup } from '@/schemas/search'
+import type { ConsentCategory } from '@/schemas/consent'
 
 const NOW = '2026-06-01T00:00:00Z'
+
+// Mock consent state — `profile` starts NOT granted so the consent gate is
+// demonstrable (profile read 403s until granted on the consent screen).
+const CONSENT_STATE: Record<ConsentCategory, boolean> = { profile: false, contact: false, documents: false }
+
+const PROFILE = { display_name: 'Alice', email: 'alice@catalesta.test', organization: 'Acme Incubator', title: 'Founder' }
 
 const user: SessionUser = {
   id: 'acc_demo',
@@ -186,5 +193,17 @@ export const handlers = [
       .map((g) => ({ category: g.category, items: g.items.filter((i) => `${i.label} ${i.sublabel ?? ''}`.toLowerCase().includes(q)) }))
       .filter((g) => g.items.length > 0)
     return HttpResponse.json({ data })
+  }),
+
+  http.get('*/api/v1/me/profile', () =>
+    CONSENT_STATE.profile ? HttpResponse.json(PROFILE) : new HttpResponse('forbidden', { status: 403 }),
+  ),
+  http.get('*/api/v1/me/consent', () =>
+    HttpResponse.json({ data: (Object.keys(CONSENT_STATE) as ConsentCategory[]).map((category) => ({ category, granted: CONSENT_STATE[category] })) }),
+  ),
+  http.post('*/api/v1/me/consent', async ({ request }) => {
+    const body = (await request.json()) as { category: ConsentCategory; granted: boolean }
+    CONSENT_STATE[body.category] = body.granted
+    return new HttpResponse(null, { status: 204 })
   }),
 ]
