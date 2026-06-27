@@ -19,6 +19,8 @@ import { NotificationPreferencesPage } from '../pages/NotificationPreferencesPag
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { CohortDetailPage } from '../pages/CohortDetailPage'
+import { CohortSetupWizard } from '../pages/CohortSetupWizard'
+import { EnrollmentWindowEditor } from '../pages/EnrollmentWindowEditor'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
@@ -157,6 +159,21 @@ function CohortDetailRoute() {
   return <ConsoleGate>{() => <CohortDetailPage cohortId={cohortId!} />}</ConsoleGate>
 }
 
+function CohortSetupRoute() {
+  const { programId } = useParams()
+  return <ConsoleGate>{() => <CohortSetupWizard programId={programId!} />}</ConsoleGate>
+}
+
+function EnrollmentWindowRoute() {
+  const { cohortId } = useParams()
+  return <ConsoleGate>{() => <EnrollmentWindowEditor cohortId={cohortId!} />}</ConsoleGate>
+}
+
+function ProgramConfigRoute() {
+  // Placeholder until Slice 2c builds the Program configuration hub.
+  return <ConsoleGate>{() => <ComingSoonPage />}</ConsoleGate>
+}
+
 function SubmissionsRoute() {
   const { cohortId } = useParams()
   return (
@@ -209,11 +226,14 @@ export function AppRoutes() {
       {/* Console — gated by ConsoleGate (server-side session/org). */}
       <Route path="/programs" element={<ProgramsRoute />} />
       <Route path="/programs/:programId" element={<ProgramDetailRoute />} />
+      <Route path="/programs/:programId/cohorts/new" element={<CohortSetupRoute />} />
+      <Route path="/programs/:programId/config" element={<ProgramConfigRoute />} />
       <Route
         path="/cohorts/:cohortId/submissions/:submissionId"
         element={<SubmissionDetailRoute />}
       />
       <Route path="/cohorts/:cohortId" element={<CohortDetailRoute />} />
+      <Route path="/cohorts/:cohortId/enrollment" element={<EnrollmentWindowRoute />} />
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
 
       <Route path="/profile" element={<ConsoleGate>{() => <ConsentProvider><ProfilePage /></ConsentProvider>}</ConsoleGate>} />

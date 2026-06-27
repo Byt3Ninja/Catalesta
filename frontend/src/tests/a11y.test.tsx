@@ -21,6 +21,8 @@ import { ActionCenterPage } from '../pages/ActionCenterPage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { SubmissionsPage } from '../pages/SubmissionsPage'
 import { ConsentProvider } from '../app/ConsentProvider'
+import { CohortSetupWizard } from '../pages/CohortSetupWizard'
+import { EnrollmentWindowEditor } from '../pages/EnrollmentWindowEditor'
 
 function withProviders(ui: ReactElement): ReactElement {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -152,6 +154,15 @@ describe('a11y gate (axe-core)', () => {
 
   it('SubmissionsPage — funnel + list (Story 2.8)', async () => {
     await expectNoViolations(withProviders(<SubmissionsPage cohortId="01J0COH" organization={ORG} />))
+  })
+
+  it('CohortSetupWizard — step 1 (Slice 2a)', async () => {
+    await expectNoViolations(withProviders(<CohortSetupWizard programId="prog_1" />))
+  })
+
+  it('EnrollmentWindowEditor — loading shell (Slice 2a)', async () => {
+    // fetch is unmocked here → query stays pending → renders the Spinner shell, which must be a11y-clean
+    await expectNoViolations(withProviders(<EnrollmentWindowEditor cohortId="coh_1" />))
   })
 
   it('ApplyField — representative field types (Story 2.7)', async () => {

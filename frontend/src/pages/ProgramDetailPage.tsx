@@ -20,7 +20,7 @@ import {
 } from '../schemas/programs'
 
 /** Human-readable program status (text, never colour-alone). */
-const STATUS_LABEL: Record<Program['status'], string> = {
+const PROGRAM_STATUS_LABEL: Record<Program['status'], string> = {
   draft: 'Draft',
   published: 'Published',
   archived: 'Archived',
@@ -108,10 +108,13 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
               <bdi>{program.name}</bdi>
             </h1>
             <p>
-              <span className="ds-badge" data-status={program.status}>
-                {STATUS_LABEL[program.status]}
+              <span
+                data-status={program.status}
+                className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+              >
+                {PROGRAM_STATUS_LABEL[program.status] ?? program.status}
               </span>{' '}
-              <span className="ds-muted">{program.slug}</span>
+              <span className="text-sm text-muted-foreground">{program.slug}</span>
             </p>
 
             {renderMutationError(updateMutation.error)}
@@ -151,36 +154,38 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
               </form>
             ) : (
               <>
-                {program.description ? (
-                  <p>
-                    <bdi>{program.description}</bdi>
+                <div className="grid max-w-2xl gap-6">
+                  {program.description ? (
+                    <p>
+                      <bdi>{program.description}</bdi>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No description.</p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Created {program.created_at} · Updated {program.updated_at}
                   </p>
-                ) : (
-                  <p className="ds-muted">No description.</p>
-                )}
-                <p className="ds-muted">
-                  Created {program.created_at} · Updated {program.updated_at}
-                </p>
-                <Button variant="secondary" onClick={() => beginEdit(program)}>
-                  Edit
-                </Button>{' '}
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setCloneName(`${program.name} (copy)`)
-                    setCloning(true)
-                  }}
-                >
-                  Clone
-                </Button>
-                {program.status === 'draft' ? (
-                  <>
-                    {' '}
-                    <Button loading={publishMutation.isPending} onClick={() => publishMutation.mutate()}>
-                      Publish
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="secondary" onClick={() => beginEdit(program)}>
+                      Edit
                     </Button>
-                  </>
-                ) : null}
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setCloneName(`${program.name} (copy)`)
+                        setCloning(true)
+                      }}
+                    >
+                      Clone
+                    </Button>
+                    {program.status === 'draft' ? (
+                      <Button loading={publishMutation.isPending} onClick={() => publishMutation.mutate()}>
+                        Publish
+                      </Button>
+                    ) : null}
+                    <Link href={`/programs/${programId}/config`}>Configure program</Link>
+                  </div>
+                </div>
               </>
             )}
 

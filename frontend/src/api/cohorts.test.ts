@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { createCohort, getCohort, listCohorts, updateCohort } from './cohorts'
+import { createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
 import { jsonResponse } from '../tests/test-utils'
+
+const COHORT_FIXTURE = {
+  id: 'coh_1', organization_id: 'org_demo', program_id: 'prog_1', name: 'Spring 2026',
+  slug: 'spring-2026', status: 'draft' as const, capacity: null,
+  enrollment_opens_at: null, enrollment_closes_at: null, starts_at: null, ends_at: null,
+  timeline: null, created_at: '2026-06-20T10:00:00+00:00', updated_at: '2026-06-20T10:00:00+00:00',
+}
 
 const COHORT = {
   id: '01J0COH',
@@ -133,4 +140,18 @@ test('updateCohort maps 422 → VALIDATION', async () => {
     name: 'UpdateCohortError',
     code: 'VALIDATION',
   })
+})
+
+test('openCohort: 200 returns the opened cohort', async () => {
+  const opened = { ...COHORT_FIXTURE, status: 'open' }
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: opened }))
+  const result = await openCohort('coh_1')
+  expect(result.status).toBe('open')
+  const init = (globalThis.fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0][1]
+  expect(init.method).toBe('POST')
+})
+
+test('openCohort: 409 throws CONFLICT', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
+  await expect(openCohort('coh_1')).rejects.toMatchObject({ code: 'CONFLICT' })
 })
