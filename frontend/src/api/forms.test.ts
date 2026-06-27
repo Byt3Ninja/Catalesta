@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { jsonResponse } from '../tests/test-utils'
 import { createForm, saveFormDraft, publishForm, getFormVersion } from './forms'
-import type { PublishFormError } from '../schemas/forms'
 
 const FORM = { id: 'frm_1', name: 'Intake', description: null, latest_version: 1, published_version_ids: [], current_draft_version_id: 'fv_1' }
 const DRAFT = { id: 'fv_1', form_id: 'frm_1', version: 1, status: 'draft', fields: [], created_at: 'x', published_at: null }
