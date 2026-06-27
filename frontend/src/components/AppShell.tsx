@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, Bell } from 'lucide-react'
+import { Link } from './Link'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from './ui/sheet'
 import { Button } from './ui/button'
 import { ThemeToggle } from './ThemeToggle'
@@ -32,6 +33,9 @@ export function AppShell({ rail, pageHeader, children }: { rail?: ReactNode; pag
         ) : null}
         <span className="font-semibold">Catalesta</span>
         <div className="ms-2 flex-1"><ContextSelector /></div>
+        <Link href="/notifications" aria-label="Notifications" className="inline-flex items-center p-2">
+          <Bell className="size-4" />
+        </Link>
         <ThemeToggle />
       </header>
       <div className="mx-auto flex w-full max-w-screen-xl gap-6 px-4 py-6">
