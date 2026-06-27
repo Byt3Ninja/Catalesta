@@ -56,4 +56,5 @@ test('shows the neutral consent affordance on 403, not an error', async () => {
   renderPage()
   expect(await screen.findByRole('link', { name: /manage consent/i })).toBeInTheDocument()
   expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument()
+  expect(screen.queryByText('Alice')).not.toBeInTheDocument()
 })

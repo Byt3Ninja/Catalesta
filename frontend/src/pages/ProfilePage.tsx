@@ -41,10 +41,10 @@ export function ProfilePage() {
           <dl className="grid gap-3">
             <div>
               <dt className="text-sm text-muted-foreground">Name</dt>
-              <dd className="font-medium"><bdi>{profileDisplayName(consent.profile!) ?? '—'}</bdi></dd>
+              <dd className="font-medium"><bdi>{profileDisplayName(consent.profile ?? {}) ?? '—'}</bdi></dd>
             </div>
             {FIELDS.map((f) => {
-              const value = consent.profile![f.key]
+              const value = (consent.profile ?? {})[f.key]
               if (typeof value !== 'string' || value.trim() === '') return null
               return (
                 <div key={f.key}>
