@@ -33,7 +33,6 @@ export function GlobalSearch() {
     <div className="relative hidden sm:block">
       <input
         type="search"
-        role="searchbox"
         aria-label="Search"
         placeholder="Search…"
         value={input}
@@ -41,7 +40,7 @@ export function GlobalSearch() {
         className="h-8 w-48 rounded-md border border-input bg-background px-2 text-sm"
       />
       {open ? (
-        <div className="absolute end-0 z-50 mt-1 w-72 rounded-md border border-border bg-popover p-2 shadow-md" role="listbox" aria-label="Search results">
+        <div className="absolute end-0 z-50 mt-1 w-72 rounded-md border border-border bg-popover p-2 shadow-md" role="region" aria-label="Search results">
           {query.isLoading ? (
             <p className="px-2 py-1 text-sm text-muted-foreground">Searching…</p>
           ) : groups.length === 0 ? (
