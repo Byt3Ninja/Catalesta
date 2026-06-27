@@ -22,12 +22,12 @@ const base = {
 const MINE = { ...base, id: '01J0COH', program_id: '01J0PROG', name: 'Spring 2026' }
 const OTHER = { ...base, id: '01J0OTH', program_id: '01J0XXX', name: 'Other Program Cohort' }
 
-function renderSection(): void {
+function renderSection(programId = '01J0PROG'): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const ui: ReactElement = (
     <DirectionProvider>
       <QueryClientProvider client={client}>
-        <ProgramCohortsSection programId="01J0PROG" />
+        <ProgramCohortsSection programId={programId} />
       </QueryClientProvider>
     </DirectionProvider>
   )
@@ -55,6 +55,21 @@ test('empty program shows the create-first empty state', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: [OTHER] }))
   renderSection()
   expect(await screen.findByText(/no cohorts yet/i)).toBeInTheDocument()
+})
+
+test('status badge uses the shadcn token classes, not ds-badge', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse({ data: [{
+      id: 'coh_1', organization_id: 'org_demo', program_id: 'prog_1', name: 'Spring 2026',
+      slug: 'spring-2026', status: 'open', capacity: null, enrollment_opens_at: null,
+      enrollment_closes_at: null, starts_at: null, ends_at: null, timeline: null,
+      submissions_count: 0, created_at: 'x', updated_at: 'x',
+    }] }),
+  )
+  renderSection('prog_1')
+  const badge = await screen.findByText('Open')
+  expect(badge).toHaveClass('bg-secondary')
+  expect(badge.className).not.toContain('ds-badge')
 })
 
 test('create issues the per-program POST with the entered name', async () => {
