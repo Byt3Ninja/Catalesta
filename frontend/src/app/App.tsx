@@ -15,6 +15,7 @@ import { VerifyEmailNotice } from '../pages/VerifyEmailNotice'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { ActionCenterPage } from '../pages/ActionCenterPage'
 import { NotificationsPage } from '../pages/NotificationsPage'
+import { NotificationPreferencesPage } from '../pages/NotificationPreferencesPage'
 import { ProgramsPage } from '../pages/ProgramsPage'
 import { ProgramDetailPage } from '../pages/ProgramDetailPage'
 import { CohortDetailPage } from '../pages/CohortDetailPage'
@@ -214,6 +215,7 @@ export function AppRoutes() {
       <Route path="/cohorts/:cohortId/submissions" element={<SubmissionsRoute />} />
 
       <Route path="/notifications" element={<ConsoleGate>{() => <NotificationsPage />}</ConsoleGate>} />
+      <Route path="/notifications/preferences" element={<ConsoleGate>{() => <NotificationPreferencesPage />}</ConsoleGate>} />
 
       <Route path="/preview/:section" element={<PreviewRoute />} />
 
