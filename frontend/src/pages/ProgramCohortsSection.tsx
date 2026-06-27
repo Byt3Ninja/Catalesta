@@ -9,8 +9,9 @@ import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { createCohort, listCohorts } from '../api/cohorts'
 import { CreateCohortError } from '../schemas/cohorts'
+import type { Cohort } from '../schemas/cohorts'
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<Cohort['status'], string> = {
   draft: 'Draft',
   open: 'Open',
   closed: 'Closed',
@@ -19,8 +20,15 @@ const STATUS_LABEL: Record<string, string> = {
 
 function renderCreateError(error: unknown) {
   if (!error) return null
-  const message = error instanceof CreateCohortError ? error.message : 'Could not create the cohort.'
-  return <Banner variant="error">{message}</Banner>
+  if (error instanceof CreateCohortError) {
+    switch (error.code) {
+      case 'FORBIDDEN':       return <Banner variant="error">You do not have permission to create a cohort here.</Banner>
+      case 'UNAUTHENTICATED': return <Banner variant="error">Your session expired. Please sign in again.</Banner>
+      case 'VALIDATION':      return <Banner variant="error">{error.message}</Banner>
+      default:                return <Banner variant="error">Could not create the cohort.</Banner>
+    }
+  }
+  return <Banner variant="error">Could not create the cohort.</Banner>
 }
 
 export function ProgramCohortsSection({ programId }: { programId: string }) {
@@ -60,7 +68,7 @@ export function ProgramCohortsSection({ programId }: { programId: string }) {
       {cohortsQuery.isLoading ? (
         <Spinner label="Loading cohorts…" />
       ) : cohortsQuery.isError ? (
-        <StateBlock variant="error" message="Could not load cohorts." />
+        <StateBlock variant="error" message="Could not load cohorts." action={<Button onClick={() => cohortsQuery.refetch()}>Try again</Button>} />
       ) : cohorts.length === 0 ? (
         <StateBlock variant="empty" message="No cohorts yet. Create one to begin intake." />
       ) : (
