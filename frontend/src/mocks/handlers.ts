@@ -3,6 +3,7 @@ import type { SessionUser } from '@/schemas/session'
 import type { Organization } from '@/schemas/organizations'
 import type { Program } from '@/schemas/programs'
 import type { Cohort } from '@/schemas/cohorts'
+import type { Role } from '@/schemas/roles'
 
 const NOW = '2026-06-01T00:00:00Z'
 
@@ -48,6 +49,13 @@ const programs: Program[] = [
   },
 ]
 
+const roles: Role[] = [
+  { key: 'program_manager', label: 'Program Manager' },
+  { key: 'founder', label: 'Founder' },
+  { key: 'mentor', label: 'Mentor' },
+  { key: 'evaluator', label: 'Evaluator' },
+]
+
 const cohorts: Cohort[] = [
   {
     id: 'coh_1',
@@ -73,4 +81,5 @@ export const handlers = [
   http.get('*/api/v1/organizations', () => HttpResponse.json({ data: [org] })),
   http.get('*/api/v1/programs', () => HttpResponse.json({ data: programs })),
   http.get('*/api/v1/cohorts', () => HttpResponse.json({ data: cohorts })),
+  http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
 ]
