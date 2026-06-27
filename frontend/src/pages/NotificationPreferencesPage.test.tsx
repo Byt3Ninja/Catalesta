@@ -1,16 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import type { ReactElement } from 'react'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DirectionProvider } from '../app/DirectionProvider'
 import { NotificationPreferencesPage } from './NotificationPreferencesPage'
-import { queryClient } from '../app/queryClient'
+
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
 
 function renderPage(): void {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const ui: ReactElement = (
     <DirectionProvider>
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={client}>
         <MemoryRouter><NotificationPreferencesPage /></MemoryRouter>
       </QueryClientProvider>
     </DirectionProvider>
