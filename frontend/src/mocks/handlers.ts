@@ -243,8 +243,108 @@ const formHandlers = [
   }),
 ]
 
+// ---- stage pipelines store ----
+type StageRec = { stage_id: string; name: string; type: string; entry_rule: unknown; exit_rule: unknown; next_stage_ids: string[]; depends_on_stage_ids: string[]; parallel_group: string | null; order: number }
+type PipelineRec = { pipeline_id: string; program_id: string; name: string; latest_version: number; published_version_ids: string[]; current_draft_version_id: string | null; created_at: string }
+type PipelineVersionRec = { version_id: string; pipeline_id: string; version: number; status: 'draft' | 'published'; stages: StageRec[]; created_at: string; published_at: string | null }
+
+const stageTemplates = [
+  { template_id: 'tpl_review', name: 'Review', type: 'review' },
+  { template_id: 'tpl_interview', name: 'Interview', type: 'interview' },
+  { template_id: 'tpl_task', name: 'Task', type: 'task' },
+  { template_id: 'tpl_decision', name: 'Decision', type: 'decision' },
+  { template_id: 'tpl_automated', name: 'Automated', type: 'automated' },
+]
+
+const pipelines: PipelineRec[] = [
+  { pipeline_id: 'pl_pub', program_id: 'prog_1', name: 'Acceleration pipeline', latest_version: 2, published_version_ids: ['plv_pub_1'], current_draft_version_id: 'plv_pub_2', created_at: NOW },
+  { pipeline_id: 'pl_draft', program_id: 'prog_1', name: 'New pipeline', latest_version: 1, published_version_ids: [], current_draft_version_id: 'plv_draft_1', created_at: NOW },
+]
+const pipelineVersions: PipelineVersionRec[] = [
+  { version_id: 'plv_pub_1', pipeline_id: 'pl_pub', version: 1, status: 'published', stages: [
+    { stage_id: 's_screen', name: 'Screening', type: 'review', entry_rule: null, exit_rule: { match: 'all', conditions: [{ field_id: 'score', operator: 'not_equals', value: '' }] }, next_stage_ids: ['s_interview'], depends_on_stage_ids: [], parallel_group: null, order: 0 },
+    { stage_id: 's_interview', name: 'Interview', type: 'interview', entry_rule: null, exit_rule: null, next_stage_ids: ['s_decide'], depends_on_stage_ids: [], parallel_group: null, order: 1 },
+    { stage_id: 's_decide', name: 'Decision', type: 'decision', entry_rule: null, exit_rule: null, next_stage_ids: [], depends_on_stage_ids: [], parallel_group: null, order: 2 },
+  ], created_at: NOW, published_at: NOW },
+  { version_id: 'plv_pub_2', pipeline_id: 'pl_pub', version: 2, status: 'draft', stages: [
+    { stage_id: 's_screen', name: 'Screening', type: 'review', entry_rule: null, exit_rule: null, next_stage_ids: ['s_interview'], depends_on_stage_ids: [], parallel_group: null, order: 0 },
+    { stage_id: 's_interview', name: 'Interview', type: 'interview', entry_rule: null, exit_rule: null, next_stage_ids: [], depends_on_stage_ids: [], parallel_group: null, order: 1 },
+  ], created_at: NOW, published_at: null },
+  { version_id: 'plv_draft_1', pipeline_id: 'pl_draft', version: 1, status: 'draft', stages: [], created_at: NOW, published_at: null },
+]
+let pipelineSeq = 3
+let pipelineVersionSeq = 3
+
+const stagePipelineHandlers = [
+  http.get('*/api/v1/stage-templates', () => HttpResponse.json({ data: stageTemplates })),
+  http.get('*/api/v1/programs/:programId/stage-pipelines', ({ params }) =>
+    HttpResponse.json({ data: pipelines.filter((p) => p.program_id === params.programId) })),
+  http.post('*/api/v1/programs/:programId/stage-pipelines', async ({ params, request }) => {
+    const body = (await request.json()) as { name?: string }
+    const name = (body.name ?? '').trim()
+    if (!name) return HttpResponse.json({ error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } }, { status: 422 })
+    const pid = `pl_${pipelineSeq++}`, vid = `plv_${pipelineVersionSeq++}`
+    pipelineVersions.push({ version_id: vid, pipeline_id: pid, version: 1, status: 'draft', stages: [], created_at: new Date().toISOString(), published_at: null })
+    const rec: PipelineRec = { pipeline_id: pid, program_id: String(params.programId), name, latest_version: 1, published_version_ids: [], current_draft_version_id: vid, created_at: new Date().toISOString() }
+    pipelines.push(rec)
+    return HttpResponse.json({ data: rec }, { status: 201 })
+  }),
+  http.get('*/api/v1/stage-pipelines/:id', ({ params }) => {
+    const p = pipelines.find((x) => x.pipeline_id === params.id)
+    return p ? HttpResponse.json({ data: p }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.get('*/api/v1/stage-pipelines/:id/versions', ({ params }) =>
+    HttpResponse.json({ data: pipelineVersions.filter((v) => v.pipeline_id === params.id).sort((a, b) => b.version - a.version) })),
+  http.get('*/api/v1/stage-pipeline-versions/:versionId', ({ params }) => {
+    const v = pipelineVersions.find((x) => x.version_id === params.versionId)
+    return v ? HttpResponse.json({ data: v }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.patch('*/api/v1/stage-pipelines/:id/draft', async ({ params, request }) => {
+    const p = pipelines.find((x) => x.pipeline_id === params.id)
+    if (!p || !p.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = pipelineVersions.find((v) => v.version_id === p.current_draft_version_id)
+    if (!draft) return new HttpResponse(null, { status: 404 })
+    if (draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    const body = (await request.json()) as { stages?: StageRec[] }
+    draft.stages = body.stages ?? []
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/stage-pipelines/:id/publish', ({ params }) => {
+    const p = pipelines.find((x) => x.pipeline_id === params.id)
+    if (!p || !p.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = pipelineVersions.find((v) => v.version_id === p.current_draft_version_id)
+    if (!draft || draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    draft.status = 'published'
+    draft.published_at = new Date().toISOString()
+    p.published_version_ids.push(draft.version_id)
+    p.current_draft_version_id = null
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/stage-pipelines/:id/fork', async ({ params, request }) => {
+    const p = pipelines.find((x) => x.pipeline_id === params.id)
+    if (!p) return new HttpResponse(null, { status: 404 })
+    let fromVersionId: string | undefined
+    try {
+      const body = (await request.json()) as { from_version_id?: string }
+      fromVersionId = body.from_version_id
+    } catch {
+      // body may be absent or non-JSON
+    }
+    const from = fromVersionId
+      ? pipelineVersions.find((v) => v.version_id === fromVersionId)
+      : pipelineVersions.find((v) => v.version_id === p.published_version_ids[p.published_version_ids.length - 1])
+    const vid = `plv_${pipelineVersionSeq++}`
+    const next = p.latest_version + 1
+    pipelineVersions.push({ version_id: vid, pipeline_id: p.pipeline_id, version: next, status: 'draft', stages: from ? JSON.parse(JSON.stringify(from.stages)) : [], created_at: new Date().toISOString(), published_at: null })
+    p.latest_version = next
+    p.current_draft_version_id = vid
+    return HttpResponse.json({ data: pipelineVersions[pipelineVersions.length - 1] })
+  }),
+]
+
 export const handlers = [
   ...formHandlers,
+  ...stagePipelineHandlers,
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
   http.get('*/sanctum/csrf-cookie', () => new HttpResponse(null, { status: 204 })),
