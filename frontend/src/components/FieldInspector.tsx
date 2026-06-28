@@ -1,11 +1,20 @@
 import { Field } from './Field'
 import { Button } from './Button'
+import { VisibilityEditor } from './VisibilityEditor'
 import type { FormField } from '../schemas/forms'
 
 const SELECT_TYPES = ['single_select', 'multi_select']
 const TEXT_TYPES = ['short_text', 'long_text']
 
-export function FieldInspector({ field, onChange }: { field: FormField; onChange: (patch: Partial<FormField>) => void }) {
+export function FieldInspector({
+  field,
+  onChange,
+  priorFields = [],
+}: {
+  field: FormField
+  onChange: (patch: Partial<FormField>) => void
+  priorFields?: FormField[]
+}) {
   const options = field.options ?? []
   const validation = field.validation ?? {}
   function setOption(i: number, v: string) { const next = [...options]; next[i] = v; onChange({ options: next }) }
@@ -54,6 +63,8 @@ export function FieldInspector({ field, onChange }: { field: FormField; onChange
           <Field label="Pattern (regex)" name="pattern" value={validation.pattern ?? ''} onChange={(e) => setValidation({ pattern: e.target.value || undefined })} />
         </fieldset>
       )}
+
+      <VisibilityEditor field={field} priorFields={priorFields} onChange={(visibility) => onChange({ visibility })} />
     </div>
   )
 }

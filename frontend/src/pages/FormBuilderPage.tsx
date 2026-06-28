@@ -120,7 +120,8 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                 {(() => {
                   const selected = fields.find((f) => f.id === selectedId)
                   if (!selected) return <p className="text-sm text-muted-foreground">Select a field to edit its settings.</p>
-                  return <FieldInspector field={selected} onChange={(patch) => updateFields(fields.map((f) => (f.id === selected.id ? { ...f, ...patch } : f)))} />
+                  const priorFields = fields.slice(0, fields.findIndex((f) => f.id === selected.id))
+                  return <FieldInspector field={selected} priorFields={priorFields} onChange={(patch) => updateFields(fields.map((f) => (f.id === selected.id ? { ...f, ...patch } : f)))} />
                 })()}
               </div>
             </section>
