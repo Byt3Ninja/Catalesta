@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
@@ -27,33 +27,42 @@ export function FormBuilderPage({ formId }: { formId: string }) {
   const [fields, setFields] = useState<FormField[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [seededId, setSeededId] = useState<string | null>(null)
+  // dirtyRef: true only after a user edit — never set during seeding, never reset.
+  // Autosave checks this so it never fires on initial load or re-seed, regardless of timing.
+  // On version switch the user must make an edit before autosave triggers on the new version.
+  const dirtyRef = useRef(false)
 
   // Render-time reset keyed on version id (React "adjust state when source changes" pattern).
   // Calling setState during render is explicitly allowed when guarded by a condition —
   // React re-renders immediately without committing the intermediate state.
   // This avoids both useEffect+setState (react-hooks/set-state-in-effect) and useRef-in-render
-  // (react-hooks/refs) lint violations.
+  // (react-hooks/refs) lint violations. Refs are NOT touched here for the same reason.
   if (draftQuery.data && draftQuery.data.id !== seededId) {
     setSeededId(draftQuery.data.id)
     setFields(draftQuery.data.fields)
   }
 
-  // debounced autosave whenever fields change after seeding
+  // All user field edits go through here so autosave knows the draft is dirty.
+  // Tasks 5-7 inspector edits must use this too.
+  function updateFields(next: FormField[]) { dirtyRef.current = true; setFields(next) }
+
+  // debounced autosave — only fires when dirtyRef is true (set by user edits via updateFields)
+  // and only after seededId is populated (the draft has been fetched and seeded into state).
   useEffect(() => {
-    if (!draftId || seededId === null) return
+    if (!draftId || seededId === null || !dirtyRef.current) return
     const t = setTimeout(() => { void saveFormDraft(formId, fields).catch(() => {}) }, 400)
     return () => clearTimeout(t)
   }, [fields, formId, draftId, seededId])
 
-  function addField(type: FormField['type']) { const f = newField(type); setFields((cur) => [...cur, f]); setSelectedId(f.id) }
+  function addField(type: FormField['type']) { const f = newField(type); updateFields([...fields, f]); setSelectedId(f.id) }
   function move(idx: number, dir: -1 | 1) {
-    setFields((cur) => {
-      const next = [...cur]; const j = idx + dir
-      if (j < 0 || j >= next.length) return cur
+    updateFields((() => {
+      const next = [...fields]; const j = idx + dir
+      if (j < 0 || j >= next.length) return fields
       ;[next[idx], next[j]] = [next[j], next[idx]]; return next
-    })
+    })())
   }
-  function remove(id: string) { setFields((cur) => cur.filter((f) => f.id !== id)); if (selectedId === id) setSelectedId(null) }
+  function remove(id: string) { updateFields(fields.filter((f) => f.id !== id)); if (selectedId === id) setSelectedId(null) }
 
   const readOnly = !draftId // no current draft → published-only, read-only (Task 7 adds fork)
 
@@ -82,8 +91,9 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                   </Button>
                 ))}
               </div>
-              {/* canvas */}
-              <div className="rounded-lg border border-border p-3">
+              {/* canvas — data-version-id reflects the seeded draft version (used by tests to
+                  wait for seeding before interacting, preventing autosave timing races) */}
+              <div className="rounded-lg border border-border p-3" data-version-id={seededId ?? ''}>
                 {fields.length === 0 ? (
                   <StateBlock variant="empty" message="No fields yet. Add one from the palette." />
                 ) : (
