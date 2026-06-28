@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
-import { getForm, getFormVersion, saveFormDraft } from '../api/forms'
+import { getForm, getFormVersion, saveFormDraft, publishForm, forkFormDraft } from '../api/forms'
 import type { FormField } from '../schemas/forms'
 import { fieldType as fieldTypeEnum } from '../schemas/apply'
 import { FieldInspector } from '../components/FieldInspector'
@@ -21,6 +21,7 @@ function newField(type: FormField['type']): FormField {
 }
 
 export function FormBuilderPage({ formId }: { formId: string }) {
+  const queryClient = useQueryClient()
   const formQuery = useQuery({ queryKey: ['form', formId], queryFn: () => getForm(formId), retry: false })
   const draftId = formQuery.data?.current_draft_version_id ?? null
   const draftQuery = useQuery({ queryKey: ['form-version', draftId], queryFn: () => getFormVersion(draftId!), enabled: !!draftId, retry: false })
@@ -33,11 +34,40 @@ export function FormBuilderPage({ formId }: { formId: string }) {
   // On version switch the user must make an edit before autosave triggers on the new version.
   const dirtyRef = useRef(false)
 
+  // justPublished: set immediately in onSuccess so the UI reflects "Published" while the
+  // query re-fetch is in flight. Cleared when formQuery re-resolves with no current draft.
+  const [justPublished, setJustPublished] = useState(false)
+
+  const publishMutation = useMutation({
+    mutationFn: () => publishForm(formId),
+    onSuccess: () => {
+      // Reset dirty so autosave does not immediately fire on the now-published (read-only) version.
+      dirtyRef.current = false
+      setJustPublished(true)
+      void queryClient.invalidateQueries({ queryKey: ['form', formId] })
+    },
+  })
+
+  const forkMutation = useMutation({
+    mutationFn: () => {
+      const fromVersionId = formQuery.data!.published_version_ids.at(-1)!
+      return forkFormDraft(formId, fromVersionId)
+    },
+    onSuccess: (v) => {
+      // Reset dirty BEFORE invalidation so that when the new draft is seeded the autosave
+      // does not fire. The render-time seed block will set seededId = v.id; because
+      // dirtyRef is false at that point, autosave is suppressed until the user actually edits.
+      dirtyRef.current = false
+      setFields(v.fields)
+      void queryClient.invalidateQueries({ queryKey: ['form', formId] })
+    },
+  })
+
   // Render-time reset keyed on version id (React "adjust state when source changes" pattern).
   // Calling setState during render is explicitly allowed when guarded by a condition —
   // React re-renders immediately without committing the intermediate state.
   // This avoids both useEffect+setState (react-hooks/set-state-in-effect) and useRef-in-render
-  // (react-hooks/refs) lint violations. Refs are NOT touched here for the same reason.
+  // (react-hooks/refs) lint violations. Refs are NOT touched here — only setState calls.
   if (draftQuery.data && draftQuery.data.id !== seededId) {
     setSeededId(draftQuery.data.id)
     setFields(draftQuery.data.fields)
@@ -65,7 +95,8 @@ export function FormBuilderPage({ formId }: { formId: string }) {
   }
   function remove(id: string) { updateFields(fields.filter((f) => f.id !== id)); if (selectedId === id) setSelectedId(null) }
 
-  const readOnly = !draftId // no current draft → published-only, read-only (Task 7 adds fork)
+  // readOnly: no current draft OR the draft was just published (waiting for query re-fetch)
+  const readOnly = !draftId || justPublished
 
   return (
     <AppShell
@@ -78,10 +109,36 @@ export function FormBuilderPage({ formId }: { formId: string }) {
           <StateBlock variant="error" message="Could not load this form." />
         ) : (
           <>
-            {/* heading rendered only after data loads so findByRole waits for palette too */}
-            <h1 id="builder-heading" className="text-2xl font-semibold">
-              Form builder{formQuery.data ? ` — ${formQuery.data.name}` : ''}
-            </h1>
+            {/* heading + version lifecycle controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h1 id="builder-heading" className="text-2xl font-semibold">
+                Form builder{formQuery.data ? ` — ${formQuery.data.name}` : ''}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span
+                  data-status={draftId && !justPublished ? 'draft' : 'published'}
+                  className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                >
+                  {draftId && !justPublished ? `Draft v${draftQuery.data?.version ?? ''}` : 'Published (read-only)'}
+                </span>
+                {draftId && !justPublished && (
+                  <Button loading={publishMutation.isPending} onClick={() => publishMutation.mutate()}>
+                    Publish
+                  </Button>
+                )}
+                {(!draftId || justPublished) && (
+                  <Button variant="secondary" loading={forkMutation.isPending} onClick={() => forkMutation.mutate()}>
+                    Edit (new draft)
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Read-only banner shown when the form was loaded with no current draft (published-only).
+                Not shown immediately after a publish — the badge + Edit button already communicate
+                the state and avoids a duplicate /published/i match in tests. */}
+            {!draftId && !justPublished && (
+              <StateBlock variant="empty" message="Published — Edit to fork a new draft" />
+            )}
             <section aria-labelledby="builder-heading" className="grid gap-4 lg:grid-cols-[200px_1fr_320px]">
               {/* palette */}
               <div aria-label="Field palette" className="grid h-fit gap-2 rounded-lg border border-border p-3">

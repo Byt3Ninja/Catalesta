@@ -112,3 +112,68 @@ test('inspector label edit updates the canvas label and flows through updateFiel
   // The canvas should now reflect the updated label in the list item
   expect(screen.getByText('Your email')).toBeInTheDocument()
 })
+
+test('publish snapshots the draft into a published version', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/publish')) return Promise.resolve(jsonResponse({ data: { ...DRAFT, status: 'published', published_at: 'y' } }))
+    if (url.includes('/forms/frm_draft/draft')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/form-versions/fv_draft_1')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/forms/frm_draft')) return Promise.resolve(jsonResponse({ data: FORM }))
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  fireEvent.click(screen.getByRole('button', { name: /^publish$/i }))
+  expect(await screen.findByText(/published/i)).toBeInTheDocument()
+})
+
+test('no autosave PATCH fires immediately after fork seeds a new draft', async () => {
+  // Scenario: user has a published form (no current draft). Fork creates a new draft.
+  // The dirty bit must be clean after fork so autosave doesn't fire on the freshly seeded draft.
+  const PUBLISHED_FORM = {
+    id: 'frm_draft', name: 'New form', description: null, latest_version: 2,
+    published_version_ids: ['fv_pub_1'], current_draft_version_id: null,
+  }
+  const PUBLISHED_VER = { id: 'fv_pub_1', form_id: 'frm_draft', version: 1, status: 'published', fields: [], created_at: 'x', published_at: 'y' }
+  const FORKED_DRAFT = { id: 'fv_fork_1', form_id: 'frm_draft', version: 2, status: 'draft', fields: [], created_at: 'x', published_at: null }
+  const FORM_AFTER_FORK = { ...PUBLISHED_FORM, current_draft_version_id: 'fv_fork_1' }
+
+  let formFetches = 0
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/fork')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/form-versions/fv_fork_1')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/form-versions/fv_pub_1')) return Promise.resolve(jsonResponse({ data: PUBLISHED_VER }))
+    if (url.includes('/forms/frm_draft')) {
+      formFetches += 1
+      // After first fetch (initial load), return form with draft so the builder reflects fork
+      return Promise.resolve(jsonResponse({ data: formFetches > 1 ? FORM_AFTER_FORK : PUBLISHED_FORM }))
+    }
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+
+  // Wait for the "Edit (new draft)" button to appear (no current draft = published-only state)
+  const editBtn = await screen.findByRole('button', { name: /edit.*new draft/i })
+
+  fetchSpy.mockClear()
+  vi.useFakeTimers()
+  try {
+    // User clicks "Edit (new draft)" — triggers fork mutation
+    fireEvent.click(editBtn)
+    // Let async microtasks settle (fork mutation resolves, query invalidation fires)
+    await vi.runAllTimersAsync()
+    // Advance well past the 400 ms autosave debounce
+    await vi.advanceTimersByTimeAsync(600)
+    // Confirm no spurious PATCH was fired on the freshly seeded draft
+    const patchCalls = fetchSpy.mock.calls.filter(
+      ([input, init]) => String(input).includes('/draft') && (init as RequestInit | undefined)?.method === 'PATCH'
+    )
+    expect(patchCalls).toHaveLength(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})

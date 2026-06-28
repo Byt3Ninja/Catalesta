@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { jsonResponse } from '../tests/test-utils'
-import { createForm, saveFormDraft, publishForm, getFormVersion } from './forms'
+import { createForm, saveFormDraft, publishForm, getFormVersion, forkFormDraft } from './forms'
 
 const FORM = { id: 'frm_1', name: 'Intake', description: null, latest_version: 1, published_version_ids: [], current_draft_version_id: 'fv_1' }
 const DRAFT = { id: 'fv_1', form_id: 'frm_1', version: 1, status: 'draft', fields: [], created_at: 'x', published_at: null }
@@ -39,4 +39,14 @@ test('getFormVersion parses a version', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: DRAFT }))
   const v = await getFormVersion('fv_1')
   expect(v.version).toBe(1)
+})
+
+test('forkFormDraft sends from_version_id in the request body', async () => {
+  const FORKED = { id: 'fv_2', form_id: 'frm_1', version: 2, status: 'draft', fields: [], created_at: 'x', published_at: null }
+  const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: FORKED }))
+  const v = await forkFormDraft('frm_1', 'fv_pub_1')
+  expect(v.id).toBe('fv_2')
+  expect(v.status).toBe('draft')
+  const body = JSON.parse((spy.mock.calls[0][1]?.body as string) ?? '{}')
+  expect(body.from_version_id).toBe('fv_pub_1')
 })

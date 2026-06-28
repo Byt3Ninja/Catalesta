@@ -220,10 +220,20 @@ const formHandlers = [
     f.current_draft_version_id = null
     return HttpResponse.json({ data: draft })
   }),
-  http.post('*/api/v1/forms/:id/fork', ({ params }) => {
+  http.post('*/api/v1/forms/:id/fork', async ({ params, request }) => {
     const f = forms.find((x) => x.id === params.id)
     if (!f) return new HttpResponse(null, { status: 404 })
-    const from = formVersions.find((v) => v.id === f.published_version_ids[f.published_version_ids.length - 1])
+    // Read from_version_id from the request body; fall back to latest published if omitted.
+    let fromVersionId: string | undefined
+    try {
+      const body = (await request.json()) as { from_version_id?: string }
+      fromVersionId = body.from_version_id
+    } catch {
+      // body may be absent or non-JSON
+    }
+    const from = fromVersionId
+      ? formVersions.find((v) => v.id === fromVersionId)
+      : formVersions.find((v) => v.id === f.published_version_ids[f.published_version_ids.length - 1])
     const vid = `fv_${versionSeq++}`
     const next = f.latest_version + 1
     formVersions.push({ id: vid, form_id: f.id, version: next, status: 'draft', fields: from ? JSON.parse(JSON.stringify(from.fields)) : [], created_at: new Date().toISOString(), published_at: null })
