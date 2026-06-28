@@ -32,6 +32,7 @@ import { FormVersionsPage } from '../pages/FormVersionsPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
+import { StateBlock } from '../components/StateBlock'
 import { getSession } from '../api/session'
 import { getForm } from '../api/forms'
 import { listOrganizations } from '../api/organizations'
@@ -213,13 +214,22 @@ function FormVersionsRoute() {
 }
 
 /** Resolves the correct versionId from the form record, then renders FormPreviewPage.
- *  Prefers the current draft version; falls back to the latest published version. */
+ *  Prefers the current draft version; falls back to the latest published version.
+ *  When the query has resolved but no version exists, shows an error state instead
+ *  of an infinite spinner. */
 function FormPreviewResolver({ formId }: { formId: string }) {
   const formQuery = useQuery({ queryKey: ['form', formId], queryFn: () => getForm(formId), retry: false })
   if (formQuery.isLoading) return <Spinner label="Loading form…" />
   const form = formQuery.data
   const versionId = form?.current_draft_version_id ?? form?.published_version_ids.at(-1)
-  if (!versionId) return <Spinner label="Loading form…" />
+  if (!versionId) {
+    return (
+      <StateBlock
+        variant="error"
+        message="This form has no versions to preview yet."
+      />
+    )
+  }
   return <FormPreviewPage versionId={versionId} />
 }
 
