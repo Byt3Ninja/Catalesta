@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
+import { bindCohortForm, createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
 import { jsonResponse } from '../tests/test-utils'
 
 const COHORT_FIXTURE = {
@@ -154,4 +154,28 @@ test('openCohort: 200 returns the opened cohort', async () => {
 test('openCohort: 409 throws CONFLICT', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
   await expect(openCohort('coh_1')).rejects.toMatchObject({ code: 'CONFLICT' })
+})
+
+test('bindCohortForm POSTs form_version_id and returns cohort with bound_form_version_id set', async () => {
+  const bound = { ...COHORT_FIXTURE, bound_form_version_id: 'fv_pub_1' }
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: bound }))
+  const result = await bindCohortForm('coh_1', 'fv_pub_1')
+  expect(result.bound_form_version_id).toBe('fv_pub_1')
+  const [url, init] = fetchSpy.mock.calls[0]
+  expect(String(url)).toContain('/cohorts/coh_1/bind-form')
+  expect(init?.method).toBe('POST')
+  expect(JSON.parse((init?.body as string) ?? '{}')).toEqual({ form_version_id: 'fv_pub_1' })
+})
+
+test('bindCohortForm maps 404 → NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(bindCohortForm('missing', 'fv_pub_1')).rejects.toMatchObject({
+    name: 'BindFormError',
+    code: 'NOT_FOUND',
+  })
+})
+
+test('bindCohortForm maps 409 → CONFLICT', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
+  await expect(bindCohortForm('coh_1', 'fv_pub_1')).rejects.toMatchObject({ code: 'CONFLICT' })
 })

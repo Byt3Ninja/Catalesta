@@ -20,6 +20,7 @@ export const cohortSchema = z.object({
   ends_at: z.string().nullable(),
   timeline: z.record(z.string(), z.unknown()).nullable(),
   submissions_count: z.number().int().optional(),
+  bound_form_version_id: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -81,5 +82,15 @@ export class OpenCohortError extends ApiError<OpenCohortErrorCode> {
   constructor(code: OpenCohortErrorCode, message?: string) {
     super(code, message)
     this.name = 'OpenCohortError'
+  }
+}
+
+/** Typed bind-form error. */
+export type BindFormErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CONFLICT' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class BindFormError extends ApiError<BindFormErrorCode> {
+  constructor(code: BindFormErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'BindFormError'
   }
 }

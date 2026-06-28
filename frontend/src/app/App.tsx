@@ -26,10 +26,15 @@ import { SubmissionDetailPage } from '../pages/SubmissionDetailPage'
 import { ComingSoonPage } from '../pages/ComingSoonPage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { ConsentManagementPage } from '../pages/ConsentManagementPage'
+import { FormBuilderPage } from '../pages/FormBuilderPage'
+import { FormPreviewPage } from '../pages/FormPreviewPage'
+import { FormVersionsPage } from '../pages/FormVersionsPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
+import { StateBlock } from '../components/StateBlock'
 import { getSession } from '../api/session'
+import { getForm } from '../api/forms'
 import { listOrganizations } from '../api/organizations'
 import { setActiveOrganizationId, getActiveOrganizationId } from '../api/tenant'
 import type { Organization } from '../schemas/organizations'
@@ -196,6 +201,43 @@ function PreviewRoute() {
   return <ConsoleGate>{() => <ComingSoonPage />}</ConsoleGate>
 }
 
+// --- Slice 2b: Forms routes ---------------------------------------------------
+
+function FormBuilderRoute() {
+  const { formId } = useParams()
+  return <ConsoleGate>{() => <FormBuilderPage formId={formId!} />}</ConsoleGate>
+}
+
+function FormVersionsRoute() {
+  const { formId } = useParams()
+  return <ConsoleGate>{() => <FormVersionsPage formId={formId!} />}</ConsoleGate>
+}
+
+/** Resolves the correct versionId from the form record, then renders FormPreviewPage.
+ *  Prefers the current draft version; falls back to the latest published version.
+ *  When the query has resolved but no version exists, shows an error state instead
+ *  of an infinite spinner. */
+function FormPreviewResolver({ formId }: { formId: string }) {
+  const formQuery = useQuery({ queryKey: ['form', formId], queryFn: () => getForm(formId), retry: false })
+  if (formQuery.isLoading) return <Spinner label="Loading form…" />
+  const form = formQuery.data
+  const versionId = form?.current_draft_version_id ?? form?.published_version_ids.at(-1)
+  if (!versionId) {
+    return (
+      <StateBlock
+        variant="error"
+        message="This form has no versions to preview yet."
+      />
+    )
+  }
+  return <FormPreviewPage versionId={versionId} />
+}
+
+function FormPreviewRoute() {
+  const { formId } = useParams()
+  return <ConsoleGate>{() => <FormPreviewResolver formId={formId!} />}</ConsoleGate>
+}
+
 // Root and any unknown console/onboarding path → the gate decides. Home is the
 // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
 function HomeRoute() {
@@ -240,6 +282,11 @@ export function AppRoutes() {
       <Route path="/consent" element={<ConsoleGate>{() => <ConsentManagementPage />}</ConsoleGate>} />
       <Route path="/notifications" element={<ConsoleGate>{() => <NotificationsPage />}</ConsoleGate>} />
       <Route path="/notifications/preferences" element={<ConsoleGate>{() => <NotificationPreferencesPage />}</ConsoleGate>} />
+
+      {/* Slice 2b: Forms */}
+      <Route path="/forms/:formId/edit" element={<FormBuilderRoute />} />
+      <Route path="/forms/:formId/preview" element={<FormPreviewRoute />} />
+      <Route path="/forms/:formId/versions" element={<FormVersionsRoute />} />
 
       <Route path="/preview/:section" element={<PreviewRoute />} />
 

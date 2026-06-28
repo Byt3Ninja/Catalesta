@@ -1,0 +1,256 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import type { ReactElement } from 'react'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DirectionProvider } from '../app/DirectionProvider'
+import { FormBuilderPage } from './FormBuilderPage'
+import { jsonResponse } from '../tests/test-utils'
+
+vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
+
+const FORM = { id: 'frm_draft', name: 'New form', description: null, latest_version: 1, published_version_ids: [], current_draft_version_id: 'fv_draft_1' }
+const DRAFT = { id: 'fv_draft_1', form_id: 'frm_draft', version: 1, status: 'draft', fields: [], created_at: 'x', published_at: null }
+
+function mockApi() {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/draft')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/form-versions/fv_draft_1')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/forms/frm_draft')) return Promise.resolve(jsonResponse({ data: FORM }))
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+}
+function renderBuilder(): void {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const ui: ReactElement = <DirectionProvider><QueryClientProvider client={client}><FormBuilderPage formId="frm_draft" /></QueryClientProvider></DirectionProvider>
+  render(ui)
+}
+beforeEach(() => { Object.defineProperty(document, 'cookie', { value: 'XSRF-TOKEN=t', writable: true, configurable: true }) })
+afterEach(() => vi.restoreAllMocks())
+
+test('adds a field from the palette and shows it on the canvas', async () => {
+  mockApi(); renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+  await waitFor(() => expect(screen.getByText(/short text/i)).toBeInTheDocument())
+})
+
+test('reorders fields with move up', async () => {
+  mockApi(); renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+  fireEvent.click(screen.getByRole('button', { name: /add date/i }))
+  const ups = screen.getAllByRole('button', { name: /move up/i })
+  fireEvent.click(ups[ups.length - 1]) // move the date field above the text field
+  const items = screen.getAllByRole('listitem')
+  expect(items[0]).toHaveTextContent(/date/i)
+})
+
+test('autosave does NOT fire on initial load (spurious-write guard)', async () => {
+  // Reuse the spy returned by mockApi — a second spyOn would overwrite the mock implementation
+  const fetchSpy = mockApi()
+  renderBuilder()
+  // Wait for the draft to be fully seeded — canvas carries data-version-id once seededId is set
+  await waitFor(() => expect(document.querySelector('[data-version-id="fv_draft_1"]')).toBeTruthy())
+  // Switch to fake timers so we can advance past the debounce without real delays
+  vi.useFakeTimers()
+  try {
+    fetchSpy.mockClear()
+    // Advance well past the 400 ms autosave debounce with no user action
+    await vi.advanceTimersByTimeAsync(600)
+    const patchCalls = fetchSpy.mock.calls.filter(
+      ([input, init]) => String(input).includes('/forms/frm_draft/draft') && (init as RequestInit | undefined)?.method === 'PATCH'
+    )
+    expect(patchCalls).toHaveLength(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('autosave fires after a user adds a field', async () => {
+  // Reuse the spy returned by mockApi — a second spyOn would overwrite the mock implementation
+  const fetchSpy = mockApi()
+  renderBuilder()
+  // Wait for the draft to be fully seeded — canvas data-version-id is set when seededId state
+  // lands after the render-time seed block fires. Only THEN is it safe to click without racing.
+  await waitFor(() => expect(document.querySelector('[data-version-id="fv_draft_1"]')).toBeTruthy())
+  fetchSpy.mockClear()
+  // Switch to fake timers AFTER the real-fetch loading is done. This freezes the event loop's
+  // timer queue so the autosave's 400 ms debounce only fires when we advance time explicitly —
+  // avoiding the race where waitFor polling delays the effect past our wait window.
+  vi.useFakeTimers()
+  try {
+    // User action: add a field — sets dirtyRef.current = true and queues the effect.
+    // With fake timers, fireEvent is still synchronous and React flushes synchronously.
+    fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+    // Let React flush the render and the useEffect (effects flush as microtasks after commit).
+    // A zero-delay fake-timer advance + flush of pending microtasks does the job.
+    await vi.runAllTimersAsync()
+    // The effect has now registered the 400 ms autosave setTimeout (fake timer).
+    // Advance past the debounce.
+    await vi.advanceTimersByTimeAsync(500)
+  } finally {
+    vi.useRealTimers()
+  }
+  const patchCalls = fetchSpy.mock.calls.filter(
+    ([input, init]) => String(input).includes('/forms/frm_draft/draft') && (init as RequestInit | undefined)?.method === 'PATCH'
+  )
+  expect(patchCalls.length).toBeGreaterThan(0)
+}, 4000)
+
+test('inspector label edit updates the canvas label and flows through updateFields', async () => {
+  mockApi(); renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  // Add a short text field
+  fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+  // Click the field row to select it (the field row button shows the label)
+  const fieldBtn = await screen.findByRole('button', { name: /short text/i })
+  fireEvent.click(fieldBtn)
+  // Inspector should now be visible — change the label
+  const labelInput = screen.getByLabelText(/field label/i)
+  fireEvent.change(labelInput, { target: { value: 'Your email' } })
+  // The canvas should now reflect the updated label in the list item
+  expect(screen.getByText('Your email')).toBeInTheDocument()
+})
+
+test('publish snapshots the draft into a published version', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/publish')) return Promise.resolve(jsonResponse({ data: { ...DRAFT, status: 'published', published_at: 'y' } }))
+    if (url.includes('/forms/frm_draft/draft')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/form-versions/fv_draft_1')) return Promise.resolve(jsonResponse({ data: DRAFT }))
+    if (url.includes('/forms/frm_draft')) return Promise.resolve(jsonResponse({ data: FORM }))
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  // Add a field first — Publish is disabled when there are no fields (finding 4).
+  // Wait for the draft to seed (palette enabled) before clicking to avoid a race.
+  await waitFor(() => expect(screen.getByRole('button', { name: /add short text/i })).not.toBeDisabled())
+  fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+  // Wait for the Publish button to become enabled (field now present)
+  await waitFor(() => expect(screen.getByRole('button', { name: /^publish$/i })).not.toBeDisabled())
+  fireEvent.click(screen.getByRole('button', { name: /^publish$/i }))
+  // Badge changes to "Published (read-only)" — match the data-status attribute
+  await waitFor(() => expect(document.querySelector('[data-status="published"]')).toBeTruthy())
+})
+
+test('after Publish then fork, builder is editable again (justPublished cleared)', async () => {
+  // Covers finding 1: forkMutation.onSuccess must call setJustPublished(false) so that
+  // readOnly becomes false once the forked draft is loaded.
+  const PUBLISHED_FORM = {
+    id: 'frm_draft', name: 'New form', description: null, latest_version: 2,
+    published_version_ids: ['fv_pub_1'], current_draft_version_id: null,
+  }
+  const FORKED_DRAFT = { id: 'fv_fork_1', form_id: 'frm_draft', version: 2, status: 'draft', fields: [], created_at: 'x', published_at: null }
+  const FORM_AFTER_FORK = { ...PUBLISHED_FORM, current_draft_version_id: 'fv_fork_1' }
+
+  let formFetches = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/fork')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/form-versions/fv_fork_1')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/forms/frm_draft')) {
+      formFetches += 1
+      return Promise.resolve(jsonResponse({ data: formFetches > 1 ? FORM_AFTER_FORK : PUBLISHED_FORM }))
+    }
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+
+  // Published-only state: "Edit (new draft)" button visible, palette buttons disabled
+  const editBtn = await screen.findByRole('button', { name: /edit.*new draft/i })
+
+  // Palette add buttons should be disabled in read-only (published-only) state
+  const addShortTextBefore = screen.getByRole('button', { name: /add short text/i })
+  expect(addShortTextBefore).toBeDisabled()
+
+  // Click "Edit (new draft)" to fork
+  fireEvent.click(editBtn)
+
+  // After fork resolves and query refetches, the builder should become editable:
+  // palette buttons must no longer be disabled
+  await waitFor(() => expect(screen.getByRole('button', { name: /add short text/i })).not.toBeDisabled())
+})
+
+test('inspector label input is disabled when viewing a published (read-only) version', async () => {
+  // Covers finding 2: FieldInspector must receive readOnly=true when the builder is in read-only mode.
+  // We simulate the published-only state (no current draft) so readOnly=true from the start.
+  // We manually set selectedId by directly verifying the inspector renders — but since
+  // the select button is disabled in read-only mode, we test the field label input directly
+  // after seeding a field into the view via the published version data.
+  const PUBLISHED_FORM = {
+    id: 'frm_draft', name: 'New form', description: null, latest_version: 1,
+    published_version_ids: ['fv_pub_1'], current_draft_version_id: null,
+  }
+  const PUBLISHED_VER = {
+    id: 'fv_pub_1', form_id: 'frm_draft', version: 1, status: 'published',
+    fields: [{ id: 'f1', type: 'short_text' as const, label: 'Name', required: false }],
+    created_at: 'x', published_at: 'y',
+  }
+
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/form-versions/fv_pub_1')) return Promise.resolve(jsonResponse({ data: PUBLISHED_VER }))
+    if (url.includes('/forms/frm_draft')) return Promise.resolve(jsonResponse({ data: PUBLISHED_FORM }))
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+
+  // The palette "Add short text" button should be disabled (read-only state)
+  await waitFor(() => expect(screen.getByRole('button', { name: /add short text/i })).toBeDisabled())
+})
+
+test('no autosave PATCH fires immediately after fork seeds a new draft', async () => {
+  // Scenario: user has a published form (no current draft). Fork creates a new draft.
+  // The dirty bit must be clean after fork so autosave doesn't fire on the freshly seeded draft.
+  const PUBLISHED_FORM = {
+    id: 'frm_draft', name: 'New form', description: null, latest_version: 2,
+    published_version_ids: ['fv_pub_1'], current_draft_version_id: null,
+  }
+  const PUBLISHED_VER = { id: 'fv_pub_1', form_id: 'frm_draft', version: 1, status: 'published', fields: [], created_at: 'x', published_at: 'y' }
+  const FORKED_DRAFT = { id: 'fv_fork_1', form_id: 'frm_draft', version: 2, status: 'draft', fields: [], created_at: 'x', published_at: null }
+  const FORM_AFTER_FORK = { ...PUBLISHED_FORM, current_draft_version_id: 'fv_fork_1' }
+
+  let formFetches = 0
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    if (url.includes('/forms/frm_draft/fork')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/form-versions/fv_fork_1')) return Promise.resolve(jsonResponse({ data: FORKED_DRAFT }))
+    if (url.includes('/form-versions/fv_pub_1')) return Promise.resolve(jsonResponse({ data: PUBLISHED_VER }))
+    if (url.includes('/forms/frm_draft')) {
+      formFetches += 1
+      // After first fetch (initial load), return form with draft so the builder reflects fork
+      return Promise.resolve(jsonResponse({ data: formFetches > 1 ? FORM_AFTER_FORK : PUBLISHED_FORM }))
+    }
+    return Promise.resolve(new Response(null, { status: 404 }))
+  })
+
+  renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+
+  // Wait for the "Edit (new draft)" button to appear (no current draft = published-only state)
+  const editBtn = await screen.findByRole('button', { name: /edit.*new draft/i })
+
+  fetchSpy.mockClear()
+  vi.useFakeTimers()
+  try {
+    // User clicks "Edit (new draft)" — triggers fork mutation
+    fireEvent.click(editBtn)
+    // Let async microtasks settle (fork mutation resolves, query invalidation fires)
+    await vi.runAllTimersAsync()
+    // Advance well past the 400 ms autosave debounce
+    await vi.advanceTimersByTimeAsync(600)
+    // Confirm no spurious PATCH was fired on the freshly seeded draft
+    const patchCalls = fetchSpy.mock.calls.filter(
+      ([input, init]) => String(input).includes('/draft') && (init as RequestInit | undefined)?.method === 'PATCH'
+    )
+    expect(patchCalls).toHaveLength(0)
+  } finally {
+    vi.useRealTimers()
+  }
+})

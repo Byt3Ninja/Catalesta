@@ -18,11 +18,11 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts', '**/fe-ui-slice1b.spec.ts', '**/fe-ui-slice2a.spec.ts'], // MSW-dev-server specs only
+      testIgnore: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts', '**/fe-ui-slice1b.spec.ts', '**/fe-ui-slice2a.spec.ts', '**/fe-ui-slice2b.spec.ts'], // MSW-dev-server specs only
     },
     {
       name: 'msw-dev',
-      testMatch: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts', '**/fe-ui-slice1b.spec.ts', '**/fe-ui-slice2a.spec.ts'],
+      testMatch: ['**/fe-ui-slice0.spec.ts', '**/fe-ui-slice1a.spec.ts', '**/fe-ui-slice1b.spec.ts', '**/fe-ui-slice2a.spec.ts', '**/fe-ui-slice2b.spec.ts'],
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5173' },
     },
   ],

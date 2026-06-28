@@ -6,6 +6,13 @@ import { DirectionProvider } from '../app/DirectionProvider'
 import { CohortDetailPage } from './CohortDetailPage'
 import { jsonResponse } from '../tests/test-utils'
 
+// Stub forms fetches so the FormBindingPicker in the page doesn't make
+// real fetch calls (it renders inside the detail view).
+vi.mock('../api/forms', () => ({
+  listForms: () => Promise.resolve([]),
+  listFormVersions: () => Promise.resolve([]),
+}))
+
 // ContextSelector (rendered by AppShell) fetches /me/roles; stub it so these
 // content tests aren't coupled to the role switcher's query (≤1 role → plain label).
 vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))

@@ -12,4 +12,5 @@ test('cohort CRUD handlers are registered', () => {
   expect(hasRoute('POST', '/programs/:programId/cohorts')).toBe(true)
   expect(hasRoute('PATCH', '/cohorts/:id')).toBe(true)
   expect(hasRoute('POST', '/cohorts/:id/open')).toBe(true)
+  expect(hasRoute('POST', '/cohorts/:id/bind-form')).toBe(true)
 })

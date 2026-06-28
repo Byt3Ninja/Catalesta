@@ -156,7 +156,95 @@ const SEARCH_INDEX: SearchGroup[] = [
   ] },
 ]
 
+// ---- forms store ----
+type FormRec = { id: string; name: string; description: string | null; latest_version: number; published_version_ids: string[]; current_draft_version_id: string | null }
+type FormVersionRec = { id: string; form_id: string; version: number; status: 'draft' | 'published'; fields: unknown[]; created_at: string; published_at: string | null }
+
+const forms: FormRec[] = [
+  { id: 'frm_pub', name: 'Application form', description: 'Main intake', latest_version: 2, published_version_ids: ['fv_pub_1'], current_draft_version_id: 'fv_pub_2' },
+  { id: 'frm_draft', name: 'New form', description: null, latest_version: 1, published_version_ids: [], current_draft_version_id: 'fv_draft_1' },
+]
+const formVersions: FormVersionRec[] = [
+  { id: 'fv_pub_1', form_id: 'frm_pub', version: 1, status: 'published', fields: [
+    { id: 'f_name', type: 'short_text', label: 'Startup name', required: true },
+    { id: 'f_stage', type: 'single_select', label: 'Stage', options: ['Idea', 'MVP'] },
+  ], created_at: NOW, published_at: NOW },
+  { id: 'fv_pub_2', form_id: 'frm_pub', version: 2, status: 'draft', fields: [
+    { id: 'f_name', type: 'short_text', label: 'Startup name', required: true },
+    { id: 'f_stage', type: 'single_select', label: 'Stage', options: ['Idea', 'MVP', 'Growth'] },
+  ], created_at: NOW, published_at: null },
+  { id: 'fv_draft_1', form_id: 'frm_draft', version: 1, status: 'draft', fields: [], created_at: NOW, published_at: null },
+]
+let formSeq = 3
+let versionSeq = 3
+
+const formHandlers = [
+  http.get('*/api/v1/forms', () => HttpResponse.json({ data: forms })),
+  http.post('*/api/v1/forms', async ({ request }) => {
+    const body = (await request.json()) as { name?: string }
+    const name = (body.name ?? '').trim()
+    if (!name) return HttpResponse.json({ error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } }, { status: 422 })
+    const fid = `frm_${formSeq++}`, vid = `fv_${versionSeq++}`
+    formVersions.push({ id: vid, form_id: fid, version: 1, status: 'draft', fields: [], created_at: new Date().toISOString(), published_at: null })
+    const rec: FormRec = { id: fid, name, description: null, latest_version: 1, published_version_ids: [], current_draft_version_id: vid }
+    forms.push(rec)
+    return HttpResponse.json({ data: rec }, { status: 201 })
+  }),
+  http.get('*/api/v1/forms/:id', ({ params }) => {
+    const f = forms.find((x) => x.id === params.id)
+    return f ? HttpResponse.json({ data: f }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.get('*/api/v1/forms/:id/versions', ({ params }) => HttpResponse.json({ data: formVersions.filter((v) => v.form_id === params.id).sort((a, b) => b.version - a.version) })),
+  http.get('*/api/v1/form-versions/:versionId', ({ params }) => {
+    const v = formVersions.find((x) => x.id === params.versionId)
+    return v ? HttpResponse.json({ data: v }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.patch('*/api/v1/forms/:id/draft', async ({ params, request }) => {
+    const f = forms.find((x) => x.id === params.id)
+    if (!f || !f.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = formVersions.find((v) => v.id === f.current_draft_version_id)
+    if (!draft) return new HttpResponse(null, { status: 404 })
+    if (draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    const body = (await request.json()) as { fields?: unknown[] }
+    draft.fields = body.fields ?? []
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/forms/:id/publish', ({ params }) => {
+    const f = forms.find((x) => x.id === params.id)
+    if (!f || !f.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = formVersions.find((v) => v.id === f.current_draft_version_id)
+    if (!draft || draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    draft.status = 'published'
+    draft.published_at = new Date().toISOString()
+    f.published_version_ids.push(draft.id)
+    f.current_draft_version_id = null
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/forms/:id/fork', async ({ params, request }) => {
+    const f = forms.find((x) => x.id === params.id)
+    if (!f) return new HttpResponse(null, { status: 404 })
+    // Read from_version_id from the request body; fall back to latest published if omitted.
+    let fromVersionId: string | undefined
+    try {
+      const body = (await request.json()) as { from_version_id?: string }
+      fromVersionId = body.from_version_id
+    } catch {
+      // body may be absent or non-JSON
+    }
+    const from = fromVersionId
+      ? formVersions.find((v) => v.id === fromVersionId)
+      : formVersions.find((v) => v.id === f.published_version_ids[f.published_version_ids.length - 1])
+    const vid = `fv_${versionSeq++}`
+    const next = f.latest_version + 1
+    formVersions.push({ id: vid, form_id: f.id, version: next, status: 'draft', fields: from ? JSON.parse(JSON.stringify(from.fields)) : [], created_at: new Date().toISOString(), published_at: null })
+    f.latest_version = next
+    f.current_draft_version_id = vid
+    return HttpResponse.json({ data: formVersions[formVersions.length - 1] })
+  }),
+]
+
 export const handlers = [
+  ...formHandlers,
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
   http.get('*/sanctum/csrf-cookie', () => new HttpResponse(null, { status: 204 })),
@@ -221,6 +309,14 @@ export const handlers = [
     found.status = 'open'
     found.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: found })
+  }),
+  http.post('*/api/v1/cohorts/:id/bind-form', async ({ params, request }) => {
+    const c = cohorts.find((x) => x.id === params.id)
+    if (!c) return new HttpResponse(null, { status: 404 })
+    const b = (await request.json()) as { form_version_id?: string }
+    ;(c as Record<string, unknown>).bound_form_version_id = b.form_version_id ?? null
+    c.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: c })
   }),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
