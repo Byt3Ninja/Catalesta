@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { Field } from '../components/Field'
+import { FormBindingPicker } from '../components/FormBindingPicker'
 import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
@@ -103,9 +104,25 @@ export function CohortDetailPage({ cohortId }: { cohortId: string }) {
                     <Link href={`/cohorts/${cohortId}/enrollment`}>Edit enrollment window</Link>
                   </dd>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="grid gap-2">
                   <dt className="text-muted-foreground">Application form</dt>
-                  <dd className="text-muted-foreground">Not bound yet</dd>
+                  <dd>
+                    {cohort.bound_form_version_id ? (
+                      <span className="text-sm font-medium">Bound: {cohort.bound_form_version_id}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Not bound yet</span>
+                    )}
+                    <FormBindingPicker
+                      cohortId={cohortId}
+                      boundVersionId={cohort.bound_form_version_id}
+                      onBound={async (updated) => {
+                        await queryClient.invalidateQueries({ queryKey: ['cohort', cohortId] })
+                        await queryClient.invalidateQueries({ queryKey: ['cohorts'] })
+                        // Update the cache immediately so the UI reflects the new binding
+                        queryClient.setQueryData(['cohort', cohortId], updated)
+                      }}
+                    />
+                  </dd>
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="text-muted-foreground">Stage pipeline</dt>

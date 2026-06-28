@@ -310,6 +310,14 @@ export const handlers = [
     found.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: found })
   }),
+  http.post('*/api/v1/cohorts/:id/bind-form', async ({ params, request }) => {
+    const c = cohorts.find((x) => x.id === params.id)
+    if (!c) return new HttpResponse(null, { status: 404 })
+    const b = (await request.json()) as { form_version_id?: string }
+    ;(c as Record<string, unknown>).bound_form_version_id = b.form_version_id ?? null
+    c.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: c })
+  }),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey
