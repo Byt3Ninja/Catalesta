@@ -8,6 +8,7 @@ import { StateBlock } from '../components/StateBlock'
 import { getForm, getFormVersion, saveFormDraft } from '../api/forms'
 import type { FormField } from '../schemas/forms'
 import { fieldType as fieldTypeEnum } from '../schemas/apply'
+import { FieldInspector } from '../components/FieldInspector'
 
 const TYPE_LABEL: Record<string, string> = {
   short_text: 'Short text', long_text: 'Long text', single_select: 'Single select',
@@ -114,9 +115,13 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                   </ul>
                 )}
               </div>
-              {/* inspector placeholder — filled in Tasks 5–6 */}
-              <div aria-label="Field settings" className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
-                {selectedId ? 'Field settings' : 'Select a field to edit its settings.'}
+              {/* inspector — wired to updateFields so autosave dirty-tracks every edit */}
+              <div aria-label="Field settings" className="rounded-lg border border-border p-3">
+                {(() => {
+                  const selected = fields.find((f) => f.id === selectedId)
+                  if (!selected) return <p className="text-sm text-muted-foreground">Select a field to edit its settings.</p>
+                  return <FieldInspector field={selected} onChange={(patch) => updateFields(fields.map((f) => (f.id === selected.id ? { ...f, ...patch } : f)))} />
+                })()}
               </div>
             </section>
           </>

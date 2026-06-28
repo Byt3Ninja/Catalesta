@@ -97,3 +97,18 @@ test('autosave fires after a user adds a field', async () => {
   )
   expect(patchCalls.length).toBeGreaterThan(0)
 }, 4000)
+
+test('inspector label edit updates the canvas label and flows through updateFields', async () => {
+  mockApi(); renderBuilder()
+  await screen.findByRole('heading', { name: /form builder|new form/i })
+  // Add a short text field
+  fireEvent.click(screen.getByRole('button', { name: /add short text/i }))
+  // Click the field row to select it (the field row button shows the label)
+  const fieldBtn = await screen.findByRole('button', { name: /short text/i })
+  fireEvent.click(fieldBtn)
+  // Inspector should now be visible — change the label
+  const labelInput = screen.getByLabelText(/field label/i)
+  fireEvent.change(labelInput, { target: { value: 'Your email' } })
+  // The canvas should now reflect the updated label in the list item
+  expect(screen.getByText('Your email')).toBeInTheDocument()
+})
