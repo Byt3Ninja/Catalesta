@@ -13,10 +13,12 @@ export function VisibilityEditor({
   field,
   priorFields,
   onChange,
+  readOnly = false,
 }: {
   field: FormField
   priorFields: FormField[]
   onChange: (v: VisibilityRule | undefined) => void
+  readOnly?: boolean
 }) {
   const rule = field.visibility ?? { match: 'all' as const, conditions: [] as VisibilityCondition[] }
 
@@ -59,6 +61,7 @@ export function VisibilityEditor({
           Match
           <select
             value={rule.match}
+            disabled={readOnly}
             onChange={(e) => emit({ ...rule, match: e.target.value as 'all' | 'any' })}
             className="rounded-md border border-input bg-card p-1"
           >
@@ -76,6 +79,7 @@ export function VisibilityEditor({
           <select
             id={`when-${field.id}-${i}`}
             value={c.field_id}
+            disabled={readOnly}
             onChange={(e) => patch(i, { field_id: e.target.value })}
             className="rounded-md border border-input bg-card p-1"
           >
@@ -88,6 +92,7 @@ export function VisibilityEditor({
           <select
             aria-label="Operator"
             value={c.operator}
+            disabled={readOnly}
             onChange={(e) => patch(i, { operator: e.target.value as VisibilityCondition['operator'] })}
             className="rounded-md border border-input bg-card p-1"
           >
@@ -101,16 +106,17 @@ export function VisibilityEditor({
             <input
               aria-label="Value"
               value={c.value ?? ''}
+              disabled={readOnly}
               onChange={(e) => patch(i, { value: e.target.value })}
               className="rounded-md border border-input bg-card p-1"
             />
           )}
-          <Button variant="secondary" aria-label={`Remove condition ${i + 1}`} onClick={() => removeCondition(i)}>
+          <Button variant="secondary" aria-label={`Remove condition ${i + 1}`} disabled={readOnly} onClick={() => removeCondition(i)}>
             ✕
           </Button>
         </span>
       ))}
-      <Button variant="secondary" onClick={addCondition}>
+      <Button variant="secondary" disabled={readOnly} onClick={addCondition}>
         Add condition
       </Button>
     </fieldset>

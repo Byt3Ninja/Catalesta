@@ -58,6 +58,8 @@ export function FormBuilderPage({ formId }: { formId: string }) {
       // does not fire. The render-time seed block will set seededId = v.id; because
       // dirtyRef is false at that point, autosave is suppressed until the user actually edits.
       dirtyRef.current = false
+      // Clear justPublished so the forked draft is immediately editable (finding 1).
+      setJustPublished(false)
       setFields(v.fields)
       void queryClient.invalidateQueries({ queryKey: ['form', formId] })
     },
@@ -122,7 +124,7 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                   {draftId && !justPublished ? `Draft v${draftQuery.data?.version ?? ''}` : 'Published (read-only)'}
                 </span>
                 {draftId && !justPublished && (
-                  <Button loading={publishMutation.isPending} onClick={() => publishMutation.mutate()}>
+                  <Button loading={publishMutation.isPending} disabled={fields.length === 0} onClick={() => publishMutation.mutate()}>
                     Publish
                   </Button>
                 )}
@@ -133,6 +135,13 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                 )}
               </div>
             </div>
+            {/* Publish/fork error banners (finding 3) */}
+            {publishMutation.isError && (
+              <StateBlock variant="error" message="Could not publish. Try again." />
+            )}
+            {forkMutation.isError && (
+              <StateBlock variant="error" message="Could not create new draft. Try again." />
+            )}
             {/* Read-only banner shown when the form was loaded with no current draft (published-only).
                 Not shown immediately after a publish — the badge + Edit button already communicate
                 the state and avoids a duplicate /published/i match in tests. */}
@@ -158,7 +167,7 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                   <ul className="grid gap-2">
                     {fields.map((f, idx) => (
                       <li key={f.id} className={`flex items-center justify-between rounded-md border px-3 py-2 ${selectedId === f.id ? 'border-primary bg-accent' : 'border-border'}`}>
-                        <button type="button" className="text-left" onClick={() => setSelectedId(f.id)}>
+                        <button type="button" className="text-left" disabled={readOnly} onClick={() => setSelectedId(f.id)}>
                           <span className="font-medium"><bdi>{f.label}</bdi></span>
                           <span className="ml-2 text-xs text-muted-foreground">{TYPE_LABEL[f.type] ?? f.type}</span>
                         </button>
@@ -178,7 +187,7 @@ export function FormBuilderPage({ formId }: { formId: string }) {
                   const selected = fields.find((f) => f.id === selectedId)
                   if (!selected) return <p className="text-sm text-muted-foreground">Select a field to edit its settings.</p>
                   const priorFields = fields.slice(0, fields.findIndex((f) => f.id === selected.id))
-                  return <FieldInspector field={selected} priorFields={priorFields} onChange={(patch) => updateFields(fields.map((f) => (f.id === selected.id ? { ...f, ...patch } : f)))} />
+                  return <FieldInspector field={selected} priorFields={priorFields} readOnly={readOnly} onChange={(patch) => updateFields(fields.map((f) => (f.id === selected.id ? { ...f, ...patch } : f)))} />
                 })()}
               </div>
             </section>
