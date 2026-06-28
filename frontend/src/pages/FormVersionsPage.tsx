@@ -72,8 +72,8 @@ export function FormVersionsPage({ formId }: { formId: string }) {
         {versionsQuery.isLoading && <p>Loading versions…</p>}
         {versionsQuery.isError && (
           <StateBlock
-            title="Could not load versions"
-            description="Please try again."
+            variant="error"
+            message="Could not load versions. Please try again."
           />
         )}
 

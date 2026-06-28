@@ -106,7 +106,11 @@ export function FormBindingPicker({ cohortId, boundVersionId, onBound }: FormBin
 
       {!isLoading && (
         <div className="flex items-center gap-2 flex-wrap">
+          <label htmlFor="form-binding-select" className="text-sm font-medium">
+            Published version
+          </label>
           <select
+            id="form-binding-select"
             className={cn(
               'rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm',
               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
