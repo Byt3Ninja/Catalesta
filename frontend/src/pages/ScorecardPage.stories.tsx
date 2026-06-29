@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Scorecard } from '../schemas/assessments'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DirectionProvider } from '../app/DirectionProvider'
 import { ScorecardPage } from './ScorecardPage'
@@ -65,7 +66,7 @@ const SUBMITTED_SCORECARD = {
 // ── story decorator ───────────────────────────────────────────────────────────
 
 function withProviders(
-  scorecardPayload: typeof PARTIAL_SCORECARD | null,
+  scorecardPayload: Scorecard | null,
   modelVersionPayload: typeof MODEL_VERSION,
 ) {
   return function Decorator(Story: () => ReactElement) {
