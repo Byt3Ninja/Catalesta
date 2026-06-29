@@ -44,7 +44,7 @@ function StageCard({ stage, byId }: { stage: Stage; byId: Map<string, Stage> }) 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-medium">{stage.order + 1}. {stage.name}</h3>
+        <h2 className="font-medium">{stage.order + 1}. {stage.name}</h2>
         <TypeBadge type={stage.type} />
       </div>
       <dl className="mt-2 grid gap-1 text-sm text-muted-foreground">
