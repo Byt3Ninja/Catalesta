@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { jsonResponse } from '../tests/test-utils'
+import type { ScoringCriterion } from '../schemas/assessments'
 import {
   listScoringModels, getScoringModel, getScoringModelVersion, listScoringModelVersions,
   createScoringModel, saveScoringModelDraft, publishScoringModel, forkScoringModelDraft,
@@ -55,6 +56,11 @@ test('listScoringModelVersions returns versions', async () => {
   expect(vs).toHaveLength(1)
 })
 
+test('listScoringModelVersions 404 throws NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(listScoringModelVersions('nope')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+})
+
 test('createScoringModel POSTs the name and returns the model', async () => {
   const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: MODEL }, 201))
   const m = await createScoringModel('prog_1', 'Technical Assessment')
@@ -70,7 +76,7 @@ test('createScoringModel 422 throws VALIDATION', async () => {
 
 test('saveScoringModelDraft PATCHes criteria and returns the draft', async () => {
   const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: { ...DRAFT, criteria: [CRITERION] } }))
-  const v = await saveScoringModelDraft('sm_1', [CRITERION] as never)
+  const v = await saveScoringModelDraft('sm_1', [CRITERION] as ScoringCriterion[])
   expect(v.criteria).toHaveLength(1)
   expect(JSON.parse((spy.mock.calls[0][1]?.body as string) ?? '{}').criteria[0].criterion_id).toBe('c1')
 })
@@ -98,6 +104,11 @@ test('forkScoringModelDraft sends from_version_id and returns a draft', async ()
   expect(v.version_id).toBe('smv_2')
   expect(v.status).toBe('draft')
   expect(JSON.parse((spy.mock.calls[0][1]?.body as string) ?? '{}').from_version_id).toBe('smv_pub_1')
+})
+
+test('forkScoringModelDraft 404 throws NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(forkScoringModelDraft('sm_1', 'nope')).rejects.toMatchObject({ code: 'NOT_FOUND' })
 })
 
 test('listAssignments returns assignments for cohort stage', async () => {
