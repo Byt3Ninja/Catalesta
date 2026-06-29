@@ -75,6 +75,21 @@ export async function listAssignments(cohortId: string, stageId: string): Promis
   return reviewerAssignmentListResponseSchema.parse(await res.json()).data
 }
 
+export async function generateAssignments(
+  cohortId: string,
+  stageId: string,
+  payload: { reviewer_ids: string[]; per_app: number },
+): Promise<ReviewerAssignment[]> {
+  const res = await csrfFetch(`/cohorts/${cohortId}/stages/${stageId}/assignments`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  if (res.status === 200 || res.status === 201) return reviewerAssignmentListResponseSchema.parse(await res.json()).data
+  if (res.status === 401) throw new AssignmentError('UNAUTHENTICATED')
+  if (res.status === 422) throw new AssignmentError('VALIDATION', 'Invalid assignment payload.')
+  throw new AssignmentError('UNKNOWN', `Unexpected status ${res.status}`)
+}
+
 export async function getScorecard(cohortId: string, stageId: string, applicationId: string, reviewerId: string): Promise<Scorecard> {
   const res = await apiFetch(`/cohorts/${cohortId}/stages/${stageId}/scorecards/${applicationId}/${reviewerId}`)
   if (res.status === 200) return scorecardResponseSchema.parse(await res.json()).data

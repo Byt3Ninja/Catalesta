@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { assign as assignRoundRobin } from '../lib/reviewerAssignment'
 import type { SessionUser } from '@/schemas/session'
 import type { Organization } from '@/schemas/organizations'
 import type { Program } from '@/schemas/programs'
@@ -369,6 +370,13 @@ const decisions: DecisionRec[] = []
 let scoringModelSeq = 3
 let scoringModelVersionSeq = 3
 
+// Seeded application IDs for cohort coh_1 — used by the round-robin assignment handler.
+// These represent the 3 submissions_count on the demo cohort.
+const COHORT_APPLICATION_IDS: Record<string, string[]> = {
+  coh_1: ['app_1', 'app_2', 'app_3'],
+}
+let assignmentSeq = 1
+
 const scoringModelHandlers = [
   http.get('*/api/v1/programs/:programId/scoring-models', ({ params }) =>
     HttpResponse.json({ data: scoringModels.filter((m) => m.program_id === params.programId) })),
@@ -435,6 +443,35 @@ const scoringModelHandlers = [
   }),
   http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/assignments', ({ params }) =>
     HttpResponse.json({ data: assignments.filter((a) => a.cohort_id === params.cohortId && a.stage_id === params.stageId) })),
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/assignments', async ({ params, request }) => {
+    const body = (await request.json()) as { reviewer_ids?: string[]; per_app?: number }
+    const reviewer_ids = body.reviewer_ids ?? []
+    const per_app = body.per_app ?? 1
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationIds = COHORT_APPLICATION_IDS[cohortId] ?? []
+    // Remove existing assignments for this cohort+stage slice before replacing.
+    const keep = assignments.filter((a) => !(a.cohort_id === cohortId && a.stage_id === stageId))
+    assignments.length = 0
+    for (const a of keep) assignments.push(a)
+    // Run the real round-robin engine.
+    const generated: AssignmentRec[] = []
+    for (const { application_id, reviewer_ids: rids } of assignRoundRobin(applicationIds, reviewer_ids, per_app)) {
+      for (const reviewer_id of rids) {
+        const rec: AssignmentRec = {
+          assignment_id: `asgn_${assignmentSeq++}`,
+          cohort_id: cohortId,
+          stage_id: stageId,
+          application_id,
+          reviewer_id,
+          status: 'pending',
+        }
+        assignments.push(rec)
+        generated.push(rec)
+      }
+    }
+    return HttpResponse.json({ data: generated }, { status: 201 })
+  }),
   http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId', ({ params }) => {
     const sc = scorecards.find((s) => s.cohort_id === params.cohortId && s.stage_id === params.stageId && s.application_id === params.applicationId && s.reviewer_id === params.reviewerId)
     return sc ? HttpResponse.json({ data: sc }) : new HttpResponse(null, { status: 404 })
