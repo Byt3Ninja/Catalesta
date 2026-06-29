@@ -342,9 +342,112 @@ const stagePipelineHandlers = [
   }),
 ]
 
+// ---- scoring models store ----
+type ScoringCriterionRec = { criterion_id: string; label: string; max_points: number; descriptors: string[] | null }
+type ScoringModelRec = { model_id: string; program_id: string; name: string; latest_version: number; published_version_ids: string[]; current_draft_version_id: string | null; created_at: string }
+type ScoringModelVersionRec = { version_id: string; model_id: string; version: number; status: 'draft' | 'published'; criteria: ScoringCriterionRec[]; created_at: string; published_at: string | null }
+
+const scoringModels: ScoringModelRec[] = [
+  { model_id: 'sm_pub', program_id: 'prog_1', name: 'Technical Assessment', latest_version: 1, published_version_ids: ['smv_pub_1'], current_draft_version_id: null, created_at: NOW },
+  { model_id: 'sm_draft', program_id: 'prog_1', name: 'Market Fit Assessment', latest_version: 1, published_version_ids: [], current_draft_version_id: 'smv_draft_1', created_at: NOW },
+]
+const scoringModelVersions: ScoringModelVersionRec[] = [
+  { version_id: 'smv_pub_1', model_id: 'sm_pub', version: 1, status: 'published', criteria: [
+    { criterion_id: 'c_innovation', label: 'Innovation', max_points: 10, descriptors: ['Highly innovative', 'Somewhat innovative', 'Not innovative'] },
+    { criterion_id: 'c_market', label: 'Market Opportunity', max_points: 10, descriptors: ['Large market', 'Medium market', 'Small market'] },
+    { criterion_id: 'c_team', label: 'Team Strength', max_points: 10, descriptors: ['Strong team', 'Adequate team', 'Weak team'] },
+  ], created_at: NOW, published_at: NOW },
+  { version_id: 'smv_draft_1', model_id: 'sm_draft', version: 1, status: 'draft', criteria: [], created_at: NOW, published_at: null },
+]
+// Empty stores consumed by future tasks (Tasks 8, 9, 11)
+type AssignmentRec = { assignment_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; status: 'pending' | 'submitted' }
+type ScorecardRec = { scorecard_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; model_version_id: string; values: Record<string, number>; disqualified: boolean; status: 'draft' | 'submitted'; submitted_at: string | null }
+type DecisionRec = { decision_id: string; cohort_id: string; stage_id: string; application_id: string; outcome: string; snapshot: unknown; decided_by: string }
+const assignments: AssignmentRec[] = []
+const scorecards: ScorecardRec[] = []
+const decisions: DecisionRec[] = []
+let scoringModelSeq = 3
+let scoringModelVersionSeq = 3
+
+const scoringModelHandlers = [
+  http.get('*/api/v1/programs/:programId/scoring-models', ({ params }) =>
+    HttpResponse.json({ data: scoringModels.filter((m) => m.program_id === params.programId) })),
+  http.post('*/api/v1/programs/:programId/scoring-models', async ({ params, request }) => {
+    const body = (await request.json()) as { name?: string }
+    const name = (body.name ?? '').trim()
+    if (!name) return HttpResponse.json({ error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } }, { status: 422 })
+    const mid = `sm_${scoringModelSeq++}`, vid = `smv_${scoringModelVersionSeq++}`
+    scoringModelVersions.push({ version_id: vid, model_id: mid, version: 1, status: 'draft', criteria: [], created_at: new Date().toISOString(), published_at: null })
+    const rec: ScoringModelRec = { model_id: mid, program_id: String(params.programId), name, latest_version: 1, published_version_ids: [], current_draft_version_id: vid, created_at: new Date().toISOString() }
+    scoringModels.push(rec)
+    return HttpResponse.json({ data: rec }, { status: 201 })
+  }),
+  http.get('*/api/v1/scoring-models/:id', ({ params }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    return m ? HttpResponse.json({ data: m }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.get('*/api/v1/scoring-models/:id/versions', ({ params }) =>
+    HttpResponse.json({ data: scoringModelVersions.filter((v) => v.model_id === params.id).sort((a, b) => b.version - a.version) })),
+  http.get('*/api/v1/scoring-model-versions/:versionId', ({ params }) => {
+    const v = scoringModelVersions.find((x) => x.version_id === params.versionId)
+    return v ? HttpResponse.json({ data: v }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.patch('*/api/v1/scoring-models/:id/draft', async ({ params, request }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m || !m.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = scoringModelVersions.find((v) => v.version_id === m.current_draft_version_id)
+    if (!draft) return new HttpResponse(null, { status: 404 })
+    if (draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    const body = (await request.json()) as { criteria?: ScoringCriterionRec[] }
+    draft.criteria = body.criteria ?? []
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/scoring-models/:id/publish', ({ params }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m || !m.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = scoringModelVersions.find((v) => v.version_id === m.current_draft_version_id)
+    if (!draft || draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    draft.status = 'published'
+    draft.published_at = new Date().toISOString()
+    m.published_version_ids.push(draft.version_id)
+    m.current_draft_version_id = null
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/scoring-models/:id/fork', async ({ params, request }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m) return new HttpResponse(null, { status: 404 })
+    let fromVersionId: string | undefined
+    try {
+      const body = (await request.json()) as { from_version_id?: string }
+      fromVersionId = body.from_version_id
+    } catch {
+      // body may be absent or non-JSON
+    }
+    const from = fromVersionId
+      ? scoringModelVersions.find((v) => v.version_id === fromVersionId)
+      : scoringModelVersions.find((v) => v.version_id === m.published_version_ids[m.published_version_ids.length - 1])
+    const vid = `smv_${scoringModelVersionSeq++}`
+    const next = m.latest_version + 1
+    scoringModelVersions.push({ version_id: vid, model_id: m.model_id, version: next, status: 'draft', criteria: from ? JSON.parse(JSON.stringify(from.criteria)) : [], created_at: new Date().toISOString(), published_at: null })
+    m.latest_version = next
+    m.current_draft_version_id = vid
+    return HttpResponse.json({ data: scoringModelVersions[scoringModelVersions.length - 1] })
+  }),
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/assignments', ({ params }) =>
+    HttpResponse.json({ data: assignments.filter((a) => a.cohort_id === params.cohortId && a.stage_id === params.stageId) })),
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId', ({ params }) => {
+    const sc = scorecards.find((s) => s.cohort_id === params.cohortId && s.stage_id === params.stageId && s.application_id === params.applicationId && s.reviewer_id === params.reviewerId)
+    return sc ? HttpResponse.json({ data: sc }) : new HttpResponse(null, { status: 404 })
+  }),
+]
+
+// Silence unused-variable warnings for stores consumed by future tasks.
+void decisions
+
 export const handlers = [
   ...formHandlers,
   ...stagePipelineHandlers,
+  ...scoringModelHandlers,
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
   http.get('*/sanctum/csrf-cookie', () => new HttpResponse(null, { status: 204 })),
