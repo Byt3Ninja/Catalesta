@@ -19,7 +19,7 @@ final class CreateForm
     {
         return DB::transaction(function () use ($name): Form {
             $form = Form::create(['name' => $name]);
-            FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+            FormVersion::create(['form_id' => $form->id, 'status' => 'draft', 'version_number' => 0, 'definition' => []]);
 
             return $form->load('versions');
         });

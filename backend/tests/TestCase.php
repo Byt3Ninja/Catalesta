@@ -115,6 +115,17 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Discard the currently-resolved TenantContext singleton so that the next
+     * HTTP request lets ResolveTenant middleware re-resolve it from scratch.
+     * Use this before an HTTP call that follows a direct actingAsTenant() setup
+     * (which would otherwise leave a stale tenant in the container).
+     */
+    protected function resetTenantContext(): void
+    {
+        $this->app->forgetInstance(TenantContext::class);
+    }
+
+    /**
      * Execute $fn with a completely clean TenantContext (no org, not system).
      * Restores the previous TenantContext instance afterwards so that tests
      * that resolve a tenant via HTTP middleware keep their resolved context.

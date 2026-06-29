@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Forms;
 
 use App\Modules\Forms\Domain\Models\Form;
-use App\Shared\Tenancy\TenantContext;
+use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -60,7 +60,7 @@ final class FormAuthoringTest extends TestCase
         // Reset TenantContext so ResolveTenant middleware can re-resolve it from the header.
         // BelongsToTenant checks has() before isSystem(), so a pre-set context would
         // cause runAsSystem() inside the middleware to filter by the wrong org.
-        $this->app->forgetInstance(TenantContext::class);
+        $this->resetTenantContext();
 
         $res = $this->actingAs($user, 'web')
             ->withHeader('X-Organization-Id', $org->id)
@@ -79,11 +79,28 @@ final class FormAuthoringTest extends TestCase
         [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
 
         // Reset TenantContext so the middleware resolves it fresh from the header.
-        $this->app->forgetInstance(TenantContext::class);
+        $this->resetTenantContext();
 
         $this->actingAs($other, 'web')
             ->withHeader('X-Organization-Id', $otherOrg->id)
             ->getJson("/api/v1/forms/{$form->id}")
             ->assertStatus(404);
+    }
+
+    public function test_member_without_forms_manage_cannot_create_form(): void
+    {
+        [, $org] = $this->bootUserWithOrg();
+
+        $member = $this->makeAccount();
+        $memberMembership = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
+        $memberMembership->organization_id = $org->id;
+        $memberMembership->save();
+
+        $this->resetTenantContext();
+
+        $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson('/api/v1/forms', ['name' => 'Forbidden Form'])
+            ->assertStatus(403);
     }
 }
