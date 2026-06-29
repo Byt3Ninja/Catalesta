@@ -95,7 +95,8 @@ test('adding a dependency on an earlier stage updates the draft', async () => {
   await awaitSeeded()
   fireEvent.click(screen.getByRole('button', { name: /add review/i }))
   await addAndSelect(/add interview/i) // select Interview (2nd); Review is the only prior stage
-  fireEvent.click(within(inspector()).getByRole('checkbox', { name: 'Review' }))
+  const deps = within(inspector()).getByRole('group', { name: /depends on/i })
+  fireEvent.click(within(deps).getByRole('checkbox', { name: 'Review' }))
   await waitFor(() => {
     const stages = lastPatchStages(spy)
     expect(stages).not.toBeNull()
@@ -119,6 +120,44 @@ test('adding an entry condition produces a valid StageRule on the draft', async 
     expect(() => stageRuleSchema.parse(review!.entry_rule)).not.toThrow()
     expect((review!.entry_rule as { conditions: unknown[] }).conditions).toHaveLength(1)
   })
+})
+
+const routingGroup = () => within(inspector()).getByRole('group', { name: /routing/i })
+
+test('routing a valid branch updates the draft next_stage_ids', async () => {
+  const spy = mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add review/i }))
+  fireEvent.click(screen.getByRole('button', { name: /add interview/i }))
+  fireEvent.click(within(screen.getAllByRole('listitem')[0]).getAllByRole('button')[0]) // select Review
+  fireEvent.click(within(routingGroup()).getByRole('checkbox', { name: 'Interview' }))
+  await waitFor(() => {
+    const review = lastPatchStages(spy)?.find((s) => s.type === 'review')
+    expect((review?.next_stage_ids as string[] | undefined)?.length).toBe(1)
+  })
+})
+
+test('a back-edge that would create a cycle is blocked', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add review/i }))
+  fireEvent.click(screen.getByRole('button', { name: /add interview/i }))
+  // route Review → Interview
+  fireEvent.click(within(screen.getAllByRole('listitem')[0]).getAllByRole('button')[0])
+  fireEvent.click(within(routingGroup()).getByRole('checkbox', { name: 'Interview' }))
+  // select Interview; routing back to Review would form Review→Interview→Review → disabled
+  fireEvent.click(within(screen.getAllByRole('listitem')[1]).getAllByRole('button')[0])
+  expect(within(routingGroup()).getByRole('checkbox', { name: /review/i })).toBeDisabled()
+})
+
+test('routing surfaces pipeline validation errors inline', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add review/i }))
+  fireEvent.click(screen.getByRole('button', { name: /add interview/i }))
+  // with no edges, Interview (order 1) is unreachable from the entry stage
+  fireEvent.click(within(screen.getAllByRole('listitem')[0]).getAllByRole('button')[0])
+  expect(within(inspector()).getByText(/unreachable/i)).toBeInTheDocument()
 })
 
 test('autosave does NOT fire on initial load', async () => {

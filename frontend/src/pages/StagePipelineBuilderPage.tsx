@@ -157,6 +157,7 @@ export function StagePipelineBuilderPage({ pipelineId }: { pipelineId: string })
                   <StageInspector
                     stage={selected}
                     priorStages={stages.slice(0, stages.findIndex((s) => s.stage_id === selected.stage_id))}
+                    allStages={stages}
                     readOnly={readOnly}
                     onChange={(patch) => updateStages(stages.map((s) => (s.stage_id === selected.stage_id ? { ...s, ...patch } : s)))}
                   />

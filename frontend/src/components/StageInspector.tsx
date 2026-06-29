@@ -1,5 +1,6 @@
 import { Field } from './Field'
 import { Button } from './Button'
+import { StageRoutingEditor } from './StageRoutingEditor'
 import { stageTypeSchema, type Stage, type StageRule } from '../schemas/stages'
 import { visibilityOperatorSchema, type VisibilityCondition } from '../schemas/forms'
 import { STAGE_TYPE_LABEL } from './stageTypeLabels'
@@ -57,9 +58,10 @@ function StageRuleEditor({ idPrefix, legend, rule, onChange, readOnly = false }:
 /** Configures the selected stage: name, type, parallel group, dependencies on
  *  earlier stages, and entry/exit gating rules. Pure — every edit is emitted via
  *  `onChange` as a partial patch; the builder applies it to the draft and autosaves. */
-export function StageInspector({ stage, priorStages = [], readOnly = false, onChange }: {
+export function StageInspector({ stage, priorStages = [], allStages = [], readOnly = false, onChange }: {
   stage: Stage
   priorStages?: Stage[]
+  allStages?: Stage[]
   readOnly?: boolean
   onChange: (patch: Partial<Stage>) => void
 }) {
@@ -97,6 +99,8 @@ export function StageInspector({ stage, priorStages = [], readOnly = false, onCh
 
       <StageRuleEditor idPrefix="Entry" legend="Entry rule — enter this stage when" rule={stage.entry_rule} readOnly={readOnly} onChange={(entry_rule) => onChange({ entry_rule })} />
       <StageRuleEditor idPrefix="Exit" legend="Exit rule — leave this stage when" rule={stage.exit_rule} readOnly={readOnly} onChange={(exit_rule) => onChange({ exit_rule })} />
+
+      <StageRoutingEditor stage={stage} allStages={allStages} readOnly={readOnly} onChange={(next_stage_ids) => onChange({ next_stage_ids })} />
     </div>
   )
 }
