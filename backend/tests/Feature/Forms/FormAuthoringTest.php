@@ -210,4 +210,18 @@ final class FormAuthoringTest extends TestCase
 
         $this->actingAsTenantRequest($user, $org)->postJson("/api/v1/forms/{$form->id}/publish")->assertStatus(409);
     }
+
+    public function test_publish_returns_404_across_tenants(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => [['type' => 'short_text', 'label' => 'Name', 'id' => 'a']]]);
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->postJson("/api/v1/forms/{$form->id}/publish")
+            ->assertStatus(404);
+    }
 }
