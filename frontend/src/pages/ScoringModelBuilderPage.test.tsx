@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -130,3 +130,55 @@ test('published version is read-only and Edit forks a new editable draft', async
   fireEvent.click(editBtn)
   await waitFor(() => expect(screen.getByRole('button', { name: /add criterion/i })).not.toBeDisabled())
 })
+
+// ── Task 4: criterion inspector ──────────────────────────────────────────────
+
+test('selecting a criterion shows its label in the inspector', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  // addCriterion auto-selects the new criterion
+  fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
+  const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+  const labelInput = within(inspector).getByLabelText(/criterion label/i)
+  expect(labelInput).toHaveValue('New criterion')
+})
+
+test('editing criterion label in inspector updates canvas row', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
+  const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+  const labelInput = within(inspector).getByLabelText(/criterion label/i)
+  fireEvent.change(labelInput, { target: { value: 'My updated criterion' } })
+  await waitFor(() => expect(screen.getByRole('listitem')).toHaveTextContent(/my updated criterion/i))
+})
+
+test('editing max_points in inspector updates the canvas badge', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
+  const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+  const maxPtsInput = within(inspector).getByLabelText(/max points/i)
+  fireEvent.change(maxPtsInput, { target: { value: '25' } })
+  await waitFor(() => expect(screen.getByRole('listitem')).toHaveTextContent(/max 25 pts/i))
+})
+
+test('autosave PATCH body carries updated max_points from inspector', async () => {
+  const fetchSpy = mockApi()
+  renderBuilder()
+  await awaitSeeded()
+  fetchSpy.mockClear()
+  vi.useFakeTimers()
+  try {
+    fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
+    // criterion is auto-selected; inspector renders synchronously with the click
+    const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+    const maxPtsInput = within(inspector).getByLabelText(/max points/i)
+    fireEvent.change(maxPtsInput, { target: { value: '42' } })
+    await vi.runAllTimersAsync()
+    await vi.advanceTimersByTimeAsync(500)
+  } finally { vi.useRealTimers() }
+  const crit = lastPatchCriteria(fetchSpy)
+  expect(crit).not.toBeNull()
+  expect(crit![0]).toMatchObject({ max_points: 42 })
+}, 4000)

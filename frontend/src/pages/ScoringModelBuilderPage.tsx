@@ -8,6 +8,7 @@ import { StateBlock } from '../components/StateBlock'
 import { ScoringModelCanvas } from '../components/ScoringModelCanvas'
 import { getScoringModel, getScoringModelVersion, saveScoringModelDraft, publishScoringModel, forkScoringModelDraft } from '../api/assessments'
 import type { ScoringCriterion } from '../schemas/assessments'
+import { ScoringCriterionInspector } from '../components/ScoringCriterionInspector'
 
 let critSeq = 0
 function newCriterion(): ScoringCriterion {
@@ -136,13 +137,16 @@ export function ScoringModelBuilderPage({ modelId }: { modelId: string }) {
                   onRemove={remove}
                 />
               </div>
-              {/* inspector — minimal read-only summary; Task 4 replaces this */}
+              {/* inspector */}
               <div aria-label="Criterion settings" className="rounded-lg border border-border p-3">
                 {selected ? (
-                  <>
-                    <h2 className="text-lg font-semibold">{selected.label}</h2>
-                    <p className="text-sm text-muted-foreground">max {selected.max_points} pts</p>
-                  </>
+                  <ScoringCriterionInspector
+                    criterion={selected}
+                    readOnly={readOnly}
+                    onChange={(patch) =>
+                      updateCriteria(criteria.map((c) => c.criterion_id === selected.criterion_id ? { ...c, ...patch } : c))
+                    }
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">Select a criterion to view its settings.</p>
                 )}
