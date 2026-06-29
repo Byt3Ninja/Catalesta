@@ -132,4 +132,47 @@ final class FormAuthoringTest extends TestCase
             ->getJson("/api/v1/form-versions/{$v->id}")
             ->assertStatus(404);
     }
+
+    public function test_save_draft_replaces_definition(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+
+        $fields = [['type' => 'short_text', 'label' => 'Name', 'id' => 'f1', 'required' => true]];
+        $res = $this->actingAsTenantRequest($user, $org)
+            ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => $fields]);
+
+        $res->assertStatus(200)
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.fields.0.label', 'Name');
+    }
+
+    public function test_save_draft_rejects_a_forbidden_code_key_with_422(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+
+        $this->actingAsTenantRequest($user, $org)
+            ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => [
+                ['type' => 'number', 'label' => 'Score', 'expr' => 'evil()'],
+            ]])
+            ->assertStatus(422);
+    }
+
+    public function test_save_draft_returns_409_when_there_is_no_draft(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        // a fully published form with no working draft
+        FormVersion::create(['form_id' => $form->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('a', 64), 'definition' => [], 'published_at' => now()]);
+
+        $this->actingAsTenantRequest($user, $org)
+            ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => [['type' => 'short_text', 'label' => 'X', 'id' => 'a']]])
+            ->assertStatus(409);
+    }
 }

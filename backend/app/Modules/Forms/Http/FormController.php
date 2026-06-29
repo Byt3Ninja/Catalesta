@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Forms\Http;
 
 use App\Modules\Forms\Application\CreateForm;
+use App\Modules\Forms\Application\SaveFormDraft;
+use App\Modules\Forms\Domain\Exceptions\InvalidFormDefinitionException;
+use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
+use App\Modules\Forms\Http\Requests\SaveFormDraftRequest;
 use App\Modules\Forms\Http\Requests\StoreFormRequest;
 use App\Modules\Forms\Http\Resources\FormResource;
 use App\Modules\Forms\Http\Resources\FormVersionResource;
@@ -45,6 +49,29 @@ final class FormController extends Controller
         $this->authorize('view', $form);
 
         return new FormResource($form);
+    }
+
+    public function saveDraft(SaveFormDraftRequest $request, SaveFormDraft $service, string $id): JsonResponse
+    {
+        $form = Form::query()->findOrFail($id);
+        $this->authorize('update', $form);
+
+        // validated() only returns keys with explicit rules; fields sub-keys must come
+        // from input() so the full user payload reaches FormDefinitionValidator.
+        $request->validated(); // run structural rules (present + array + type keys)
+
+        /** @var array<int, array<string, mixed>> $fields */
+        $fields = $request->input('fields', []);
+
+        try {
+            $version = $service->handle($form, $fields);
+        } catch (NoDraftToPublishException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        } catch (InvalidFormDefinitionException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['fields' => [$e->getMessage()]]], 422);
+        }
+
+        return (new FormVersionResource($version))->response()->setStatusCode(200);
     }
 
     public function versions(string $form): AnonymousResourceCollection

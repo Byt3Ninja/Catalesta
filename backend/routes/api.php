@@ -127,6 +127,7 @@ Route::prefix('v1')->group(function (): void {
         // More-specific /forms/{form}/versions must be registered before the
         // catch-all /forms/{id} so Laravel does not bind "versions" as an id.
         Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
+        Route::patch('/forms/{id}/draft', [FormController::class, 'saveDraft'])->name('forms.draft.update');
         Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
         Route::get('/form-versions/{id}', [FormVersionController::class, 'show'])->name('form-versions.show');
     });
