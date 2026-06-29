@@ -12,14 +12,17 @@ test('operator builds a form, publishes it, and binds it to a cohort', async ({ 
   await page.goto('/cohorts/coh_1')
   await expect(page.getByRole('heading')).toBeVisible()
 
-  // Wait for the form binding picker to load its options
-  await expect(page.getByLabel(/published version/i)).toBeVisible({ timeout: 10000 })
+  // CohortDetailPage now renders several binding pickers (form, stage pipeline, and one
+  // per-stage scoring picker per stage) that ALL share the "Published version" label, so
+  // getByLabel is ambiguous. Scope to the FORM picker by its stable id.
+  const formSelect = page.locator('#form-binding-select')
+  await expect(formSelect).toBeVisible({ timeout: 10000 })
 
-  // Select a published version from the picker's dropdown
-  await page.getByLabel(/published version/i).selectOption({ index: 1 })
+  // Select a published version from the form picker's dropdown
+  await formSelect.selectOption({ index: 1 })
 
-  // Click Bind (now enabled because a version is selected)
-  await page.getByRole('button', { name: /^bind$/i }).click()
-  // FormBindingPicker shows "Currently bound: Application form v1" after success
-  await expect(page.getByText(/currently bound/i)).toBeVisible()
+  // Click Bind — scoped to the form picker (its Bind button is a sibling of the select)
+  await formSelect.locator('..').getByRole('button', { name: /^bind$/i }).click()
+  // FormBindingPicker shows its "Currently bound: …" label after success
+  await expect(page.getByTestId('bound-label')).toBeVisible()
 })
