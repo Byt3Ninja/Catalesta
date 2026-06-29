@@ -70,6 +70,7 @@ final class CreateOrganization
                 'programs.publish',
                 'cohorts.manage',
                 'stages.manage',
+                'forms.manage',
             ])->pluck('id')->toArray();
 
             $ownerRole->permissions()->sync($permissionIds);
