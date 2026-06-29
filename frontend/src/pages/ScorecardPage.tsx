@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
+import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
@@ -124,7 +125,7 @@ export function ScorecardPage({
 
   // ── debounced autosave ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!seeded || !dirtyRef.current) return
+    if (!seeded || !dirtyRef.current || submittedOk || scorecardQuery.data?.status === 'submitted') return
     const t = setTimeout(() => {
       void saveScorecardDraft(cohortId, stageId, applicationId, reviewerId, {
         values,
@@ -135,7 +136,7 @@ export function ScorecardPage({
       })
     }, 500)
     return () => clearTimeout(t)
-  }, [values, disqualified, seeded, cohortId, stageId, applicationId, reviewerId, modelVersionId])
+  }, [values, disqualified, seeded, submittedOk, scorecardQuery.data, cohortId, stageId, applicationId, reviewerId, modelVersionId])
 
   // ── submit mutation ────────────────────────────────────────────────────────
   const submitMutation = useMutation({
@@ -196,15 +197,7 @@ export function ScorecardPage({
           <StateBlock variant="error" message="Could not load the scorecard." />
         ) : submittedOk || isAlreadySubmitted ? (
           /* Submitted state */
-          <div
-            role="status"
-            data-testid="submitted-state"
-            className="rounded-lg border border-green-200 bg-green-50 p-6 text-center"
-          >
-            <p className="text-sm font-medium text-green-800">
-              Scorecard submitted successfully.
-            </p>
-          </div>
+          <Banner variant="success">Scorecard submitted successfully.</Banner>
         ) : (
           <>
             {/*
@@ -227,6 +220,7 @@ export function ScorecardPage({
                   criterion={criterion}
                   value={values[criterion.criterion_id]}
                   onChange={(raw) => handleValueChange(criterion.criterion_id, raw)}
+                  disabled={submitMutation.isPending || submittedOk || isAlreadySubmitted}
                 />
               ))}
             </div>

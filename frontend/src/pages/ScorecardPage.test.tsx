@@ -190,7 +190,7 @@ test('clicking submit fires POST to the /submit endpoint', async () => {
   })
 
   // After success, the submitted state is shown
-  expect(await screen.findByTestId('submitted-state')).toBeInTheDocument()
+  expect(await screen.findByText(/submitted successfully/i)).toBeInTheDocument()
 })
 
 test('toggling disqualified flag is carried in the autosave draft PATCH body', async () => {
@@ -274,4 +274,35 @@ test('seeds existing draft values from a scorecard in the store', async () => {
   expect(screen.getByLabelText('Score for Market Opportunity')).toHaveValue(null)
   // Live total reflects only c1
   expect(screen.getByTestId('score-earned')).toHaveTextContent('7')
+})
+
+test('shows a validation error alert when submit returns 422', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    const method = ((init as RequestInit | undefined)?.method ?? 'GET').toUpperCase()
+
+    if (url.includes('/sanctum/csrf-cookie')) return new Response(null, { status: 204 })
+    if (url.includes('/submit') && method === 'POST') {
+      return new Response(JSON.stringify({ message: 'Unprocessable Entity' }), {
+        status: 422,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (url.includes('/scorecards/') && method === 'PATCH') return jsonResponse({ data: SCORECARD_DRAFT })
+    if (url.includes('/scorecards/') && method === 'GET') return new Response(null, { status: 404 })
+    if (url.includes('/scoring-model-versions/') && method === 'GET') return jsonResponse({ data: MODEL_VERSION })
+    return jsonResponse({})
+  })
+
+  renderPage()
+  await screen.findByLabelText('Score for Innovation')
+
+  // Fill all criteria so Submit is enabled
+  fireEvent.change(screen.getByLabelText('Score for Innovation'), { target: { value: '5' } })
+  fireEvent.change(screen.getByLabelText('Score for Market Opportunity'), { target: { value: '8' } })
+
+  fireEvent.click(screen.getByRole('button', { name: 'Submit scorecard' }))
+
+  // 422 → VALIDATION ScorecardError → submitError rendered as role="alert"
+  expect(await screen.findByRole('alert')).toHaveTextContent('All criteria must be scored before submission.')
 })
