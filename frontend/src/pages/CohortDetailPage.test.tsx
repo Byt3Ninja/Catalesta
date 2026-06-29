@@ -15,9 +15,32 @@ vi.mock('../api/forms', () => ({
 
 // The StagePipelineBindingPicker in the page lists pipelines/versions; stub them
 // so the detail-content tests aren't coupled to the binding picker's queries.
+// getStagePipelineVersion is also stubbed — it returns a version with 2 stages
+// so the per-stage scoring section renders when a pipeline is bound.
+const PIPELINE_VERSION_STUB = {
+  version_id: 'plv_pub_1',
+  pipeline_id: 'pl_pub',
+  version: 1,
+  status: 'published' as const,
+  stages: [
+    { stage_id: 's_screen', name: 'Screening', type: 'review', entry_rule: null, exit_rule: null, next_stage_ids: ['s_interview'], depends_on_stage_ids: [], parallel_group: null, order: 0 },
+    { stage_id: 's_interview', name: 'Interview', type: 'interview', entry_rule: null, exit_rule: null, next_stage_ids: [], depends_on_stage_ids: [], parallel_group: null, order: 1 },
+  ],
+  created_at: 'x',
+  published_at: 'x',
+}
+
 vi.mock('../api/stages', () => ({
   listStagePipelines: () => Promise.resolve([]),
   listStagePipelineVersions: () => Promise.resolve([]),
+  getStagePipelineVersion: () => Promise.resolve(PIPELINE_VERSION_STUB),
+}))
+
+// The ScoringModelBindingPicker fetches scoring models and versions; stub them
+// so the per-stage scoring section renders without real fetch calls.
+vi.mock('../api/assessments', () => ({
+  listScoringModels: () => Promise.resolve([]),
+  listScoringModelVersions: () => Promise.resolve([]),
 }))
 
 // ContextSelector (rendered by AppShell) fetches /me/roles; stub it so these
@@ -82,6 +105,35 @@ test('the stage-pipeline row reflects a bound version', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: { ...COHORT, stage_pipeline_version_id: 'plv_pub_1' } }))
   renderDetail()
   expect(await screen.findByText(/Bound: plv_pub_1/)).toBeInTheDocument()
+})
+
+test('per-stage scoring row shows the bound scoring-model version id when map has an entry', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse({
+      data: {
+        ...COHORT,
+        stage_pipeline_version_id: 'plv_pub_1',
+        stage_scoring_model_version_ids: { s_screen: 'smv_pub_1' },
+      },
+    }),
+  )
+  renderDetail()
+  // The per-stage scoring section should render after the pipeline version query resolves
+  expect(await screen.findByTestId('stage-scoring-bound-s_screen')).toHaveTextContent('Bound: smv_pub_1')
+})
+
+test('per-stage scoring row shows "not configured" when no model is bound for a stage', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse({
+      data: {
+        ...COHORT,
+        stage_pipeline_version_id: 'plv_pub_1',
+        stage_scoring_model_version_ids: null,
+      },
+    }),
+  )
+  renderDetail()
+  expect(await screen.findByTestId('stage-scoring-bound-s_screen')).toHaveTextContent('Bound: not configured')
 })
 
 test('a 404 shows the "could not load" error state', async () => {

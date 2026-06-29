@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { bindCohortForm, bindCohortStagePipeline, createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
+import { bindCohortForm, bindCohortStagePipeline, bindCohortStageScoringModel, createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
 import { jsonResponse } from '../tests/test-utils'
 
 const COHORT_FIXTURE = {
@@ -202,4 +202,28 @@ test('bindCohortStagePipeline maps 404 → NOT_FOUND', async () => {
 test('bindCohortStagePipeline maps 409 → CONFLICT', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
   await expect(bindCohortStagePipeline('coh_1', 'plv_pub_1')).rejects.toMatchObject({ code: 'CONFLICT' })
+})
+
+test('bindCohortStageScoringModel POSTs { stage_id, scoring_model_version_id } and returns the bound cohort', async () => {
+  const bound = { ...COHORT_FIXTURE, stage_scoring_model_version_ids: { s_screen: 'smv_pub_1' } }
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: bound }))
+  const result = await bindCohortStageScoringModel('coh_1', 's_screen', 'smv_pub_1')
+  expect(result.stage_scoring_model_version_ids).toEqual({ s_screen: 'smv_pub_1' })
+  const [url, init] = fetchSpy.mock.calls[0]
+  expect(String(url)).toContain('/cohorts/coh_1/bind-stage-scoring-model')
+  expect(init?.method).toBe('POST')
+  expect(JSON.parse((init?.body as string) ?? '{}')).toEqual({ stage_id: 's_screen', scoring_model_version_id: 'smv_pub_1' })
+})
+
+test('bindCohortStageScoringModel maps 404 → NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(bindCohortStageScoringModel('missing', 's_screen', 'smv_pub_1')).rejects.toMatchObject({
+    name: 'BindScoringModelError',
+    code: 'NOT_FOUND',
+  })
+})
+
+test('bindCohortStageScoringModel maps 409 → CONFLICT', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
+  await expect(bindCohortStageScoringModel('coh_1', 's_screen', 'smv_pub_1')).rejects.toMatchObject({ code: 'CONFLICT' })
 })

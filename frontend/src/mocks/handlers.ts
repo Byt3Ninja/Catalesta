@@ -529,6 +529,17 @@ export const handlers = [
     c.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: c })
   }),
+  http.post('*/api/v1/cohorts/:id/bind-stage-scoring-model', async ({ params, request }) => {
+    const c = cohorts.find((x) => x.id === params.id)
+    if (!c) return new HttpResponse(null, { status: 404 })
+    const b = (await request.json()) as { stage_id?: string; scoring_model_version_id?: string }
+    const stage_id = b.stage_id ?? ''
+    const scoring_model_version_id = b.scoring_model_version_id ?? null
+    const existing = ((c as Record<string, unknown>).stage_scoring_model_version_ids ?? {}) as Record<string, string>
+    ;(c as Record<string, unknown>).stage_scoring_model_version_ids = { ...existing, [stage_id]: scoring_model_version_id }
+    c.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: c })
+  }),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey

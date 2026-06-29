@@ -3,6 +3,7 @@ import { apiFetch } from './tenant'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   BindFormError,
+  BindScoringModelError,
   BindStagePipelineError,
   CreateCohortError,
   GetCohortError,
@@ -118,7 +119,7 @@ export async function updateCohort(
   throw new UpdateCohortError('UNKNOWN', `update cohort failed: ${response.status}`)
 }
 
-export { OpenCohortError, BindFormError, BindStagePipelineError }
+export { OpenCohortError, BindFormError, BindStagePipelineError, BindScoringModelError }
 
 /**
  * POST /cohorts/{id}/open (auth:sanctum + tenant). Transitions the cohort from
@@ -176,4 +177,29 @@ export async function bindCohortStagePipeline(id: string, stagePipelineVersionId
   if (response.status === 404) throw new BindStagePipelineError('NOT_FOUND')
   if (response.status === 409) throw new BindStagePipelineError('CONFLICT', 'A stage pipeline version is already bound.')
   throw new BindStagePipelineError('UNKNOWN', `Unexpected status ${response.status}`)
+}
+
+/**
+ * POST /cohorts/{id}/bind-stage-scoring-model (auth:sanctum + tenant). Binds a
+ * published scoring-model version to a specific stage on the cohort. Stores the
+ * binding in `stage_scoring_model_version_ids[stage_id]`.
+ * 404 when the cohort is missing, 409 on version conflict.
+ */
+export async function bindCohortStageScoringModel(
+  id: string,
+  stageId: string,
+  scoringModelVersionId: string,
+): Promise<Cohort> {
+  const response = await csrfFetch(`/cohorts/${id}/bind-stage-scoring-model`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_id: stageId, scoring_model_version_id: scoringModelVersionId }),
+  })
+  if (response.status === 200) {
+    return cohortResponseSchema.parse(await response.json()).data
+  }
+  if (response.status === 401) throw new BindScoringModelError('UNAUTHENTICATED')
+  if (response.status === 403) throw new BindScoringModelError('FORBIDDEN')
+  if (response.status === 404) throw new BindScoringModelError('NOT_FOUND')
+  if (response.status === 409) throw new BindScoringModelError('CONFLICT', 'A scoring model version is already bound to this stage.')
+  throw new BindScoringModelError('UNKNOWN', `Unexpected status ${response.status}`)
 }
