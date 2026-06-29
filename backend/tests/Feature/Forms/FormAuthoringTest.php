@@ -175,4 +175,18 @@ final class FormAuthoringTest extends TestCase
             ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => [['type' => 'short_text', 'label' => 'X', 'id' => 'a']]])
             ->assertStatus(409);
     }
+
+    public function test_save_draft_returns_404_across_tenants(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => []])
+            ->assertStatus(404);
+    }
 }

@@ -56,10 +56,8 @@ final class FormController extends Controller
         $form = Form::query()->findOrFail($id);
         $this->authorize('update', $form);
 
-        // validated() only returns keys with explicit rules; fields sub-keys must come
-        // from input() so the full user payload reaches FormDefinitionValidator.
-        $request->validated(); // run structural rules (present + array + type keys)
-
+        // Structural rules (fields present + array, fields.*.type string) already enforced
+        // by SaveFormDraftRequest before this method runs.
         /** @var array<int, array<string, mixed>> $fields */
         $fields = $request->input('fields', []);
 
