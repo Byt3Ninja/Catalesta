@@ -17,7 +17,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class FormResource extends JsonResource
 {
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     id: string,
+     *     name: string,
+     *     description: null,
+     *     latest_version: int,
+     *     published_version_ids: list<string>,
+     *     current_draft_version_id: string|null,
+     * }
      */
     public function toArray(Request $request): array
     {
@@ -31,7 +38,7 @@ final class FormResource extends JsonResource
             'name' => $this->name,
             'description' => null,
             'latest_version' => (int) ($published->max('version_number') ?? 0),
-            'published_version_ids' => $published->pluck('id')->all(),
+            'published_version_ids' => array_values($published->pluck('id')->map(fn (mixed $id) => (string) $id)->all()),
             'current_draft_version_id' => $draft?->id,
         ];
     }

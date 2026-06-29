@@ -119,6 +119,24 @@ final class FormAuthoringTest extends TestCase
         $this->assertSame([1, 0], array_column($res->json('data'), 'version'));
     }
 
+    public function test_version_show_returns_200_for_same_tenant(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        $fields = [['type' => 'short_text', 'label' => 'Name', 'id' => 'f1', 'required' => true]];
+        $v = FormVersion::create(['form_id' => $form->id, 'definition' => $fields]);
+
+        $res = $this->actingAsTenantRequest($user, $org)
+            ->getJson("/api/v1/form-versions/{$v->id}");
+
+        $res->assertStatus(200)
+            ->assertJsonPath('data.id', $v->id)
+            ->assertJsonPath('data.version', 0)
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.fields', $fields);
+    }
+
     public function test_version_show_returns_404_across_tenants(): void
     {
         [$user, $org] = $this->bootUserWithOrg();

@@ -3520,7 +3520,8 @@
                         "type": "integer"
                     },
                     "published_version_ids": {
-                        "type": "string"
+                        "type": "array",
+                        "items": {}
                     },
                     "current_draft_version_id": {
                         "type": "string"
@@ -3546,13 +3547,14 @@
                         "type": "string"
                     },
                     "version": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "status": {
                         "type": "string"
                     },
                     "fields": {
-                        "type": "string"
+                        "type": "array",
+                        "items": {}
                     },
                     "created_at": {
                         "type": "string"

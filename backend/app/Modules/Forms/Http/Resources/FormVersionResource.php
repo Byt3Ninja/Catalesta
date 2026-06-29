@@ -21,16 +21,24 @@ use Illuminate\Support\Carbon;
 final class FormVersionResource extends JsonResource
 {
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     id: string,
+     *     form_id: string,
+     *     version: int,
+     *     status: string,
+     *     fields: list<array<string, mixed>>,
+     *     created_at: string,
+     *     published_at: string|null,
+     * }
      */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'form_id' => $this->form_id,
-            'version' => $this->version_number,
+            'version' => (int) $this->version_number,
             'status' => $this->status->value,
-            'fields' => $this->definition,
+            'fields' => array_values((array) ($this->definition ?? [])),
             'created_at' => $this->created_at->toIso8601String(),
             'published_at' => $this->published_at?->toIso8601String(),
         ];

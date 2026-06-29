@@ -85,4 +85,22 @@ final class FormPolicyTest extends TestCase
 
         $this->assertTrue(Gate::forUser($this->makeUser())->allows('viewAny', Form::class));
     }
+
+    public function test_member_without_forms_manage_may_not_update(): void
+    {
+        $this->makeContext(); // no permissions
+
+        $form = new Form(['id' => 'form-001']);
+
+        $this->assertFalse(Gate::forUser($this->makeUser())->allows('update', $form));
+    }
+
+    public function test_member_without_forms_manage_may_not_publish(): void
+    {
+        $this->makeContext(); // no permissions
+
+        $form = new Form(['id' => 'form-001']);
+
+        $this->assertFalse(Gate::forUser($this->makeUser())->allows('publish', $form));
+    }
 }
