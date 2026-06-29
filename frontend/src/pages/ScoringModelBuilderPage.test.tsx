@@ -138,7 +138,7 @@ test('selecting a criterion shows its label in the inspector', async () => {
   await awaitSeeded()
   // addCriterion auto-selects the new criterion
   fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
-  const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+  const inspector = screen.getByRole('region', { name: /criterion settings/i })
   const labelInput = within(inspector).getByLabelText(/criterion label/i)
   expect(labelInput).toHaveValue('New criterion')
 })
@@ -172,7 +172,7 @@ test('autosave PATCH body carries updated max_points from inspector', async () =
   try {
     fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
     // criterion is auto-selected; inspector renders synchronously with the click
-    const inspector = document.querySelector('[aria-label="Criterion settings"]') as HTMLElement
+    const inspector = screen.getByRole('region', { name: /criterion settings/i })
     const maxPtsInput = within(inspector).getByLabelText(/max points/i)
     fireEvent.change(maxPtsInput, { target: { value: '42' } })
     await vi.runAllTimersAsync()
@@ -182,3 +182,28 @@ test('autosave PATCH body carries updated max_points from inspector', async () =
   expect(crit).not.toBeNull()
   expect(crit![0]).toMatchObject({ max_points: 42 })
 }, 4000)
+
+test('removing a middle descriptor keeps remaining values correct (stable keys)', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add criterion/i }))
+  const inspector = screen.getByRole('region', { name: /criterion settings/i })
+  // Add three descriptors
+  const addDescBtn = within(inspector).getByRole('button', { name: /add descriptor/i })
+  fireEvent.click(addDescBtn)
+  fireEvent.click(addDescBtn)
+  fireEvent.click(addDescBtn)
+  // Type distinct values into each
+  const [d1, d2, d3] = within(inspector).getAllByRole('textbox', { name: /descriptor/i })
+  fireEvent.change(d1, { target: { value: 'alpha' } })
+  fireEvent.change(d2, { target: { value: 'beta' } })
+  fireEvent.change(d3, { target: { value: 'gamma' } })
+  // Remove the middle descriptor
+  const removeBtns = within(inspector).getAllByRole('button', { name: /remove descriptor/i })
+  fireEvent.click(removeBtns[1])
+  // Assert remaining inputs hold correct (non-stale) values
+  const remaining = within(inspector).getAllByRole('textbox', { name: /descriptor/i })
+  expect(remaining).toHaveLength(2)
+  expect(remaining[0]).toHaveValue('alpha')
+  expect(remaining[1]).toHaveValue('gamma')
+})

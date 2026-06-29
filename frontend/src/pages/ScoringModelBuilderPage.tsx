@@ -138,7 +138,7 @@ export function ScoringModelBuilderPage({ modelId }: { modelId: string }) {
                 />
               </div>
               {/* inspector */}
-              <div aria-label="Criterion settings" className="rounded-lg border border-border p-3">
+              <div role="region" aria-label="Criterion settings" className="rounded-lg border border-border p-3">
                 {selected ? (
                   <ScoringCriterionInspector
                     criterion={selected}

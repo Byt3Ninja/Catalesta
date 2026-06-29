@@ -1,6 +1,13 @@
+import { useState } from 'react'
 import { Field } from './Field'
 import { Button } from './Button'
 import type { ScoringCriterion } from '../schemas/assessments'
+
+/** Monotonic counter for stable descriptor row IDs (module-level, never resets). */
+let _descSeq = 0
+function nextDescId() { return ++_descSeq }
+
+interface DescriptorRow { id: number; text: string }
 
 /** Configures the selected scoring criterion: label, max points, and optional
  *  guidance descriptors. Pure — every edit is emitted via `onChange` as a
@@ -11,19 +18,40 @@ export function ScoringCriterionInspector({ criterion, readOnly = false, onChang
   readOnly?: boolean
   onChange: (patch: Partial<ScoringCriterion>) => void
 }) {
-  const descriptors = criterion.descriptors ?? []
+  // Local row state with stable IDs — avoids React reconciling survivors against
+  // wrong DOM nodes (stale input values) when a middle descriptor is removed.
+  const [rows, setRows] = useState<DescriptorRow[]>(() =>
+    (criterion.descriptors ?? []).map((text) => ({ id: nextDescId(), text }))
+  )
+  // Render-time reset keyed on criterion_id (same "adjust state when source changes"
+  // pattern as the builder's version-id seeding). Do NOT use useEffect+setState.
+  const [seededCritId, setSeededCritId] = useState(criterion.criterion_id)
+  if (criterion.criterion_id !== seededCritId) {
+    setSeededCritId(criterion.criterion_id)
+    setRows((criterion.descriptors ?? []).map((text) => ({ id: nextDescId(), text })))
+  }
+
+  function emitRows(next: DescriptorRow[]) {
+    const texts = next.map((r) => r.text)
+    onChange({ descriptors: texts.length > 0 ? texts : null })
+  }
 
   function addDescriptor() {
-    onChange({ descriptors: [...descriptors, ''] })
+    const next = [...rows, { id: nextDescId(), text: '' }]
+    setRows(next)
+    emitRows(next)
   }
 
-  function updateDescriptor(i: number, value: string) {
-    onChange({ descriptors: descriptors.map((d, j) => (j === i ? value : d)) })
+  function updateDescriptor(id: number, value: string) {
+    const next = rows.map((r) => (r.id === id ? { ...r, text: value } : r))
+    setRows(next)
+    emitRows(next)
   }
 
-  function removeDescriptor(i: number) {
-    const next = descriptors.filter((_, j) => j !== i)
-    onChange({ descriptors: next.length > 0 ? next : null })
+  function removeDescriptor(id: number) {
+    const next = rows.filter((r) => r.id !== id)
+    setRows(next)
+    emitRows(next)
   }
 
   return (
@@ -48,20 +76,20 @@ export function ScoringCriterionInspector({ criterion, readOnly = false, onChang
 
       <fieldset className="grid gap-2 rounded-md border border-border p-2">
         <legend className="px-1 text-xs text-muted-foreground">Guidance descriptors</legend>
-        {descriptors.map((d, i) => (
-          <span key={i} className="flex items-center gap-1">
+        {rows.map((row, i) => (
+          <span key={row.id} className="flex items-center gap-1">
             <input
               aria-label={`Descriptor ${i + 1}`}
-              value={d}
+              value={row.text}
               disabled={readOnly}
-              onChange={(e) => updateDescriptor(i, e.target.value)}
+              onChange={(e) => updateDescriptor(row.id, e.target.value)}
               className="flex-1 rounded-md border border-input bg-card p-1"
             />
             <Button
               variant="secondary"
               aria-label={`Remove descriptor ${i + 1}`}
               disabled={readOnly}
-              onClick={() => removeDescriptor(i)}
+              onClick={() => removeDescriptor(row.id)}
             >
               ✕
             </Button>
