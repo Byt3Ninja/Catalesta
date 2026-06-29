@@ -32,6 +32,11 @@ import { StagePipelineBuilderPage } from '../pages/StagePipelineBuilderPage'
 import { StagePipelinePreviewPage } from '../pages/StagePipelinePreviewPage'
 import { StagePipelineVersionsPage } from '../pages/StagePipelineVersionsPage'
 import { ProgramConfigPage } from '../pages/ProgramConfigPage'
+import { ScoringModelBuilderPage } from '../pages/ScoringModelBuilderPage'
+import { ScoringModelPreviewPage } from '../pages/ScoringModelPreviewPage'
+import { ScoringModelVersionsPage } from '../pages/ScoringModelVersionsPage'
+import { ReviewQueuePage } from '../pages/ReviewQueuePage'
+import { ScorecardPage } from '../pages/ScorecardPage'
 import { jsonResponse } from './test-utils'
 
 function withProviders(ui: ReactElement): ReactElement {
@@ -393,10 +398,110 @@ describe('a11y gate (axe-core)', () => {
       const url = String(input)
       if (url.includes('/programs/prog_1/stage-pipelines')) return Promise.resolve(jsonResponse({ data: [{ ...A11Y_PIPELINE, pipeline_id: 'pl_pub', name: 'Acceleration pipeline', published_version_ids: ['plv_pub_1'] }] }))
       if (url.includes('/forms')) return Promise.resolve(jsonResponse({ data: A11Y_FORMS_LIST }))
+      if (url.includes('/programs/prog_1/scoring-models')) return Promise.resolve(jsonResponse({ data: [] }))
       return Promise.resolve(new Response(null, { status: 404 }))
     })
     const { container } = render(withProviders(<ProgramConfigPage programId="prog_1" />))
     await screen.findByText('Acceleration pipeline')
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  // --- Slice 2d a11y cases ---
+
+  const A11Y_SCORING_MODEL = { model_id: 'sm_draft', program_id: 'prog_1', name: 'Market Fit Assessment', latest_version: 1, published_version_ids: [], current_draft_version_id: 'smv_draft_1', created_at: 'x' }
+  const A11Y_SCORING_DRAFT = { version_id: 'smv_draft_1', model_id: 'sm_draft', version: 1, status: 'draft', criteria: [{ criterion_id: 'c1', label: 'Innovation', max_points: 10, descriptors: null }], created_at: 'x', published_at: null }
+  const A11Y_SCORING_PUB = { version_id: 'smv_pub_1', model_id: 'sm_pub', version: 1, status: 'published', criteria: [{ criterion_id: 'c1', label: 'Innovation', max_points: 10, descriptors: null }], created_at: 'x', published_at: 'x' }
+  const A11Y_SCORING_MODELS_LIST = [
+    { model_id: 'sm_pub', program_id: 'prog_1', name: 'Technical Assessment', latest_version: 1, published_version_ids: ['smv_pub_1'], current_draft_version_id: null, created_at: 'x' },
+  ]
+
+  it('ScoringModelBuilderPage — real canvas renders (Slice 2d)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/scoring-model-versions/smv_draft_1')) return Promise.resolve(jsonResponse({ data: A11Y_SCORING_DRAFT }))
+      if (url.includes('/scoring-models/sm_draft')) return Promise.resolve(jsonResponse({ data: A11Y_SCORING_MODEL }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<ScoringModelBuilderPage modelId="sm_draft" />))
+    await screen.findByRole('heading', { name: /scoring model builder/i })
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ScoringModelPreviewPage — real criteria render (Slice 2d)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: A11Y_SCORING_PUB }))
+    const { container } = render(withProviders(<ScoringModelPreviewPage versionId="smv_pub_1" />))
+    // "1. Innovation" is the criterion heading text — use regex to match substring
+    await screen.findByText(/Innovation/i)
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ScoringModelVersionsPage — real version list renders (Slice 2d)', async () => {
+    const A11Y_SM_PUB_META = { model_id: 'sm_pub', program_id: 'prog_1', name: 'Technical Assessment', latest_version: 1, published_version_ids: ['smv_pub_1'], current_draft_version_id: null, created_at: 'x' }
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/scoring-models/sm_pub/versions')) return Promise.resolve(jsonResponse({ data: [A11Y_SCORING_PUB] }))
+      if (url.includes('/scoring-models/sm_pub')) return Promise.resolve(jsonResponse({ data: A11Y_SM_PUB_META }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<ScoringModelVersionsPage modelId="sm_pub" />))
+    await screen.findByText(/Version 1/i)
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ReviewQueuePage — empty queue renders (Slice 2d)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: [] }))
+    const { container } = render(withProviders(<ReviewQueuePage cohortId="coh_1" stageId="s_screen" reviewerId="acc_demo" />))
+    // Wait for the empty-state message to confirm the assignments query has resolved
+    await screen.findByText(/no applications assigned/i)
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ScorecardPage — criteria form renders (Slice 2d)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      // 404 on scorecard → first-time scoring (null scorecard, criteria form renders)
+      if (url.includes('/scorecards/')) return Promise.resolve(new Response(null, { status: 404 }))
+      if (url.includes('/scoring-model-versions/smv_pub_1')) return Promise.resolve(jsonResponse({ data: A11Y_SCORING_PUB }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(
+      withProviders(
+        <ScorecardPage
+          cohortId="coh_1"
+          stageId="s_screen"
+          applicationId="app_1"
+          reviewerId="acc_demo"
+          modelVersionId="smv_pub_1"
+        />,
+      ),
+    )
+    // Wait for the criterion label to confirm the scoring form is in the DOM
+    await screen.findByText(/Innovation/i)
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ProgramConfigPage — scoring card renders with data (Slice 2d)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/programs/prog_1/stage-pipelines')) return Promise.resolve(jsonResponse({ data: [] }))
+      if (url.includes('/programs/prog_1/scoring-models')) return Promise.resolve(jsonResponse({ data: A11Y_SCORING_MODELS_LIST }))
+      if (url.includes('/forms')) return Promise.resolve(jsonResponse({ data: [] }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<ProgramConfigPage programId="prog_1" />))
+    await screen.findByText('Technical Assessment')
     const results = await axe.run(container, AXE_OPTIONS)
     const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
     expect(results.violations, summary).toHaveLength(0)
