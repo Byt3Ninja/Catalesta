@@ -28,6 +28,10 @@ import { FormBindingPicker } from '../components/FormBindingPicker'
 import { FormBuilderPage } from '../pages/FormBuilderPage'
 import { FormPreviewPage } from '../pages/FormPreviewPage'
 import { FormVersionsPage } from '../pages/FormVersionsPage'
+import { StagePipelineBuilderPage } from '../pages/StagePipelineBuilderPage'
+import { StagePipelinePreviewPage } from '../pages/StagePipelinePreviewPage'
+import { StagePipelineVersionsPage } from '../pages/StagePipelineVersionsPage'
+import { ProgramConfigPage } from '../pages/ProgramConfigPage'
 import { jsonResponse } from './test-utils'
 
 function withProviders(ui: ReactElement): ReactElement {
@@ -335,6 +339,64 @@ describe('a11y gate (axe-core)', () => {
     )
     // Await the labelled <select> — this confirms the select-name fix is in the audited DOM
     await screen.findByLabelText('Published version')
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  // --- Slice 2c a11y cases ---
+
+  const A11Y_PIPELINE = { pipeline_id: 'pl_draft', program_id: 'prog_1', name: 'New pipeline', latest_version: 1, published_version_ids: [], current_draft_version_id: 'plv_draft_1', created_at: 'x' }
+  const A11Y_STAGE = { stage_id: 's_screen', name: 'Screening', type: 'review' as const, entry_rule: null, exit_rule: null, next_stage_ids: [], depends_on_stage_ids: [], parallel_group: null, order: 0 }
+  const A11Y_STAGE_DRAFT = { version_id: 'plv_draft_1', pipeline_id: 'pl_draft', version: 1, status: 'draft', stages: [A11Y_STAGE], created_at: 'x', published_at: null }
+  const A11Y_STAGE_PUB = { version_id: 'plv_pub_1', pipeline_id: 'pl_pub', version: 1, status: 'published', stages: [A11Y_STAGE], created_at: 'x', published_at: 'x' }
+
+  it('StagePipelineBuilderPage — real palette/canvas renders (Slice 2c)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/stage-pipeline-versions/plv_draft_1')) return Promise.resolve(jsonResponse({ data: A11Y_STAGE_DRAFT }))
+      if (url.includes('/stage-pipelines/pl_draft')) return Promise.resolve(jsonResponse({ data: A11Y_PIPELINE }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<StagePipelineBuilderPage pipelineId="pl_draft" />))
+    await screen.findByRole('heading', { name: /stage builder|new pipeline/i })
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('StagePipelinePreviewPage — real stages render (Slice 2c)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: A11Y_STAGE_PUB }))
+    const { container } = render(withProviders(<StagePipelinePreviewPage versionId="plv_pub_1" />))
+    await screen.findByText('1. Screening')
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('StagePipelineVersionsPage — real version list renders (Slice 2c)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/stage-pipelines/pl_pub/versions')) return Promise.resolve(jsonResponse({ data: [A11Y_STAGE_PUB] }))
+      if (url.includes('/stage-pipelines/pl_pub')) return Promise.resolve(jsonResponse({ data: { ...A11Y_PIPELINE, pipeline_id: 'pl_pub', published_version_ids: ['plv_pub_1'] } }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<StagePipelineVersionsPage pipelineId="pl_pub" />))
+    await screen.findByText(/Version 1/i)
+    const results = await axe.run(container, AXE_OPTIONS)
+    const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
+    expect(results.violations, summary).toHaveLength(0)
+  })
+
+  it('ProgramConfigPage — forms + stages cards render (Slice 2c)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.includes('/programs/prog_1/stage-pipelines')) return Promise.resolve(jsonResponse({ data: [{ ...A11Y_PIPELINE, pipeline_id: 'pl_pub', name: 'Acceleration pipeline', published_version_ids: ['plv_pub_1'] }] }))
+      if (url.includes('/forms')) return Promise.resolve(jsonResponse({ data: A11Y_FORMS_LIST }))
+      return Promise.resolve(new Response(null, { status: 404 }))
+    })
+    const { container } = render(withProviders(<ProgramConfigPage programId="prog_1" />))
+    await screen.findByText('Acceleration pipeline')
     const results = await axe.run(container, AXE_OPTIONS)
     const summary = results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`).join('\n')
     expect(results.violations, summary).toHaveLength(0)

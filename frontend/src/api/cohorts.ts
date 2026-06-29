@@ -3,6 +3,7 @@ import { apiFetch } from './tenant'
 import { firstValidationMessage, readValidationDetails } from './errors'
 import {
   BindFormError,
+  BindStagePipelineError,
   CreateCohortError,
   GetCohortError,
   OpenCohortError,
@@ -117,7 +118,7 @@ export async function updateCohort(
   throw new UpdateCohortError('UNKNOWN', `update cohort failed: ${response.status}`)
 }
 
-export { OpenCohortError, BindFormError }
+export { OpenCohortError, BindFormError, BindStagePipelineError }
 
 /**
  * POST /cohorts/{id}/open (auth:sanctum + tenant). Transitions the cohort from
@@ -155,4 +156,24 @@ export async function bindCohortForm(id: string, formVersionId: string): Promise
   if (response.status === 404) throw new BindFormError('NOT_FOUND')
   if (response.status === 409) throw new BindFormError('CONFLICT', 'A form version is already bound.')
   throw new BindFormError('UNKNOWN', `Unexpected status ${response.status}`)
+}
+
+/**
+ * POST /cohorts/{id}/bind-stage-pipeline (auth:sanctum + tenant). Binds a
+ * published stage-pipeline version to the cohort. Mirrors bindCohortForm:
+ * 404 when the cohort is missing, 409 when already bound to a different version.
+ */
+export async function bindCohortStagePipeline(id: string, stagePipelineVersionId: string): Promise<Cohort> {
+  const response = await csrfFetch(`/cohorts/${id}/bind-stage-pipeline`, {
+    method: 'POST',
+    body: JSON.stringify({ stage_pipeline_version_id: stagePipelineVersionId }),
+  })
+  if (response.status === 200) {
+    return cohortResponseSchema.parse(await response.json()).data
+  }
+  if (response.status === 401) throw new BindStagePipelineError('UNAUTHENTICATED')
+  if (response.status === 403) throw new BindStagePipelineError('FORBIDDEN')
+  if (response.status === 404) throw new BindStagePipelineError('NOT_FOUND')
+  if (response.status === 409) throw new BindStagePipelineError('CONFLICT', 'A stage pipeline version is already bound.')
+  throw new BindStagePipelineError('UNKNOWN', `Unexpected status ${response.status}`)
 }

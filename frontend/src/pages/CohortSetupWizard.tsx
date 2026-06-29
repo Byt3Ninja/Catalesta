@@ -6,6 +6,7 @@ import { Button } from '../components/Button'
 import { Field } from '../components/Field'
 import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
+import { StagePipelineBindingPicker } from '../components/StagePipelineBindingPicker'
 import { createCohort, updateCohort, openCohort } from '../api/cohorts'
 import type { Cohort } from '../schemas/cohorts'
 
@@ -100,11 +101,20 @@ export function CohortSetupWizard({ programId }: { programId: string }) {
           <div className="grid gap-4 rounded-lg border border-border p-4">
             <h2 className="text-lg font-medium">Attach stages</h2>
             <p className="text-sm text-muted-foreground">
-              You can attach a stage pipeline from the configuration hub once stages are available. Skip for now and
-              configure it later.
+              Bind a published stage pipeline now, or skip and configure it later from the program configuration hub.
             </p>
+            {cohort && (
+              <StagePipelineBindingPicker
+                cohortId={cohort.id}
+                programId={cohort.program_id}
+                boundVersionId={cohort.stage_pipeline_version_id}
+                onBound={(c) => setCohort(c)}
+              />
+            )}
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setStep(3)}>Skip for now</Button>
+              <Button variant="secondary" onClick={() => setStep(3)}>
+                {cohort?.stage_pipeline_version_id ? 'Continue' : 'Skip for now'}
+              </Button>
             </div>
           </div>
         ) : step === 3 ? (

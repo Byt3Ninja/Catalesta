@@ -29,12 +29,17 @@ import { ConsentManagementPage } from '../pages/ConsentManagementPage'
 import { FormBuilderPage } from '../pages/FormBuilderPage'
 import { FormPreviewPage } from '../pages/FormPreviewPage'
 import { FormVersionsPage } from '../pages/FormVersionsPage'
+import { StagePipelineBuilderPage } from '../pages/StagePipelineBuilderPage'
+import { StagePipelinePreviewPage } from '../pages/StagePipelinePreviewPage'
+import { StagePipelineVersionsPage } from '../pages/StagePipelineVersionsPage'
+import { ProgramConfigPage } from '../pages/ProgramConfigPage'
 import { Spinner } from '../components/Loading'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { StateBlock } from '../components/StateBlock'
 import { getSession } from '../api/session'
 import { getForm } from '../api/forms'
+import { getStagePipeline } from '../api/stages'
 import { listOrganizations } from '../api/organizations'
 import { setActiveOrganizationId, getActiveOrganizationId } from '../api/tenant'
 import type { Organization } from '../schemas/organizations'
@@ -175,8 +180,8 @@ function EnrollmentWindowRoute() {
 }
 
 function ProgramConfigRoute() {
-  // Placeholder until Slice 2c builds the Program configuration hub.
-  return <ConsoleGate>{() => <ComingSoonPage />}</ConsoleGate>
+  const { programId } = useParams()
+  return <ConsoleGate>{() => <ProgramConfigPage programId={programId!} />}</ConsoleGate>
 }
 
 function SubmissionsRoute() {
@@ -238,6 +243,34 @@ function FormPreviewRoute() {
   return <ConsoleGate>{() => <FormPreviewResolver formId={formId!} />}</ConsoleGate>
 }
 
+// --- Slice 2c: Stages routes --------------------------------------------------
+
+function StageBuilderRoute() {
+  const { pipelineId } = useParams()
+  return <ConsoleGate>{() => <StagePipelineBuilderPage pipelineId={pipelineId!} />}</ConsoleGate>
+}
+
+function StageVersionsRoute() {
+  const { pipelineId } = useParams()
+  return <ConsoleGate>{() => <StagePipelineVersionsPage pipelineId={pipelineId!} />}</ConsoleGate>
+}
+
+/** Resolves the previewable versionId from the pipeline record (current draft, else
+ *  latest published), mirroring FormPreviewResolver. */
+function StagePreviewResolver({ pipelineId }: { pipelineId: string }) {
+  const pipelineQuery = useQuery({ queryKey: ['stage-pipeline', pipelineId], queryFn: () => getStagePipeline(pipelineId), retry: false })
+  if (pipelineQuery.isLoading) return <Spinner label="Loading pipeline…" />
+  const p = pipelineQuery.data
+  const versionId = p?.current_draft_version_id ?? p?.published_version_ids.at(-1)
+  if (!versionId) return <StateBlock variant="error" message="This pipeline has no versions to preview yet." />
+  return <StagePipelinePreviewPage versionId={versionId} />
+}
+
+function StagePreviewRoute() {
+  const { pipelineId } = useParams()
+  return <ConsoleGate>{() => <StagePreviewResolver pipelineId={pipelineId!} />}</ConsoleGate>
+}
+
 // Root and any unknown console/onboarding path → the gate decides. Home is the
 // consent-aware surface, so it renders inside the ConsentProvider seam (FR-006).
 function HomeRoute() {
@@ -287,6 +320,11 @@ export function AppRoutes() {
       <Route path="/forms/:formId/edit" element={<FormBuilderRoute />} />
       <Route path="/forms/:formId/preview" element={<FormPreviewRoute />} />
       <Route path="/forms/:formId/versions" element={<FormVersionsRoute />} />
+
+      {/* Slice 2c: Stages */}
+      <Route path="/programs/:programId/stages/:pipelineId/edit" element={<StageBuilderRoute />} />
+      <Route path="/programs/:programId/stages/:pipelineId/preview" element={<StagePreviewRoute />} />
+      <Route path="/programs/:programId/stages/:pipelineId/versions" element={<StageVersionsRoute />} />
 
       <Route path="/preview/:section" element={<PreviewRoute />} />
 

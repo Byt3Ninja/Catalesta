@@ -21,6 +21,7 @@ export const cohortSchema = z.object({
   timeline: z.record(z.string(), z.unknown()).nullable(),
   submissions_count: z.number().int().optional(),
   bound_form_version_id: z.string().nullable().optional(),
+  stage_pipeline_version_id: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -92,5 +93,15 @@ export class BindFormError extends ApiError<BindFormErrorCode> {
   constructor(code: BindFormErrorCode, message?: string) {
     super(code, message)
     this.name = 'BindFormError'
+  }
+}
+
+/** Typed bind-stage-pipeline error (mirrors BindFormError). */
+export type BindStagePipelineErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CONFLICT' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class BindStagePipelineError extends ApiError<BindStagePipelineErrorCode> {
+  constructor(code: BindStagePipelineErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'BindStagePipelineError'
   }
 }
