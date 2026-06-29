@@ -5,6 +5,7 @@ import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { Field } from '../components/Field'
 import { FormBindingPicker } from '../components/FormBindingPicker'
+import { StagePipelineBindingPicker } from '../components/StagePipelineBindingPicker'
 import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
@@ -124,9 +125,25 @@ export function CohortDetailPage({ cohortId }: { cohortId: string }) {
                     />
                   </dd>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="grid gap-2">
                   <dt className="text-muted-foreground">Stage pipeline</dt>
-                  <dd className="text-muted-foreground">Not configured yet</dd>
+                  <dd>
+                    {cohort.stage_pipeline_version_id ? (
+                      <span className="text-sm font-medium">Bound: {cohort.stage_pipeline_version_id}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Not configured yet</span>
+                    )}
+                    <StagePipelineBindingPicker
+                      cohortId={cohortId}
+                      programId={cohort.program_id}
+                      boundVersionId={cohort.stage_pipeline_version_id}
+                      onBound={async (updated) => {
+                        await queryClient.invalidateQueries({ queryKey: ['cohort', cohortId] })
+                        await queryClient.invalidateQueries({ queryKey: ['cohorts'] })
+                        queryClient.setQueryData(['cohort', cohortId], updated)
+                      }}
+                    />
+                  </dd>
                 </div>
               </dl>
             )}

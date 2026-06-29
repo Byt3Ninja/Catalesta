@@ -8,6 +8,13 @@ import { jsonResponse } from '../tests/test-utils'
 
 vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
 
+// The "Attach stages" step renders StagePipelineBindingPicker; stub its queries so
+// the happy-path fetch sequence stays focused on create/dates/open.
+vi.mock('../api/stages', () => ({
+  listStagePipelines: () => Promise.resolve([]),
+  listStagePipelineVersions: () => Promise.resolve([]),
+}))
+
 const CREATED = {
   id: 'coh_9', organization_id: 'org_demo', program_id: 'prog_1', name: 'Autumn 2026',
   slug: 'autumn-2026', status: 'draft' as const, capacity: null,

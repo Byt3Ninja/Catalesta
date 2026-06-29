@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { bindCohortForm, createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
+import { bindCohortForm, bindCohortStagePipeline, createCohort, getCohort, listCohorts, openCohort, updateCohort } from './cohorts'
 import { jsonResponse } from '../tests/test-utils'
 
 const COHORT_FIXTURE = {
@@ -178,4 +178,28 @@ test('bindCohortForm maps 404 → NOT_FOUND', async () => {
 test('bindCohortForm maps 409 → CONFLICT', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
   await expect(bindCohortForm('coh_1', 'fv_pub_1')).rejects.toMatchObject({ code: 'CONFLICT' })
+})
+
+test('bindCohortStagePipeline POSTs stage_pipeline_version_id and returns the bound cohort', async () => {
+  const bound = { ...COHORT_FIXTURE, stage_pipeline_version_id: 'plv_pub_1' }
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: bound }))
+  const result = await bindCohortStagePipeline('coh_1', 'plv_pub_1')
+  expect(result.stage_pipeline_version_id).toBe('plv_pub_1')
+  const [url, init] = fetchSpy.mock.calls[0]
+  expect(String(url)).toContain('/cohorts/coh_1/bind-stage-pipeline')
+  expect(init?.method).toBe('POST')
+  expect(JSON.parse((init?.body as string) ?? '{}')).toEqual({ stage_pipeline_version_id: 'plv_pub_1' })
+})
+
+test('bindCohortStagePipeline maps 404 → NOT_FOUND', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 404 }))
+  await expect(bindCohortStagePipeline('missing', 'plv_pub_1')).rejects.toMatchObject({
+    name: 'BindStagePipelineError',
+    code: 'NOT_FOUND',
+  })
+})
+
+test('bindCohortStagePipeline maps 409 → CONFLICT', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 409 }))
+  await expect(bindCohortStagePipeline('coh_1', 'plv_pub_1')).rejects.toMatchObject({ code: 'CONFLICT' })
 })

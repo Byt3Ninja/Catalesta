@@ -13,6 +13,13 @@ vi.mock('../api/forms', () => ({
   listFormVersions: () => Promise.resolve([]),
 }))
 
+// The StagePipelineBindingPicker in the page lists pipelines/versions; stub them
+// so the detail-content tests aren't coupled to the binding picker's queries.
+vi.mock('../api/stages', () => ({
+  listStagePipelines: () => Promise.resolve([]),
+  listStagePipelineVersions: () => Promise.resolve([]),
+}))
+
 // ContextSelector (rendered by AppShell) fetches /me/roles; stub it so these
 // content tests aren't coupled to the role switcher's query (≤1 role → plain label).
 vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
@@ -69,6 +76,12 @@ test('renders the cohort name and status badge', async () => {
   renderDetail()
   expect(await screen.findByRole('heading', { name: 'Spring 2026' })).toBeInTheDocument()
   expect(screen.getByText('Open')).toBeInTheDocument()
+})
+
+test('the stage-pipeline row reflects a bound version', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(jsonResponse({ data: { ...COHORT, stage_pipeline_version_id: 'plv_pub_1' } }))
+  renderDetail()
+  expect(await screen.findByText(/Bound: plv_pub_1/)).toBeInTheDocument()
 })
 
 test('a 404 shows the "could not load" error state', async () => {
