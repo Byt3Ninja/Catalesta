@@ -7,6 +7,7 @@ use App\Modules\Applications\Http\SubmissionController;
 use App\Modules\Applications\Http\SubmitController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
+use App\Modules\Forms\Http\FormController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
 use App\Modules\Identity\Http\NativeAuthController;
@@ -118,6 +119,11 @@ Route::prefix('v1')->group(function (): void {
         // Program template routes
         Route::post('/program-templates', [ProgramTemplateController::class, 'store'])->name('program-templates.store');
         Route::post('/program-templates/{templateId}/instantiate', [ProgramTemplateController::class, 'instantiate'])->name('program-templates.instantiate');
+
+        // Forms authoring (org-scoped reusable assets) — Slice: forms backend wiring
+        Route::get('/forms', [FormController::class, 'index'])->name('forms.index');
+        Route::post('/forms', [FormController::class, 'store'])->name('forms.store');
+        Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
     });
 
     // Authentication (OIDC authorization-code + PKCE)
