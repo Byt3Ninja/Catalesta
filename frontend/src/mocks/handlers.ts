@@ -476,6 +476,82 @@ const scoringModelHandlers = [
     const sc = scorecards.find((s) => s.cohort_id === params.cohortId && s.stage_id === params.stageId && s.application_id === params.applicationId && s.reviewer_id === params.reviewerId)
     return sc ? HttpResponse.json({ data: sc }) : new HttpResponse(null, { status: 404 })
   }),
+  http.patch('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId', async ({ params, request }) => {
+    const body = (await request.json()) as { values?: Record<string, number>; disqualified?: boolean; model_version_id?: string }
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationId = String(params.applicationId)
+    const reviewerId = String(params.reviewerId)
+
+    let sc = scorecards.find(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === applicationId && s.reviewer_id === reviewerId,
+    )
+
+    if (sc) {
+      if (body.values !== undefined) sc.values = body.values
+      if (body.disqualified !== undefined) sc.disqualified = body.disqualified
+      if (body.model_version_id !== undefined) sc.model_version_id = body.model_version_id
+    } else {
+      const newSc: ScorecardRec = {
+        scorecard_id: `sc_${scorecards.length + 1}`,
+        cohort_id: cohortId,
+        stage_id: stageId,
+        application_id: applicationId,
+        reviewer_id: reviewerId,
+        model_version_id: body.model_version_id ?? 'smv_pub_1',
+        values: body.values ?? {},
+        disqualified: body.disqualified ?? false,
+        status: 'draft',
+        submitted_at: null,
+      }
+      scorecards.push(newSc)
+      sc = newSc
+    }
+
+    return HttpResponse.json({ data: sc })
+  }),
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId/submit', ({ params }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationId = String(params.applicationId)
+    const reviewerId = String(params.reviewerId)
+
+    const sc = scorecards.find(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === applicationId && s.reviewer_id === reviewerId,
+    )
+    if (!sc) return new HttpResponse(null, { status: 404 })
+
+    // Look up the bound model version to validate criterion completeness
+    const mv = scoringModelVersions.find((v) => v.version_id === sc.model_version_id)
+    if (!mv) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Scoring model version not found.' } },
+        { status: 422 },
+      )
+    }
+
+    const allScored = mv.criteria.every((c) => {
+      const v = sc.values[c.criterion_id]
+      return v !== undefined && Number.isFinite(v) && v >= 0 && v <= c.max_points
+    })
+    if (!allScored) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'All criteria must be scored before submission.' } },
+        { status: 422 },
+      )
+    }
+
+    sc.status = 'submitted'
+    sc.submitted_at = new Date().toISOString()
+
+    // Flip the matching ReviewerAssignment to submitted
+    const asgn = assignments.find(
+      (a) => a.cohort_id === cohortId && a.stage_id === stageId && a.application_id === applicationId && a.reviewer_id === reviewerId,
+    )
+    if (asgn) asgn.status = 'submitted'
+
+    return HttpResponse.json({ data: sc })
+  }),
 ]
 
 // Silence unused-variable warnings for stores consumed by future tasks.

@@ -97,3 +97,37 @@ export async function getScorecard(cohortId: string, stageId: string, applicatio
   if (res.status === 401) throw new ScorecardError('UNAUTHENTICATED')
   throw new ScorecardError('UNKNOWN', `Unexpected status ${res.status}`)
 }
+
+export async function saveScorecardDraft(
+  cohortId: string,
+  stageId: string,
+  applicationId: string,
+  reviewerId: string,
+  draft: { values: Record<string, number>; disqualified: boolean; model_version_id?: string },
+): Promise<Scorecard> {
+  const res = await csrfFetch(
+    `/cohorts/${cohortId}/stages/${stageId}/scorecards/${applicationId}/${reviewerId}`,
+    { method: 'PATCH', body: JSON.stringify(draft) },
+  )
+  if (res.status === 200) return scorecardResponseSchema.parse(await res.json()).data
+  if (res.status === 404) throw new ScorecardError('NOT_FOUND')
+  if (res.status === 401) throw new ScorecardError('UNAUTHENTICATED')
+  throw new ScorecardError('UNKNOWN', `Unexpected status ${res.status}`)
+}
+
+export async function submitScorecard(
+  cohortId: string,
+  stageId: string,
+  applicationId: string,
+  reviewerId: string,
+): Promise<Scorecard> {
+  const res = await csrfFetch(
+    `/cohorts/${cohortId}/stages/${stageId}/scorecards/${applicationId}/${reviewerId}/submit`,
+    { method: 'POST' },
+  )
+  if (res.status === 200) return scorecardResponseSchema.parse(await res.json()).data
+  if (res.status === 422) throw new ScorecardError('VALIDATION', 'All criteria must be scored before submission.')
+  if (res.status === 404) throw new ScorecardError('NOT_FOUND')
+  if (res.status === 401) throw new ScorecardError('UNAUTHENTICATED')
+  throw new ScorecardError('UNKNOWN', `Unexpected status ${res.status}`)
+}
