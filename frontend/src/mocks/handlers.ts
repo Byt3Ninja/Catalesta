@@ -1,4 +1,8 @@
 import { http, HttpResponse } from 'msw'
+import { assign as assignRoundRobin } from '../lib/reviewerAssignment'
+import { aggregate, proposeDecisions } from '../lib/scoring'
+import { format2 } from '../lib/decimal'
+import type { Scorecard, ScoringCriterion } from '@/schemas/assessments'
 import type { SessionUser } from '@/schemas/session'
 import type { Organization } from '@/schemas/organizations'
 import type { Program } from '@/schemas/programs'
@@ -82,6 +86,11 @@ const cohorts: Cohort[] = [
     ends_at: null,
     timeline: null,
     submissions_count: 3,
+    // Pre-seeded so every full-page navigation still has the right bindings.
+    // MSW module-level state resets on each page.goto(); seeding avoids
+    // having to re-bind across navigations in e2e tests.
+    stage_pipeline_version_id: 'plv_pub_1',
+    stage_scoring_model_version_ids: { s_screen: 'smv_pub_1' },
     created_at: NOW,
     updated_at: NOW,
   },
@@ -342,9 +351,378 @@ const stagePipelineHandlers = [
   }),
 ]
 
+// ---- scoring models store ----
+type ScoringCriterionRec = { criterion_id: string; label: string; max_points: number; descriptors: string[] | null }
+type ScoringModelRec = { model_id: string; program_id: string; name: string; latest_version: number; published_version_ids: string[]; current_draft_version_id: string | null; created_at: string }
+type ScoringModelVersionRec = { version_id: string; model_id: string; version: number; status: 'draft' | 'published'; criteria: ScoringCriterionRec[]; created_at: string; published_at: string | null }
+
+const scoringModels: ScoringModelRec[] = [
+  { model_id: 'sm_pub', program_id: 'prog_1', name: 'Technical Assessment', latest_version: 1, published_version_ids: ['smv_pub_1'], current_draft_version_id: null, created_at: NOW },
+  { model_id: 'sm_draft', program_id: 'prog_1', name: 'Market Fit Assessment', latest_version: 1, published_version_ids: [], current_draft_version_id: 'smv_draft_1', created_at: NOW },
+]
+const scoringModelVersions: ScoringModelVersionRec[] = [
+  { version_id: 'smv_pub_1', model_id: 'sm_pub', version: 1, status: 'published', criteria: [
+    { criterion_id: 'c_innovation', label: 'Innovation', max_points: 10, descriptors: ['Highly innovative', 'Somewhat innovative', 'Not innovative'] },
+    { criterion_id: 'c_market', label: 'Market Opportunity', max_points: 10, descriptors: ['Large market', 'Medium market', 'Small market'] },
+    { criterion_id: 'c_team', label: 'Team Strength', max_points: 10, descriptors: ['Strong team', 'Adequate team', 'Weak team'] },
+  ], created_at: NOW, published_at: NOW },
+  { version_id: 'smv_draft_1', model_id: 'sm_draft', version: 1, status: 'draft', criteria: [], created_at: NOW, published_at: null },
+]
+type AssignmentRec = { assignment_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; status: 'pending' | 'submitted' }
+type ScorecardRec = { scorecard_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; model_version_id: string; values: Record<string, number>; disqualified: boolean; status: 'draft' | 'submitted'; submitted_at: string | null }
+type DecisionRec = { decision_id: string; cohort_id: string; stage_id: string; application_id: string; outcome: string; snapshot: unknown; decided_by: string }
+
+// Seeded application IDs for cohort coh_1 — used by the round-robin assignment handler.
+// These represent the 3 submissions_count on the demo cohort.
+const COHORT_APPLICATION_IDS: Record<string, string[]> = {
+  coh_1: ['app_1', 'app_2', 'app_3'],
+}
+
+// Pre-seeded so review-queue and scorecard pages work after a full-page navigation.
+// MSW module-level state resets on each page.goto(); seeding avoids re-generating
+// assignments and scorecards between navigations in e2e tests.
+const assignments: AssignmentRec[] = [
+  { assignment_id: 'asgn_1', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_1', reviewer_id: 'acc_demo', status: 'pending' },
+  { assignment_id: 'asgn_2', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_2', reviewer_id: 'acc_demo', status: 'pending' },
+  { assignment_id: 'asgn_3', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_3', reviewer_id: 'acc_demo', status: 'pending' },
+]
+let assignmentSeq = 4 // seeds use 1-3; live-generated IDs start from 4
+
+// Scorecards are pre-seeded to survive full-page navigation (which resets state):
+//   app_1 — draft with filled values so the submit endpoint finds a valid scorecard
+//           (the 500 ms autosave debounce races submit; seeding ensures submit wins).
+//   app_2, app_3 — submitted so the leaderboard has data after navigating to
+//           /cohorts/coh_1/submissions (aggregate filters status === 'submitted').
+const scorecards: ScorecardRec[] = [
+  {
+    scorecard_id: 'sc_seed_0',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_1',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'draft',
+    submitted_at: null,
+  },
+  {
+    scorecard_id: 'sc_seed_1',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_2',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'submitted',
+    submitted_at: NOW,
+  },
+  {
+    scorecard_id: 'sc_seed_2',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_3',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'submitted',
+    submitted_at: NOW,
+  },
+]
+const decisions: DecisionRec[] = []
+let scoringModelSeq = 3
+let scoringModelVersionSeq = 3
+
+const scoringModelHandlers = [
+  http.get('*/api/v1/programs/:programId/scoring-models', ({ params }) =>
+    HttpResponse.json({ data: scoringModels.filter((m) => m.program_id === params.programId) })),
+  http.post('*/api/v1/programs/:programId/scoring-models', async ({ params, request }) => {
+    const body = (await request.json()) as { name?: string }
+    const name = (body.name ?? '').trim()
+    if (!name) return HttpResponse.json({ error: { code: 'VALIDATION_ERROR', details: { name: ['The name field is required.'] } } }, { status: 422 })
+    const mid = `sm_${scoringModelSeq++}`, vid = `smv_${scoringModelVersionSeq++}`
+    scoringModelVersions.push({ version_id: vid, model_id: mid, version: 1, status: 'draft', criteria: [], created_at: new Date().toISOString(), published_at: null })
+    const rec: ScoringModelRec = { model_id: mid, program_id: String(params.programId), name, latest_version: 1, published_version_ids: [], current_draft_version_id: vid, created_at: new Date().toISOString() }
+    scoringModels.push(rec)
+    return HttpResponse.json({ data: rec }, { status: 201 })
+  }),
+  http.get('*/api/v1/scoring-models/:id', ({ params }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    return m ? HttpResponse.json({ data: m }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.get('*/api/v1/scoring-models/:id/versions', ({ params }) =>
+    HttpResponse.json({ data: scoringModelVersions.filter((v) => v.model_id === params.id).sort((a, b) => b.version - a.version) })),
+  http.get('*/api/v1/scoring-model-versions/:versionId', ({ params }) => {
+    const v = scoringModelVersions.find((x) => x.version_id === params.versionId)
+    return v ? HttpResponse.json({ data: v }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.patch('*/api/v1/scoring-models/:id/draft', async ({ params, request }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m || !m.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = scoringModelVersions.find((v) => v.version_id === m.current_draft_version_id)
+    if (!draft) return new HttpResponse(null, { status: 404 })
+    if (draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    const body = (await request.json()) as { criteria?: ScoringCriterionRec[] }
+    draft.criteria = body.criteria ?? []
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/scoring-models/:id/publish', ({ params }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m || !m.current_draft_version_id) return new HttpResponse(null, { status: 404 })
+    const draft = scoringModelVersions.find((v) => v.version_id === m.current_draft_version_id)
+    if (!draft || draft.status === 'published') return new HttpResponse(null, { status: 409 })
+    draft.status = 'published'
+    draft.published_at = new Date().toISOString()
+    m.published_version_ids.push(draft.version_id)
+    m.current_draft_version_id = null
+    return HttpResponse.json({ data: draft })
+  }),
+  http.post('*/api/v1/scoring-models/:id/fork', async ({ params, request }) => {
+    const m = scoringModels.find((x) => x.model_id === params.id)
+    if (!m) return new HttpResponse(null, { status: 404 })
+    let fromVersionId: string | undefined
+    try {
+      const body = (await request.json()) as { from_version_id?: string }
+      fromVersionId = body.from_version_id
+    } catch {
+      // body may be absent or non-JSON
+    }
+    const from = fromVersionId
+      ? scoringModelVersions.find((v) => v.version_id === fromVersionId)
+      : scoringModelVersions.find((v) => v.version_id === m.published_version_ids[m.published_version_ids.length - 1])
+    const vid = `smv_${scoringModelVersionSeq++}`
+    const next = m.latest_version + 1
+    scoringModelVersions.push({ version_id: vid, model_id: m.model_id, version: next, status: 'draft', criteria: from ? JSON.parse(JSON.stringify(from.criteria)) : [], created_at: new Date().toISOString(), published_at: null })
+    m.latest_version = next
+    m.current_draft_version_id = vid
+    return HttpResponse.json({ data: scoringModelVersions[scoringModelVersions.length - 1] })
+  }),
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/assignments', ({ params }) =>
+    HttpResponse.json({ data: assignments.filter((a) => a.cohort_id === params.cohortId && a.stage_id === params.stageId) })),
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/assignments', async ({ params, request }) => {
+    const body = (await request.json()) as { reviewer_ids?: string[]; per_app?: number }
+    const reviewer_ids = body.reviewer_ids ?? []
+    const per_app = body.per_app ?? 1
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationIds = COHORT_APPLICATION_IDS[cohortId] ?? []
+    // Remove existing assignments for this cohort+stage slice before replacing.
+    const keep = assignments.filter((a) => !(a.cohort_id === cohortId && a.stage_id === stageId))
+    assignments.length = 0
+    for (const a of keep) assignments.push(a)
+    // Run the real round-robin engine.
+    const generated: AssignmentRec[] = []
+    for (const { application_id, reviewer_ids: rids } of assignRoundRobin(applicationIds, reviewer_ids, per_app)) {
+      for (const reviewer_id of rids) {
+        const rec: AssignmentRec = {
+          assignment_id: `asgn_${assignmentSeq++}`,
+          cohort_id: cohortId,
+          stage_id: stageId,
+          application_id,
+          reviewer_id,
+          status: 'pending',
+        }
+        assignments.push(rec)
+        generated.push(rec)
+      }
+    }
+    return HttpResponse.json({ data: generated }, { status: 201 })
+  }),
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId', ({ params }) => {
+    const sc = scorecards.find((s) => s.cohort_id === params.cohortId && s.stage_id === params.stageId && s.application_id === params.applicationId && s.reviewer_id === params.reviewerId)
+    return sc ? HttpResponse.json({ data: sc }) : new HttpResponse(null, { status: 404 })
+  }),
+  http.patch('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId', async ({ params, request }) => {
+    const body = (await request.json()) as { values?: Record<string, number>; disqualified?: boolean; model_version_id?: string }
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationId = String(params.applicationId)
+    const reviewerId = String(params.reviewerId)
+
+    let sc = scorecards.find(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === applicationId && s.reviewer_id === reviewerId,
+    )
+
+    if (sc) {
+      if (body.values !== undefined) sc.values = body.values
+      if (body.disqualified !== undefined) sc.disqualified = body.disqualified
+      if (body.model_version_id !== undefined) sc.model_version_id = body.model_version_id
+    } else {
+      const newSc: ScorecardRec = {
+        scorecard_id: `sc_${scorecards.length + 1}`,
+        cohort_id: cohortId,
+        stage_id: stageId,
+        application_id: applicationId,
+        reviewer_id: reviewerId,
+        model_version_id: body.model_version_id ?? 'smv_pub_1',
+        values: body.values ?? {},
+        disqualified: body.disqualified ?? false,
+        status: 'draft',
+        submitted_at: null,
+      }
+      scorecards.push(newSc)
+      sc = newSc
+    }
+
+    return HttpResponse.json({ data: sc })
+  }),
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId/submit', ({ params }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const applicationId = String(params.applicationId)
+    const reviewerId = String(params.reviewerId)
+
+    const sc = scorecards.find(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === applicationId && s.reviewer_id === reviewerId,
+    )
+    if (!sc) return new HttpResponse(null, { status: 404 })
+
+    // Look up the bound model version to validate criterion completeness
+    const mv = scoringModelVersions.find((v) => v.version_id === sc.model_version_id)
+    if (!mv) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Scoring model version not found.' } },
+        { status: 422 },
+      )
+    }
+
+    const allScored = mv.criteria.every((c) => {
+      const v = sc.values[c.criterion_id]
+      return v !== undefined && Number.isFinite(v) && v >= 0 && v <= c.max_points
+    })
+    if (!allScored) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'All criteria must be scored before submission.' } },
+        { status: 422 },
+      )
+    }
+
+    sc.status = 'submitted'
+    sc.submitted_at = new Date().toISOString()
+
+    // Flip the matching ReviewerAssignment to submitted
+    const asgn = assignments.find(
+      (a) => a.cohort_id === cohortId && a.stage_id === stageId && a.application_id === applicationId && a.reviewer_id === reviewerId,
+    )
+    if (asgn) asgn.status = 'submitted'
+
+    return HttpResponse.json({ data: sc })
+  }),
+
+  // ── Leaderboard ──────────────────────────────────────────────────────────
+  // Groups submitted scorecards by application, aggregates via lib/scoring,
+  // and returns rows sorted by mean DESC. Only submitted cards contribute.
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/leaderboard', ({ params }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+
+    const relevant = scorecards.filter(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.status === 'submitted',
+    )
+
+    const byApp = new Map<string, ScorecardRec[]>()
+    for (const sc of relevant) {
+      if (!byApp.has(sc.application_id)) byApp.set(sc.application_id, [])
+      byApp.get(sc.application_id)!.push(sc)
+    }
+
+    const rows: Array<{ application_id: string; mean: number; model_max: number; count: number; min: number; max: number; disqualified: boolean }> = []
+    for (const [application_id, cards] of byApp.entries()) {
+      const mvId = cards[0].model_version_id
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      if (!mv) continue
+      const agg = aggregate(mv.criteria as ScoringCriterion[], cards as unknown as Scorecard[])
+      rows.push({ application_id, ...agg })
+    }
+
+    rows.sort((a, b) => b.mean - a.mean)
+    return HttpResponse.json({ data: rows })
+  }),
+
+  // ── Decisions: propose ────────────────────────────────────────────────────
+  // Reuses the leaderboard aggregation to build rows, then applies
+  // lib/scoring.proposeDecisions with the caller-supplied cutoff.
+  // No records are persisted — this is a pure planning endpoint.
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/decisions/propose', async ({ params, request }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const body = (await request.json()) as { cutoff?: number }
+    const cutoff = body.cutoff ?? 0
+
+    const relevant = scorecards.filter(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.status === 'submitted',
+    )
+    const byApp = new Map<string, ScorecardRec[]>()
+    for (const sc of relevant) {
+      if (!byApp.has(sc.application_id)) byApp.set(sc.application_id, [])
+      byApp.get(sc.application_id)!.push(sc)
+    }
+    const rows: { application_id: string; mean: number; disqualified: boolean }[] = []
+    for (const [application_id, cards] of byApp.entries()) {
+      const mvId = cards[0].model_version_id
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      if (!mv) continue
+      const { mean, disqualified } = aggregate(mv.criteria as ScoringCriterion[], cards as unknown as Scorecard[])
+      rows.push({ application_id, mean, disqualified })
+    }
+
+    return HttpResponse.json({ data: proposeDecisions(rows, cutoff) })
+  }),
+
+  // ── Decisions: commit ─────────────────────────────────────────────────────
+  // Persists one Decision per incoming outcome entry. Each Decision carries an
+  // IMMUTABLE snapshot: the model_version_id, the application's submitted
+  // scorecards at this moment, and the formatted mean.
+  // NOTE: `advance` routes the application into the stage's next_stage_ids
+  // (illustrative in MSW; real routing is handled server-side via the pipeline).
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/decisions/commit', async ({ params, request }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const body = (await request.json()) as { decisions?: { application_id: string; outcome: string }[] }
+    const incoming = body.decisions ?? []
+    const now = new Date().toISOString()
+
+    const committed: DecisionRec[] = []
+    for (const { application_id, outcome } of incoming) {
+      // Collect the application's submitted scorecards for the immutable snapshot.
+      const appCards = scorecards.filter(
+        (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === application_id && s.status === 'submitted',
+      )
+      const mvId = appCards[0]?.model_version_id ?? ''
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      const { mean } = mv
+        ? aggregate(mv.criteria as ScoringCriterion[], appCards as unknown as Scorecard[])
+        : { mean: 0 }
+
+      const snapshot = {
+        model_version_id: mvId,
+        scorecards: JSON.parse(JSON.stringify(appCards)) as ScorecardRec[], // immutable copy
+        mean: format2(mean),
+        decided_at: now,
+      }
+      const rec: DecisionRec = {
+        decision_id: `dec_${decisions.length + 1}`,
+        cohort_id: cohortId,
+        stage_id: stageId,
+        application_id,
+        outcome,
+        snapshot,
+        decided_by: 'acc_demo',
+      }
+      decisions.push(rec)
+      committed.push(rec)
+    }
+
+    return HttpResponse.json({ data: committed })
+  }),
+]
+
 export const handlers = [
   ...formHandlers,
   ...stagePipelineHandlers,
+  ...scoringModelHandlers,
   // --- Auth mutations (prototype: always succeed; no real credential check) ---
   // Sanctum CSRF preflight lives at the app root (not under /api/v1).
   http.get('*/sanctum/csrf-cookie', () => new HttpResponse(null, { status: 204 })),
@@ -426,6 +804,29 @@ export const handlers = [
     c.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: c })
   }),
+  http.post('*/api/v1/cohorts/:id/bind-stage-scoring-model', async ({ params, request }) => {
+    const c = cohorts.find((x) => x.id === params.id)
+    if (!c) return new HttpResponse(null, { status: 404 })
+    const b = (await request.json()) as { stage_id?: string; scoring_model_version_id?: string }
+    const stage_id = b.stage_id ?? ''
+    const existing = ((c as Record<string, unknown>).stage_scoring_model_version_ids ?? {}) as Record<string, string>
+    ;(c as Record<string, unknown>).stage_scoring_model_version_ids = stage_id && b.scoring_model_version_id
+      ? { ...existing, [stage_id]: b.scoring_model_version_id }
+      : existing
+    c.updated_at = new Date().toISOString()
+    return HttpResponse.json({ data: c })
+  }),
+  http.get('*/api/v1/cohorts/:id/funnel', () =>
+    HttpResponse.json({ data: { viewed: 42, started: 8, submitted: 3 } })),
+  http.get('*/api/v1/cohorts/:id/submissions', () =>
+    HttpResponse.json({
+      data: [
+        { reference_number: 'APP-001', cohort_id: 'coh_1', submitted_at: NOW },
+        { reference_number: 'APP-002', cohort_id: 'coh_1', submitted_at: NOW },
+        { reference_number: 'APP-003', cohort_id: 'coh_1', submitted_at: NOW },
+      ],
+      meta: { total: 3 },
+    })),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey

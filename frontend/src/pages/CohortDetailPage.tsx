@@ -6,11 +6,13 @@ import { Button } from '../components/Button'
 import { Field } from '../components/Field'
 import { FormBindingPicker } from '../components/FormBindingPicker'
 import { StagePipelineBindingPicker } from '../components/StagePipelineBindingPicker'
+import { ScoringModelBindingPicker } from '../components/ScoringModelBindingPicker'
 import { FormLayout } from '../components/FormLayout'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { getCohort, updateCohort } from '../api/cohorts'
+import { getStagePipelineVersion } from '../api/stages'
 import { UpdateCohortError, type Cohort } from '../schemas/cohorts'
 
 const STATUS_LABEL: Record<Cohort['status'], string> = {
@@ -29,6 +31,14 @@ function formatWindow(opens: string | null, closes: string | null): string {
 export function CohortDetailPage({ cohortId }: { cohortId: string }) {
   const queryClient = useQueryClient()
   const cohortQuery = useQuery({ queryKey: ['cohort', cohortId], queryFn: () => getCohort(cohortId), retry: false })
+
+  const pipelineVersionId = cohortQuery.data?.stage_pipeline_version_id ?? null
+  const pipelineVersionQuery = useQuery({
+    queryKey: ['stage-pipeline-version', pipelineVersionId],
+    queryFn: () => getStagePipelineVersion(pipelineVersionId!),
+    enabled: !!pipelineVersionId,
+    retry: false,
+  })
 
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
@@ -145,6 +155,32 @@ export function CohortDetailPage({ cohortId }: { cohortId: string }) {
                     />
                   </dd>
                 </div>
+                {cohort.stage_pipeline_version_id && pipelineVersionQuery.data && (
+                  <div className="grid gap-2">
+                    <dt className="text-muted-foreground">Scoring models (per stage)</dt>
+                    <dd className="grid gap-4">
+                      {pipelineVersionQuery.data.stages.map((stage) => (
+                        <div key={stage.stage_id} className="grid gap-1 rounded-md border border-border p-3">
+                          <p className="text-sm font-medium">{stage.name}</p>
+                          <p className="text-sm text-muted-foreground" data-testid={`stage-scoring-bound-${stage.stage_id}`}>
+                            Bound: {cohort.stage_scoring_model_version_ids?.[stage.stage_id] ?? 'not configured'}
+                          </p>
+                          <ScoringModelBindingPicker
+                            cohortId={cohortId}
+                            programId={cohort.program_id}
+                            stageId={stage.stage_id}
+                            boundVersionId={cohort.stage_scoring_model_version_ids?.[stage.stage_id] ?? null}
+                            onBound={async (updated) => {
+                              await queryClient.invalidateQueries({ queryKey: ['cohort', cohortId] })
+                              await queryClient.invalidateQueries({ queryKey: ['cohorts'] })
+                              queryClient.setQueryData(['cohort', cohortId], updated)
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </dd>
+                  </div>
+                )}
               </dl>
             )}
           </>

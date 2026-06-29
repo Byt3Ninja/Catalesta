@@ -8,6 +8,7 @@ import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { listForms } from '../api/forms'
 import { listStagePipelines, createStagePipeline } from '../api/stages'
+import { listScoringModels, createScoringModel } from '../api/assessments'
 
 function PublishedBadge({ count, hasDraft }: { count: number; hasDraft: boolean }) {
   return (
@@ -22,9 +23,11 @@ function PublishedBadge({ count, hasDraft }: { count: number; hasDraft: boolean 
 
 export function ProgramConfigPage({ programId }: { programId: string }) {
   const [newName, setNewName] = useState('')
+  const [scoringModelName, setScoringModelName] = useState('')
 
   const formsQuery = useQuery({ queryKey: ['forms'], queryFn: listForms, retry: false })
   const pipelinesQuery = useQuery({ queryKey: ['stage-pipelines', programId], queryFn: () => listStagePipelines(programId), retry: false })
+  const scoringModelsQuery = useQuery({ queryKey: ['scoring-models', programId], queryFn: () => listScoringModels(programId), retry: false })
 
   const createPipeline = useMutation({
     mutationFn: () => createStagePipeline(programId, newName.trim()),
@@ -33,8 +36,16 @@ export function ProgramConfigPage({ programId }: { programId: string }) {
     },
   })
 
+  const createModel = useMutation({
+    mutationFn: () => createScoringModel(programId, scoringModelName.trim()),
+    onSuccess: (model) => {
+      window.location.assign(`/programs/${programId}/scoring/${model.model_id}/edit`)
+    },
+  })
+
   const forms = formsQuery.data ?? []
   const pipelines = pipelinesQuery.data ?? []
+  const scoringModels = scoringModelsQuery.data ?? []
 
   return (
     <AppShell
@@ -92,6 +103,37 @@ export function ProgramConfigPage({ programId }: { programId: string }) {
                     <PublishedBadge count={p.published_version_ids.length} hasDraft={p.current_draft_version_id !== null} />
                   </span>
                   <Link href={`/programs/${programId}/stages/${p.pipeline_id}/edit`}>Open builder</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {/* Scoring */}
+        <div className="grid h-fit gap-3 rounded-lg border border-border bg-card p-4">
+          <h2 className="text-lg font-medium">Scoring</h2>
+          <form
+            className="flex flex-wrap items-end gap-2"
+            onSubmit={(e) => { e.preventDefault(); if (scoringModelName.trim()) createModel.mutate() }}
+          >
+            <Field label="New scoring model name" name="new-scoring-model-name" value={scoringModelName} onChange={(e) => setScoringModelName(e.target.value)} />
+            <Button type="submit" loading={createModel.isPending} disabled={!scoringModelName.trim()}>New scoring model</Button>
+          </form>
+          {createModel.isError && <StateBlock variant="error" message="Could not create the scoring model. Try again." />}
+          {scoringModelsQuery.isLoading ? (
+            <Spinner label="Loading scoring models…" />
+          ) : scoringModelsQuery.isError ? (
+            <StateBlock variant="error" message="Could not load scoring models." />
+          ) : scoringModels.length === 0 ? (
+            <StateBlock variant="empty" message="No scoring models yet." />
+          ) : (
+            <ul className="grid gap-2">
+              {scoringModels.map((m) => (
+                <li key={m.model_id} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-medium"><bdi>{m.name}</bdi></span>
+                    <PublishedBadge count={m.published_version_ids.length} hasDraft={m.current_draft_version_id !== null} />
+                  </span>
+                  <Link href={`/programs/${programId}/scoring/${m.model_id}/edit`}>Open builder</Link>
                 </li>
               ))}
             </ul>

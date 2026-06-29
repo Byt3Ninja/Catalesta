@@ -22,6 +22,7 @@ export const cohortSchema = z.object({
   submissions_count: z.number().int().optional(),
   bound_form_version_id: z.string().nullable().optional(),
   stage_pipeline_version_id: z.string().nullable().optional(),
+  stage_scoring_model_version_ids: z.record(z.string(), z.string()).nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -103,5 +104,15 @@ export class BindStagePipelineError extends ApiError<BindStagePipelineErrorCode>
   constructor(code: BindStagePipelineErrorCode, message?: string) {
     super(code, message)
     this.name = 'BindStagePipelineError'
+  }
+}
+
+/** Typed bind-scoring-model error (mirrors BindStagePipelineError). */
+export type BindScoringModelErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CONFLICT' | 'UNAUTHENTICATED' | 'UNKNOWN'
+
+export class BindScoringModelError extends ApiError<BindScoringModelErrorCode> {
+  constructor(code: BindScoringModelErrorCode, message?: string) {
+    super(code, message)
+    this.name = 'BindScoringModelError'
   }
 }
