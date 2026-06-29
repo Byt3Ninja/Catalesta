@@ -19,6 +19,34 @@ test('scoring model handlers are registered', () => {
   expect(hasRoute('GET', '/cohorts/:cohortId/stages/:stageId/scorecards/:applicationId/:reviewerId')).toBe(true)
 })
 
+test('bind-stage-scoring-model merge: binding stage B preserves stage A', async () => {
+  const server = setupServer(...handlers)
+  server.listen({ onUnhandledRequest: 'bypass' })
+  try {
+    // Bind stage_A → v1
+    const resA = await fetch('http://localhost/api/v1/cohorts/coh_1/bind-stage-scoring-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': 'test' },
+      body: JSON.stringify({ stage_id: 'stage_A', scoring_model_version_id: 'v1' }),
+    })
+    expect(resA.status).toBe(200)
+
+    // Bind stage_B → v2; must not clobber stage_A
+    const resB = await fetch('http://localhost/api/v1/cohorts/coh_1/bind-stage-scoring-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': 'test' },
+      body: JSON.stringify({ stage_id: 'stage_B', scoring_model_version_id: 'v2' }),
+    })
+    expect(resB.status).toBe(200)
+    const { data: cohort } = (await resB.json()) as { data: { stage_scoring_model_version_ids: Record<string, string> } }
+
+    expect(cohort.stage_scoring_model_version_ids['stage_A']).toBe('v1')
+    expect(cohort.stage_scoring_model_version_ids['stage_B']).toBe('v2')
+  } finally {
+    server.close()
+  }
+})
+
 test('publish snapshots the draft into an immutable version and fork clones a version', async () => {
   const server = setupServer(...handlers)
   server.listen({ onUnhandledRequest: 'bypass' })

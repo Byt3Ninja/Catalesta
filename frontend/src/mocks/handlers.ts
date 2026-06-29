@@ -534,9 +534,10 @@ export const handlers = [
     if (!c) return new HttpResponse(null, { status: 404 })
     const b = (await request.json()) as { stage_id?: string; scoring_model_version_id?: string }
     const stage_id = b.stage_id ?? ''
-    const scoring_model_version_id = b.scoring_model_version_id ?? null
     const existing = ((c as Record<string, unknown>).stage_scoring_model_version_ids ?? {}) as Record<string, string>
-    ;(c as Record<string, unknown>).stage_scoring_model_version_ids = { ...existing, [stage_id]: scoring_model_version_id }
+    ;(c as Record<string, unknown>).stage_scoring_model_version_ids = stage_id && b.scoring_model_version_id
+      ? { ...existing, [stage_id]: b.scoring_model_version_id }
+      : existing
     c.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: c })
   }),
