@@ -23,6 +23,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Rollback restores NOT NULL. Precondition: no rows with NULL program_id or content_hash
+        // (i.e. no unpublished drafts). Clear/publish drafts before rolling back, else the column
+        // change will fail.
         Schema::table('form_versions', function (Blueprint $t): void {
             $t->string('content_hash', 64)->nullable(false)->change();
         });
