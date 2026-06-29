@@ -108,7 +108,7 @@ export function ScoringModelBuilderPage({ modelId }: { modelId: string }) {
                   </Button>
                 )}
                 {(!draftId || justPublished) && (
-                  <Button variant="secondary" loading={forkMutation.isPending} onClick={() => forkMutation.mutate()}>
+                  <Button variant="secondary" loading={forkMutation.isPending} disabled={forkMutation.isPending || modelQuery.isFetching} onClick={() => forkMutation.mutate()}>
                     Edit (new draft)
                   </Button>
                 )}
