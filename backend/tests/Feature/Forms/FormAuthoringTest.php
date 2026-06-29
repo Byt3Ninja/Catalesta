@@ -250,4 +250,45 @@ final class FormAuthoringTest extends TestCase
             ->postJson("/api/v1/forms/{$form->id}/fork", ['from_version_id' => $draft->id])
             ->assertStatus(404);
     }
+
+    public function test_fork_with_existing_draft_from_same_published_version_returns_same_draft(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        $published = FormVersion::create(['form_id' => $form->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('a', 64), 'definition' => [['type' => 'short_text', 'label' => 'Name', 'id' => 'a']], 'published_at' => now()]);
+
+        // First fork: creates draft A
+        $res1 = $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/forms/{$form->id}/fork", ['from_version_id' => $published->id]);
+
+        $res1->assertStatus(201);
+        $draftAId = $res1->json('data.id');
+
+        // Second fork with same published version: should return draft A, not create a new one
+        $res2 = $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/forms/{$form->id}/fork", ['from_version_id' => $published->id]);
+
+        $res2->assertStatus(201)->assertJsonPath('data.id', $draftAId);
+
+        // Verify exactly one draft exists: published v1 + one draft
+        $this->assertSame(1, FormVersion::where('form_id', $form->id)->where('status', 'draft')->count());
+        $this->assertSame(2, FormVersion::where('form_id', $form->id)->count());
+    }
+
+    public function test_fork_with_foreign_published_version_is_404(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $formA = Form::create(['name' => 'Form A']);
+        $publishedA = FormVersion::create(['form_id' => $formA->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('a', 64), 'definition' => [['type' => 'short_text', 'label' => 'Name', 'id' => 'a']], 'published_at' => now()]);
+
+        $formB = Form::create(['name' => 'Form B']);
+        $publishedB = FormVersion::create(['form_id' => $formB->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('b', 64), 'definition' => [['type' => 'short_text', 'label' => 'Email', 'id' => 'b']], 'published_at' => now()]);
+
+        // Try to fork form A with form B's published version: should return 404
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/forms/{$formA->id}/fork", ['from_version_id' => $publishedB->id])
+            ->assertStatus(404);
+    }
 }
