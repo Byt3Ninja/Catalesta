@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Forms\Http;
 
 use App\Modules\Forms\Application\CreateForm;
+use App\Modules\Forms\Application\ForkFormDraft;
 use App\Modules\Forms\Application\PublishForm;
 use App\Modules\Forms\Application\SaveFormDraft;
 use App\Modules\Forms\Domain\Exceptions\InvalidFormDefinitionException;
 use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
+use App\Modules\Forms\Http\Requests\ForkFormDraftRequest;
 use App\Modules\Forms\Http\Requests\SaveFormDraftRequest;
 use App\Modules\Forms\Http\Requests\StoreFormRequest;
 use App\Modules\Forms\Http\Resources\FormResource;
@@ -85,6 +87,18 @@ final class FormController extends Controller
         }
 
         return (new FormVersionResource($version))->response()->setStatusCode(200);
+    }
+
+    public function fork(ForkFormDraftRequest $request, ForkFormDraft $service, string $id): JsonResponse
+    {
+        $form = Form::query()->findOrFail($id);
+        $this->authorize('update', $form);
+
+        /** @var array{from_version_id: string} $data */
+        $data = $request->validated();
+        $draft = $service->handle($form, $data['from_version_id']); // ModelNotFoundException → 404
+
+        return (new FormVersionResource($draft))->response()->setStatusCode(201);
     }
 
     public function versions(string $form): AnonymousResourceCollection

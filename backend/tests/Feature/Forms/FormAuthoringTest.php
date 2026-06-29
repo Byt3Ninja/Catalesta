@@ -224,4 +224,30 @@ final class FormAuthoringTest extends TestCase
             ->postJson("/api/v1/forms/{$form->id}/publish")
             ->assertStatus(404);
     }
+
+    public function test_fork_creates_a_new_draft_from_a_published_version(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        $published = FormVersion::create(['form_id' => $form->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('a', 64), 'definition' => [['type' => 'short_text', 'label' => 'Name', 'id' => 'a']], 'published_at' => now()]);
+
+        $res = $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/forms/{$form->id}/fork", ['from_version_id' => $published->id]);
+
+        $res->assertStatus(201)->assertJsonPath('data.status', 'draft')->assertJsonPath('data.fields.0.label', 'Name');
+        $this->assertSame(2, FormVersion::where('form_id', $form->id)->count());
+    }
+
+    public function test_fork_with_an_unpublished_or_foreign_version_is_404(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        $draft = FormVersion::create(['form_id' => $form->id, 'definition' => []]); // not published
+
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/forms/{$form->id}/fork", ['from_version_id' => $draft->id])
+            ->assertStatus(404);
+    }
 }

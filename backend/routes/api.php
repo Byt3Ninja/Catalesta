@@ -129,6 +129,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
         Route::patch('/forms/{id}/draft', [FormController::class, 'saveDraft'])->name('forms.draft.update');
         Route::post('/forms/{id}/publish', [FormController::class, 'publish'])->name('forms.publish');
+        Route::post('/forms/{id}/fork', [FormController::class, 'fork'])->name('forms.fork');
         Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
         Route::get('/form-versions/{id}', [FormVersionController::class, 'show'])->name('form-versions.show');
     });

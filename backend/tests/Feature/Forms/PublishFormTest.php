@@ -10,6 +10,7 @@ use App\Modules\Forms\Application\PublishForm;
 use App\Modules\Forms\Application\SaveFormDraft;
 use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
 use App\Modules\Forms\Domain\Models\Form;
+use App\Modules\Forms\Domain\Models\FormVersion;
 use App\Shared\Versioning\VersionStateException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -75,8 +76,6 @@ final class PublishFormTest extends TestCase
 
     public function test_identical_republish_is_idempotent(): void
     {
-        $this->markTestSkipped('depends on ForkFormDraft (Task 8)');
-
         $form = $this->formWithDraft($this->definition());
         $a = $this->app->make(PublishForm::class)->handle($form);
 
@@ -86,5 +85,36 @@ final class PublishFormTest extends TestCase
 
         $this->assertSame($a->id, $b->id);
         $this->assertDatabaseCount('form_versions', 1);
+    }
+
+    /**
+     * AC-3 regression: fork → edit to different content → publish creates version 2;
+     * original v1 remains resolvable.
+     */
+    public function test_fork_then_different_content_publish_creates_new_version(): void
+    {
+        $form = $this->formWithDraft($this->definition());
+        $v1 = $this->app->make(PublishForm::class)->handle($form);
+
+        // fork from v1, producing a new draft
+        $this->app->make(ForkFormDraft::class)->handle($form->refresh(), $v1->id);
+
+        // save the draft with DIFFERENT content
+        $differentFields = [
+            ['type' => 'short_text', 'label' => 'Changed Field', 'id' => 'f99', 'required' => false],
+        ];
+        $this->app->make(SaveFormDraft::class)->handle($form->refresh(), $differentFields);
+
+        // publish the changed draft → must create v2
+        $v2 = $this->app->make(PublishForm::class)->handle($form->refresh());
+
+        $this->assertSame(2, $v2->version_number);
+        $this->assertNotSame($v1->id, $v2->id);
+
+        // v1 must still be resolvable
+        $this->assertNotNull(FormVersion::find($v1->id));
+
+        // two published versions exist
+        $this->assertDatabaseCount('form_versions', 2);
     }
 }
