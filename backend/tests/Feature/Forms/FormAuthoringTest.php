@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Forms;
 
 use App\Modules\Forms\Domain\Models\Form;
+use App\Modules\Forms\Domain\Models\FormVersion;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -102,5 +103,33 @@ final class FormAuthoringTest extends TestCase
             ->withHeader('X-Organization-Id', $org->id)
             ->postJson('/api/v1/forms', ['name' => 'Forbidden Form'])
             ->assertStatus(403);
+    }
+
+    public function test_versions_index_lists_in_version_order(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'status' => 'published', 'version_number' => 1, 'content_hash' => str_repeat('a', 64), 'definition' => [], 'published_at' => now()]);
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]); // draft
+
+        $res = $this->actingAsTenantRequest($user, $org)->getJson("/api/v1/forms/{$form->id}/versions");
+        $res->assertStatus(200);
+        $this->assertCount(2, $res->json('data'));
+        $this->assertSame([1, 0], array_column($res->json('data'), 'version'));
+    }
+
+    public function test_version_show_returns_404_across_tenants(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        $v = FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->getJson("/api/v1/form-versions/{$v->id}")
+            ->assertStatus(404);
     }
 }

@@ -8,6 +8,7 @@ use App\Modules\Applications\Http\SubmitController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Forms\Http\FormController;
+use App\Modules\Forms\Http\FormVersionController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
 use App\Modules\Identity\Http\NativeAuthController;
@@ -123,7 +124,11 @@ Route::prefix('v1')->group(function (): void {
         // Forms authoring (org-scoped reusable assets) — Slice: forms backend wiring
         Route::get('/forms', [FormController::class, 'index'])->name('forms.index');
         Route::post('/forms', [FormController::class, 'store'])->name('forms.store');
+        // More-specific /forms/{form}/versions must be registered before the
+        // catch-all /forms/{id} so Laravel does not bind "versions" as an id.
+        Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
         Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
+        Route::get('/form-versions/{id}', [FormVersionController::class, 'show'])->name('form-versions.show');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

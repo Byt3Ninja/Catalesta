@@ -6,8 +6,10 @@ namespace App\Modules\Forms\Http;
 
 use App\Modules\Forms\Application\CreateForm;
 use App\Modules\Forms\Domain\Models\Form;
+use App\Modules\Forms\Domain\Models\FormVersion;
 use App\Modules\Forms\Http\Requests\StoreFormRequest;
 use App\Modules\Forms\Http\Resources\FormResource;
+use App\Modules\Forms\Http\Resources\FormVersionResource;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -43,5 +45,18 @@ final class FormController extends Controller
         $this->authorize('view', $form);
 
         return new FormResource($form);
+    }
+
+    public function versions(string $form): AnonymousResourceCollection
+    {
+        $model = Form::query()->findOrFail($form);
+        $this->authorize('view', $model);
+
+        $versions = FormVersion::query()
+            ->where('form_id', $model->id)
+            ->orderByDesc('version_number')
+            ->get();
+
+        return FormVersionResource::collection($versions);
     }
 }
