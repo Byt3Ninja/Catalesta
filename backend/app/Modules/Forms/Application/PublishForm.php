@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Forms\Application;
 
+use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
 use App\Modules\Forms\Domain\FormDefinitionValidator;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
@@ -12,10 +13,10 @@ use App\Shared\Versioning\VersionPublisher;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Validates a form definition and publishes it as an immutable, content-addressed
+ * Publishes the form's single draft version as an immutable, content-addressed
  * version. The version id is sha256 of the canonical (key-sorted) definition;
- * republishing identical content returns the existing version (idempotent), so a
- * given logical form has exactly one version row per content hash.
+ * republishing content identical to an existing published version returns that
+ * version and discards the redundant draft (idempotent, no duplicate row).
  */
 final class PublishForm
 {
@@ -26,29 +27,44 @@ final class PublishForm
     ) {}
 
     /**
-     * @param  array<int, array<string, mixed>>  $definition
+     * @throws NoDraftToPublishException when there is no draft, or the draft is empty
      */
-    public function handle(Form $form, array $definition): FormVersion
+    public function handle(Form $form): FormVersion
     {
-        $this->validator->validate($definition);
-        $hash = hash('sha256', $this->validator->canonicalJson($definition));
+        /** @var FormVersion|null $draft */
+        $draft = FormVersion::query()
+            ->where('form_id', $form->id)
+            ->where('status', 'draft')
+            ->first();
 
-        $version = DB::transaction(function () use ($form, $definition, $hash): FormVersion {
-            $existing = FormVersion::where('form_id', $form->id)->where('content_hash', $hash)->first();
+        if ($draft === null || $draft->definition === []) {
+            throw new NoDraftToPublishException('This form has no publishable draft.');
+        }
+
+        $this->validator->validate($draft->definition);
+        $hash = hash('sha256', $this->validator->canonicalJson($draft->definition));
+
+        $version = DB::transaction(function () use ($form, $draft, $hash): FormVersion {
+            /** @var FormVersion|null $existing */
+            $existing = FormVersion::query()
+                ->where('form_id', $form->id)
+                ->where('status', 'published')
+                ->where('content_hash', $hash)
+                ->first();
+
             if ($existing !== null) {
-                return $existing; // idempotent republish — no duplicate version
+                $draft->delete();                 // discard redundant draft (avoids UNIQUE collision)
+                $form->update(['current_published_version_id' => $existing->id]);
+
+                return $existing;
             }
 
-            $version = FormVersion::create([
-                'form_id' => $form->id,
-                'content_hash' => $hash,
-                'definition' => $definition,
-            ]);
+            $draft->content_hash = $hash;         // still a draft row — mutation allowed
+            $draft->save();
+            $this->publisher->publish($draft);    // version_number, Published, published_at
+            $form->update(['current_published_version_id' => $draft->id]);
 
-            $this->publisher->publish($version); // assigns version_number, Published, published_at
-            $form->update(['current_published_version_id' => $version->id]);
-
-            return $version->refresh();
+            return $draft->refresh();
         });
 
         $this->audit->record('form.published', 'form_version', $version->id, [], [

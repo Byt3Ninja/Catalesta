@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Forms\Http;
 
 use App\Modules\Forms\Application\CreateForm;
+use App\Modules\Forms\Application\PublishForm;
 use App\Modules\Forms\Application\SaveFormDraft;
 use App\Modules\Forms\Domain\Exceptions\InvalidFormDefinitionException;
 use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
@@ -67,6 +68,20 @@ final class FormController extends Controller
             return response()->json(['message' => $e->getMessage()], 409);
         } catch (InvalidFormDefinitionException $e) {
             return response()->json(['message' => $e->getMessage(), 'errors' => ['fields' => [$e->getMessage()]]], 422);
+        }
+
+        return (new FormVersionResource($version))->response()->setStatusCode(200);
+    }
+
+    public function publish(PublishForm $service, string $id): JsonResponse
+    {
+        $form = Form::query()->findOrFail($id);
+        $this->authorize('publish', $form);
+
+        try {
+            $version = $service->handle($form);
+        } catch (NoDraftToPublishException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
         }
 
         return (new FormVersionResource($version))->response()->setStatusCode(200);

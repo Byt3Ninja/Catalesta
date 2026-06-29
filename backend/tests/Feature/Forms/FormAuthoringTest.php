@@ -189,4 +189,25 @@ final class FormAuthoringTest extends TestCase
             ->patchJson("/api/v1/forms/{$form->id}/draft", ['fields' => []])
             ->assertStatus(404);
     }
+
+    public function test_publish_promotes_the_draft_and_returns_200(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => [['type' => 'short_text', 'label' => 'Name', 'id' => 'a']]]);
+
+        $res = $this->actingAsTenantRequest($user, $org)->postJson("/api/v1/forms/{$form->id}/publish");
+        $res->assertStatus(200)->assertJsonPath('data.status', 'published')->assertJsonPath('data.version', 1);
+    }
+
+    public function test_publish_returns_409_when_nothing_to_publish(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = Form::create(['name' => 'Intake']);
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]); // empty draft
+
+        $this->actingAsTenantRequest($user, $org)->postJson("/api/v1/forms/{$form->id}/publish")->assertStatus(409);
+    }
 }
