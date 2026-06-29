@@ -44,7 +44,7 @@ import { Button } from '../components/Button'
 import { StateBlock } from '../components/StateBlock'
 import { getSession } from '../api/session'
 import { getForm } from '../api/forms'
-import { getStagePipeline } from '../api/stages'
+import { getStagePipeline, getStagePipelineVersion } from '../api/stages'
 import { getScoringModel } from '../api/assessments'
 import { getCohort } from '../api/cohorts'
 import { listOrganizations } from '../api/organizations'
@@ -191,10 +191,24 @@ function ProgramConfigRoute() {
   return <ConsoleGate>{() => <ProgramConfigPage programId={programId!} />}</ConsoleGate>
 }
 
+function SubmissionsResolver({ cohortId, org }: { cohortId: string; org: Organization }) {
+  const cohortQ = useQuery({ queryKey: ['cohort', cohortId], queryFn: () => getCohort(cohortId), retry: false })
+  const versionId = cohortQ.data?.stage_pipeline_version_id ?? null
+  const versionQ = useQuery({
+    queryKey: ['stage-pipeline-version', versionId],
+    queryFn: () => getStagePipelineVersion(versionId!),
+    enabled: versionId !== null,
+    retry: false,
+  })
+  const stages = versionQ.data?.stages.map((s) => ({ id: s.stage_id, name: s.name })) ?? []
+  if (cohortQ.isLoading) return <Spinner label="Loading submissions…" />
+  return <SubmissionsPage cohortId={cohortId} organization={org} stages={stages} />
+}
+
 function SubmissionsRoute() {
   const { cohortId } = useParams()
   return (
-    <ConsoleGate>{(org) => <SubmissionsPage cohortId={cohortId!} organization={org} />}</ConsoleGate>
+    <ConsoleGate>{(org) => <SubmissionsResolver cohortId={cohortId!} org={org} />}</ConsoleGate>
   )
 }
 

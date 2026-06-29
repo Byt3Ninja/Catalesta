@@ -30,6 +30,7 @@ interface ScoringModelBindingPickerProps {
  * confirm step.
  */
 export function ScoringModelBindingPicker({ cohortId, programId, stageId, boundVersionId, onBound }: ScoringModelBindingPickerProps) {
+  const selectId = `scoring-binding-select-${stageId}`
   const [selectedVersionId, setSelectedVersionId] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [bindError, setBindError] = useState<string | null>(null)
@@ -101,11 +102,11 @@ export function ScoringModelBindingPicker({ cohortId, programId, stageId, boundV
 
       {!isLoading && (
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="scoring-binding-select" className="text-sm font-medium">
+          <label htmlFor={selectId} className="text-sm font-medium">
             Published version
           </label>
           <select
-            id="scoring-binding-select"
+            id={selectId}
             className={cn(
               'rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm',
               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',

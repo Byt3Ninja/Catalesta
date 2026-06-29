@@ -36,9 +36,9 @@ test('operator authors a scoring model, reviewer scores an application, manager 
   await expect(page.getByTestId('bound-stage-label')).toBeVisible()
 
   // ── 3. Bind the published scoring-model version to s_screen ──────────────────
-  //    Three stages render, each with id="scoring-binding-select" — use .first()
-  //    which maps to Screening (s_screen, order 0).
-  const scoringSelect = page.locator('#scoring-binding-select').first()
+  //    Each stage picker has a unique id derived from its stageId prop.
+  //    s_screen (order 0) gets id="scoring-binding-select-s_screen".
+  const scoringSelect = page.locator('#scoring-binding-select-s_screen')
   await expect(scoringSelect).toBeVisible({ timeout: 10000 })
   await scoringSelect.selectOption({ index: 1 })
   await scoringSelect.locator('..').getByRole('button', { name: /^bind$/i }).click()
@@ -71,18 +71,20 @@ test('operator authors a scoring model, reviewer scores an application, manager 
     await criterionInputs.nth(i).fill('8')
   }
 
-  await page.getByRole('button', { name: /^submit$/i }).click()
+  await page.getByRole('button', { name: /^submit scorecard$/i }).click()
   await expect(page.getByText(/submitted/i)).toBeVisible()
 
-  // ── 6. Manager: submissions → set cutoff → propose → commit ──────────────────
+  // ── 6. Manager: submissions → leaderboard tab → set cutoff → propose → commit ─
   await page.goto('/cohorts/coh_1/submissions')
-  await expect(page.getByRole('heading')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 })
 
-  // Stage selector (if present)
+  // Switch to Leaderboard view — cutoff / propose / commit controls live there.
+  await page.getByRole('button', { name: /^leaderboard$/i }).click()
+
+  // Stage selector: select s_screen so the leaderboard query fires.
   const stageSelector = page.locator('#lb-stage-select')
-  if (await stageSelector.isVisible()) {
-    await stageSelector.selectOption('s_screen')
-  }
+  await expect(stageSelector).toBeVisible({ timeout: 10000 })
+  await stageSelector.selectOption('s_screen')
 
   const cutoffInput = page.locator('#lb-cutoff')
   await expect(cutoffInput).toBeVisible({ timeout: 10000 })
@@ -90,9 +92,9 @@ test('operator authors a scoring model, reviewer scores an application, manager 
 
   await page.getByRole('button', { name: /^propose$/i }).click()
 
-  const commitBtn = page.getByRole('button', { name: /^commit$/i })
+  const commitBtn = page.getByRole('button', { name: /^commit decisions$/i })
   await expect(commitBtn).toBeVisible({ timeout: 10000 })
   await commitBtn.click()
 
-  await expect(page.getByText(/committed/i)).toBeVisible()
+  await expect(page.getByText(/decisions committed/i)).toBeVisible()
 })

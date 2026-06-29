@@ -86,6 +86,11 @@ const cohorts: Cohort[] = [
     ends_at: null,
     timeline: null,
     submissions_count: 3,
+    // Pre-seeded so every full-page navigation still has the right bindings.
+    // MSW module-level state resets on each page.goto(); seeding avoids
+    // having to re-bind across navigations in e2e tests.
+    stage_pipeline_version_id: 'plv_pub_1',
+    stage_scoring_model_version_ids: { s_screen: 'smv_pub_1' },
     created_at: NOW,
     updated_at: NOW,
   },
@@ -363,22 +368,72 @@ const scoringModelVersions: ScoringModelVersionRec[] = [
   ], created_at: NOW, published_at: NOW },
   { version_id: 'smv_draft_1', model_id: 'sm_draft', version: 1, status: 'draft', criteria: [], created_at: NOW, published_at: null },
 ]
-// Empty stores consumed by future tasks (Tasks 8, 9, 11)
 type AssignmentRec = { assignment_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; status: 'pending' | 'submitted' }
 type ScorecardRec = { scorecard_id: string; cohort_id: string; stage_id: string; application_id: string; reviewer_id: string; model_version_id: string; values: Record<string, number>; disqualified: boolean; status: 'draft' | 'submitted'; submitted_at: string | null }
 type DecisionRec = { decision_id: string; cohort_id: string; stage_id: string; application_id: string; outcome: string; snapshot: unknown; decided_by: string }
-const assignments: AssignmentRec[] = []
-const scorecards: ScorecardRec[] = []
-const decisions: DecisionRec[] = []
-let scoringModelSeq = 3
-let scoringModelVersionSeq = 3
 
 // Seeded application IDs for cohort coh_1 — used by the round-robin assignment handler.
 // These represent the 3 submissions_count on the demo cohort.
 const COHORT_APPLICATION_IDS: Record<string, string[]> = {
   coh_1: ['app_1', 'app_2', 'app_3'],
 }
-let assignmentSeq = 1
+
+// Pre-seeded so review-queue and scorecard pages work after a full-page navigation.
+// MSW module-level state resets on each page.goto(); seeding avoids re-generating
+// assignments and scorecards between navigations in e2e tests.
+const assignments: AssignmentRec[] = [
+  { assignment_id: 'asgn_1', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_1', reviewer_id: 'acc_demo', status: 'pending' },
+  { assignment_id: 'asgn_2', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_2', reviewer_id: 'acc_demo', status: 'pending' },
+  { assignment_id: 'asgn_3', cohort_id: 'coh_1', stage_id: 's_screen', application_id: 'app_3', reviewer_id: 'acc_demo', status: 'pending' },
+]
+let assignmentSeq = 4 // seeds use 1-3; live-generated IDs start from 4
+
+// Scorecards are pre-seeded to survive full-page navigation (which resets state):
+//   app_1 — draft with filled values so the submit endpoint finds a valid scorecard
+//           (the 500 ms autosave debounce races submit; seeding ensures submit wins).
+//   app_2, app_3 — submitted so the leaderboard has data after navigating to
+//           /cohorts/coh_1/submissions (aggregate filters status === 'submitted').
+const scorecards: ScorecardRec[] = [
+  {
+    scorecard_id: 'sc_seed_0',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_1',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'draft',
+    submitted_at: null,
+  },
+  {
+    scorecard_id: 'sc_seed_1',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_2',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'submitted',
+    submitted_at: NOW,
+  },
+  {
+    scorecard_id: 'sc_seed_2',
+    cohort_id: 'coh_1',
+    stage_id: 's_screen',
+    application_id: 'app_3',
+    reviewer_id: 'acc_demo',
+    model_version_id: 'smv_pub_1',
+    values: { c_innovation: 8, c_market: 8, c_team: 8 },
+    disqualified: false,
+    status: 'submitted',
+    submitted_at: NOW,
+  },
+]
+const decisions: DecisionRec[] = []
+let scoringModelSeq = 3
+let scoringModelVersionSeq = 3
 
 const scoringModelHandlers = [
   http.get('*/api/v1/programs/:programId/scoring-models', ({ params }) =>
@@ -761,6 +816,17 @@ export const handlers = [
     c.updated_at = new Date().toISOString()
     return HttpResponse.json({ data: c })
   }),
+  http.get('*/api/v1/cohorts/:id/funnel', () =>
+    HttpResponse.json({ data: { viewed: 42, started: 8, submitted: 3 } })),
+  http.get('*/api/v1/cohorts/:id/submissions', () =>
+    HttpResponse.json({
+      data: [
+        { reference_number: 'APP-001', cohort_id: 'coh_1', submitted_at: NOW },
+        { reference_number: 'APP-002', cohort_id: 'coh_1', submitted_at: NOW },
+        { reference_number: 'APP-003', cohort_id: 'coh_1', submitted_at: NOW },
+      ],
+      meta: { total: 3 },
+    })),
   http.get('*/api/v1/me/roles', () => HttpResponse.json({ data: roles })),
   http.get('*/api/v1/me/action-center', ({ request }) => {
     const role = (new URL(request.url).searchParams.get('role') ?? 'program_manager') as RoleKey
