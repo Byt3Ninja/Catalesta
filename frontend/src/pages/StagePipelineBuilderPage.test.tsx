@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DirectionProvider } from '../app/DirectionProvider'
 import { StagePipelineBuilderPage } from './StagePipelineBuilderPage'
 import { jsonResponse } from '../tests/test-utils'
+import { stageRuleSchema } from '../schemas/stages'
 
 vi.mock('../api/roles', () => ({ listMyRoles: () => Promise.resolve([]) }))
 
@@ -33,6 +34,12 @@ afterEach(() => vi.restoreAllMocks())
 async function awaitSeeded() {
   await waitFor(() => expect(document.querySelector('[data-version-id="plv_draft_1"]')).toBeTruthy())
 }
+const inspector = () => document.querySelector('[aria-label="Stage settings"]') as HTMLElement
+function lastPatchStages(spy: ReturnType<typeof mockApi>): Array<Record<string, unknown>> | null {
+  const calls = spy.mock.calls.filter(([i, init]) => String(i).includes('/stage-pipelines/pl_draft/draft') && (init as RequestInit | undefined)?.method === 'PATCH')
+  if (calls.length === 0) return null
+  return JSON.parse(String((calls.at(-1)![1] as RequestInit).body)).stages
+}
 
 test('adds a stage from the palette and shows it on the canvas', async () => {
   mockApi(); renderBuilder()
@@ -52,15 +59,66 @@ test('reorders stages with move up', async () => {
   expect(items[0]).toHaveTextContent(/interview/i)
 })
 
-test('selecting a stage drives the inspector frame', async () => {
+// Helper: add a stage and select it, returning once the inspector reflects it.
+async function addAndSelect(type: RegExp): Promise<void> {
+  fireEvent.click(screen.getByRole('button', { name: type }))
+  const rows = screen.getAllByRole('listitem')
+  fireEvent.click(within(rows[rows.length - 1]).getAllByRole('button')[0])
+}
+
+test('selecting a stage drives the inspector', async () => {
   mockApi(); renderBuilder()
   await awaitSeeded()
-  fireEvent.click(screen.getByRole('button', { name: /add interview/i }))
-  // select the stage row — the name button is the first button in the row
-  const row = await screen.findByRole('listitem')
-  fireEvent.click(within(row).getAllByRole('button')[0])
-  // inspector frame renders the selected stage name as a heading (canvas uses a span, not a heading)
-  expect(screen.getByRole('heading', { name: 'Interview' })).toBeInTheDocument()
+  await addAndSelect(/add interview/i)
+  // the inspector now edits the selected stage — its name field carries the stage name
+  expect(within(inspector()).getByLabelText('Stage name')).toHaveValue('Interview')
+})
+
+test('editing the stage name updates the canvas', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  await addAndSelect(/add review/i)
+  fireEvent.change(within(inspector()).getByLabelText('Stage name'), { target: { value: 'Screening' } })
+  expect(within(screen.getByRole('listitem')).getByText('Screening')).toBeInTheDocument()
+})
+
+test('editing the stage type updates the canvas type label', async () => {
+  mockApi(); renderBuilder()
+  await awaitSeeded()
+  await addAndSelect(/add review/i)
+  fireEvent.change(within(inspector()).getByLabelText('Stage type'), { target: { value: 'decision' } })
+  expect(within(screen.getByRole('listitem')).getByText('Decision')).toBeInTheDocument()
+})
+
+test('adding a dependency on an earlier stage updates the draft', async () => {
+  const spy = mockApi(); renderBuilder()
+  await awaitSeeded()
+  fireEvent.click(screen.getByRole('button', { name: /add review/i }))
+  await addAndSelect(/add interview/i) // select Interview (2nd); Review is the only prior stage
+  fireEvent.click(within(inspector()).getByRole('checkbox', { name: 'Review' }))
+  await waitFor(() => {
+    const stages = lastPatchStages(spy)
+    expect(stages).not.toBeNull()
+    const interview = stages!.find((s) => s.type === 'interview')!
+    expect(interview.depends_on_stage_ids).toHaveLength(1)
+  })
+})
+
+test('adding an entry condition produces a valid StageRule on the draft', async () => {
+  const spy = mockApi(); renderBuilder()
+  await awaitSeeded()
+  await addAndSelect(/add review/i)
+  const insp = inspector()
+  // two rule editors render (entry, exit); the entry "Add condition" is first
+  fireEvent.click(within(insp).getAllByRole('button', { name: /add condition/i })[0])
+  fireEvent.change(within(insp).getByLabelText('Entry field key 1'), { target: { value: 'score' } })
+  fireEvent.change(within(insp).getByLabelText('Entry value 1'), { target: { value: '70' } })
+  await waitFor(() => {
+    const review = lastPatchStages(spy)?.find((s) => s.type === 'review')
+    expect(review).toBeTruthy()
+    expect(() => stageRuleSchema.parse(review!.entry_rule)).not.toThrow()
+    expect((review!.entry_rule as { conditions: unknown[] }).conditions).toHaveLength(1)
+  })
 })
 
 test('autosave does NOT fire on initial load', async () => {

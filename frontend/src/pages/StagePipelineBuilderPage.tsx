@@ -6,6 +6,7 @@ import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { StagePipelineCanvas } from '../components/StagePipelineCanvas'
+import { StageInspector } from '../components/StageInspector'
 import { STAGE_TYPE_LABEL } from '../components/stageTypeLabels'
 import { getStagePipeline, getStagePipelineVersion, saveStagePipelineDraft, publishStagePipeline, forkStagePipelineDraft } from '../api/stages'
 import { stageTypeSchema, type Stage, type StageType } from '../schemas/stages'
@@ -150,13 +151,15 @@ export function StagePipelineBuilderPage({ pipelineId }: { pipelineId: string })
                   onRemove={remove}
                 />
               </div>
-              {/* inspector frame — Task 5 swaps in <StageInspector>; until then a read-only summary */}
+              {/* inspector — wired to updateStages so autosave dirty-tracks every edit */}
               <div aria-label="Stage settings" className="rounded-lg border border-border p-3">
                 {selected ? (
-                  <div className="grid gap-1">
-                    <h2 className="font-medium"><bdi>{selected.name}</bdi></h2>
-                    <p className="text-xs text-muted-foreground">{STAGE_TYPE_LABEL[selected.type] ?? selected.type}</p>
-                  </div>
+                  <StageInspector
+                    stage={selected}
+                    priorStages={stages.slice(0, stages.findIndex((s) => s.stage_id === selected.stage_id))}
+                    readOnly={readOnly}
+                    onChange={(patch) => updateStages(stages.map((s) => (s.stage_id === selected.stage_id ? { ...s, ...patch } : s)))}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">Select a stage to edit its settings.</p>
                 )}
