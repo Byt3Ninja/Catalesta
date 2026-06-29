@@ -9,6 +9,7 @@ use App\Modules\Cohorts\Application\OpenCohort;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Domain\Models\CohortStatus;
 use App\Modules\Forms\Application\PublishForm;
+use App\Modules\Forms\Application\SaveFormDraft;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,9 +33,11 @@ final class CohortLifecycleTest extends TestCase
         ]);
 
         $form = Form::create(['program_id' => $cohort->program_id, 'name' => 'Intake']);
-        $version = $this->app->make(PublishForm::class)->handle($form, [
-            ['type' => 'short_text', 'label' => 'Name'],
+        FormVersion::create(['form_id' => $form->id, 'definition' => []]);
+        $this->app->make(SaveFormDraft::class)->handle($form, [
+            ['type' => 'short_text', 'label' => 'Name', 'id' => 'f1', 'required' => true],
         ]);
+        $version = $this->app->make(PublishForm::class)->handle($form->refresh());
 
         return [$cohort, $version];
     }

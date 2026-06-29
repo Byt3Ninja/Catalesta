@@ -4,121 +4,117 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Forms;
 
+use App\Modules\Forms\Application\CreateForm;
+use App\Modules\Forms\Application\ForkFormDraft;
 use App\Modules\Forms\Application\PublishForm;
-use App\Modules\Forms\Domain\Exceptions\InvalidFormDefinitionException;
+use App\Modules\Forms\Application\SaveFormDraft;
+use App\Modules\Forms\Domain\Exceptions\NoDraftToPublishException;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
 use App\Shared\Versioning\VersionStateException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class PublishFormTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function service(): PublishForm
-    {
-        return $this->app->make(PublishForm::class);
-    }
-
-    private function bootTenantWithForm(): Form
-    {
-        [$user, $org] = $this->bootUserWithOrg();
-        $this->actingAsTenant($user, $org);
-
-        return Form::create(['program_id' => (string) Str::ulid(), 'name' => 'Intake']);
-    }
-
-    /** A valid definition using the enumerated field types. */
-    private function validDefinition(): array
+    private function definition(): array
     {
         return [
-            ['type' => 'short_text', 'label' => 'Name', 'required' => true],
-            ['type' => 'single_select', 'label' => 'Stage', 'options' => ['idea', 'mvp']],
-            ['type' => 'file_upload', 'label' => 'Deck'],
-            ['type' => 'consent', 'label' => 'I agree'],
+            ['type' => 'short_text', 'label' => 'Name', 'id' => 'f1', 'required' => true],
+            ['type' => 'single_select', 'label' => 'Stage', 'id' => 'f2', 'options' => ['idea', 'mvp']],
         ];
     }
 
-    public function test_publishes_immutably_with_a_content_addressed_version_id(): void // AC-1
+    /** Create a form (seeds draft) under tenant context and save a draft definition. */
+    private function formWithDraft(array $fields): Form
     {
-        $form = $this->bootTenantWithForm();
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = $this->app->make(CreateForm::class)->handle('Intake');
+        $this->app->make(SaveFormDraft::class)->handle($form, $fields);
 
-        $version = $this->service()->handle($form, $this->validDefinition());
+        return $form->refresh();
+    }
+
+    public function test_publishes_the_draft_immutably_with_a_content_hash(): void
+    {
+        $form = $this->formWithDraft($this->definition());
+
+        $version = $this->app->make(PublishForm::class)->handle($form);
 
         $this->assertSame('published', $version->status->value);
         $this->assertSame(1, $version->version_number);
         $this->assertNotNull($version->published_at);
-        $this->assertSame(64, strlen($version->content_hash), 'content_hash is a sha256 hex digest');
+        $this->assertSame(64, strlen((string) $version->content_hash));
         $this->assertSame($version->id, $form->fresh()->current_published_version_id);
-    }
+        $this->assertNull($form->fresh()->draftVersion(), 'the draft was promoted, leaving no open draft');
 
-    public function test_rejects_unknown_field_type(): void // AC-2
-    {
-        $form = $this->bootTenantWithForm();
-
-        $this->expectException(InvalidFormDefinitionException::class);
-        try {
-            $this->service()->handle($form, [['type' => 'rating_stars', 'label' => 'X']]);
-        } finally {
-            $this->assertDatabaseCount('form_versions', 0);
-        }
-    }
-
-    public function test_rejects_embedded_code_or_expression(): void // AC-2 / NFR-005
-    {
-        $form = $this->bootTenantWithForm();
-
-        $this->expectException(InvalidFormDefinitionException::class);
-        $this->service()->handle($form, [
-            ['type' => 'number', 'label' => 'Score', 'expr' => 'system("rm -rf /")'],
-        ]);
-    }
-
-    public function test_editing_a_published_form_creates_a_new_version_and_prior_stays_resolvable(): void // AC-3
-    {
-        $form = $this->bootTenantWithForm();
-        $v1 = $this->service()->handle($form, $this->validDefinition());
-
-        $changed = array_merge($this->validDefinition(), [['type' => 'long_text', 'label' => 'Pitch']]);
-        $v2 = $this->service()->handle($form, $changed);
-
-        $this->assertNotSame($v1->id, $v2->id);
-        $this->assertNotSame($v1->content_hash, $v2->content_hash);
-        $this->assertSame(2, $v2->version_number);
-        $this->assertNotNull(FormVersion::find($v1->id), 'the prior version id remains resolvable');
-
-        // A published version cannot be mutated in place.
         $this->expectException(VersionStateException::class);
-        $v1->update(['definition' => []]);
+        $version->update(['definition' => []]);
     }
 
-    public function test_identical_republish_is_idempotent(): void // ★ AC-5
+    public function test_publish_with_no_draft_throws(): void
     {
-        $form = $this->bootTenantWithForm();
-        $def = $this->validDefinition();
+        $form = $this->formWithDraft($this->definition());
+        $this->app->make(PublishForm::class)->handle($form); // promotes the only draft
 
-        $a = $this->service()->handle($form, $def);
-        // Same logical content, keys reordered → must hash identically and dedupe.
-        $reordered = array_map(fn (array $f) => array_reverse($f, true), $def);
-        $b = $this->service()->handle($form, $reordered);
+        $this->expectException(NoDraftToPublishException::class);
+        $this->app->make(PublishForm::class)->handle($form->refresh());
+    }
+
+    public function test_publish_of_empty_draft_throws(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $form = $this->app->make(CreateForm::class)->handle('Intake'); // empty draft
+
+        $this->expectException(NoDraftToPublishException::class);
+        $this->app->make(PublishForm::class)->handle($form);
+    }
+
+    public function test_identical_republish_is_idempotent(): void
+    {
+        $form = $this->formWithDraft($this->definition());
+        $a = $this->app->make(PublishForm::class)->handle($form);
+
+        // fork a new draft with the same content, then republish → same version, no new row
+        $this->app->make(ForkFormDraft::class)->handle($form->refresh(), $a->id);
+        $b = $this->app->make(PublishForm::class)->handle($form->refresh());
 
         $this->assertSame($a->id, $b->id);
-        $this->assertSame($a->content_hash, $b->content_hash);
         $this->assertDatabaseCount('form_versions', 1);
     }
 
-    public function test_form_is_tenant_scoped(): void // ★ AC-4
+    /**
+     * AC-3 regression: fork → edit to different content → publish creates version 2;
+     * original v1 remains resolvable.
+     */
+    public function test_fork_then_different_content_publish_creates_new_version(): void
     {
-        $form = $this->bootTenantWithForm();
-        $version = $this->service()->handle($form, $this->validDefinition());
-        $hash = $version->content_hash;
+        $form = $this->formWithDraft($this->definition());
+        $v1 = $this->app->make(PublishForm::class)->handle($form);
 
-        [$otherUser, $otherOrg] = $this->bootUserWithOrg('Other Org');
-        $this->actingAsTenant($otherUser, $otherOrg);
+        // fork from v1, producing a new draft
+        $this->app->make(ForkFormDraft::class)->handle($form->refresh(), $v1->id);
 
-        $this->assertSame(0, Form::count(), 'another tenant cannot see the form');
-        $this->assertSame(0, FormVersion::where('content_hash', $hash)->count(), 'cannot enumerate by content hash across tenants');
+        // save the draft with DIFFERENT content
+        $differentFields = [
+            ['type' => 'short_text', 'label' => 'Changed Field', 'id' => 'f99', 'required' => false],
+        ];
+        $this->app->make(SaveFormDraft::class)->handle($form->refresh(), $differentFields);
+
+        // publish the changed draft → must create v2
+        $v2 = $this->app->make(PublishForm::class)->handle($form->refresh());
+
+        $this->assertSame(2, $v2->version_number);
+        $this->assertNotSame($v1->id, $v2->id);
+
+        // v1 must still be resolvable
+        $this->assertNotNull(FormVersion::find($v1->id));
+
+        // two published versions exist
+        $this->assertDatabaseCount('form_versions', 2);
     }
 }

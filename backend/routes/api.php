@@ -7,6 +7,8 @@ use App\Modules\Applications\Http\SubmissionController;
 use App\Modules\Applications\Http\SubmitController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
+use App\Modules\Forms\Http\FormController;
+use App\Modules\Forms\Http\FormVersionController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Identity\Http\MeController;
 use App\Modules\Identity\Http\NativeAuthController;
@@ -118,6 +120,18 @@ Route::prefix('v1')->group(function (): void {
         // Program template routes
         Route::post('/program-templates', [ProgramTemplateController::class, 'store'])->name('program-templates.store');
         Route::post('/program-templates/{templateId}/instantiate', [ProgramTemplateController::class, 'instantiate'])->name('program-templates.instantiate');
+
+        // Forms authoring (org-scoped reusable assets) — Slice: forms backend wiring
+        Route::get('/forms', [FormController::class, 'index'])->name('forms.index');
+        Route::post('/forms', [FormController::class, 'store'])->name('forms.store');
+        // More-specific /forms/{form}/versions must be registered before the
+        // catch-all /forms/{id} so Laravel does not bind "versions" as an id.
+        Route::get('/forms/{form}/versions', [FormController::class, 'versions'])->name('forms.versions.index');
+        Route::patch('/forms/{id}/draft', [FormController::class, 'saveDraft'])->name('forms.draft.update');
+        Route::post('/forms/{id}/publish', [FormController::class, 'publish'])->name('forms.publish');
+        Route::post('/forms/{id}/fork', [FormController::class, 'fork'])->name('forms.fork');
+        Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
+        Route::get('/form-versions/{id}', [FormVersionController::class, 'show'])->name('form-versions.show');
     });
 
     // Authentication (OIDC authorization-code + PKCE)

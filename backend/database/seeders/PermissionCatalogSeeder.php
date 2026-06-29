@@ -24,6 +24,7 @@ class PermissionCatalogSeeder extends Seeder
             ['key' => 'programs.publish',     'description' => 'Publish programs'],
             ['key' => 'cohorts.manage',       'description' => 'Manage cohorts'],
             ['key' => 'stages.manage',        'description' => 'Manage stages'],
+            ['key' => 'forms.manage',         'description' => 'Manage forms'],
         ];
 
         foreach ($permissions as $data) {

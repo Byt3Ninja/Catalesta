@@ -115,6 +115,34 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Discard the currently-resolved TenantContext singleton so that the next
+     * HTTP request lets ResolveTenant middleware re-resolve it from scratch.
+     * Use this before an HTTP call that follows a direct actingAsTenant() setup
+     * (which would otherwise leave a stale tenant in the container).
+     */
+    protected function resetTenantContext(): void
+    {
+        $this->app->forgetInstance(TenantContext::class);
+    }
+
+    /**
+     * Convenience wrapper: reset tenant context, authenticate as $user, and
+     * set the X-Organization-Id header — all in one call.
+     *
+     * This must be used instead of inline actingAs()->withHeader() when model
+     * fixtures were created via actingAsTenant() to avoid a stale tenant
+     * singleton causing BelongsToTenant global-scope assertions to pass for
+     * the wrong reason.
+     */
+    protected function actingAsTenantRequest(Account $user, Organization $org): static
+    {
+        $this->resetTenantContext();
+        $this->actingAs($user, 'web');
+
+        return $this->withHeader('X-Organization-Id', $org->id);
+    }
+
+    /**
      * Execute $fn with a completely clean TenantContext (no org, not system).
      * Restores the previous TenantContext instance afterwards so that tests
      * that resolve a tenant via HTTP middleware keep their resolved context.

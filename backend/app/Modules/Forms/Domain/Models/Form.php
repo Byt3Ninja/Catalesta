@@ -27,4 +27,15 @@ final class Form extends Model
     {
         return $this->hasMany(FormVersion::class);
     }
+
+    /** @return HasMany<FormVersion, $this> */
+    public function publishedVersions(): HasMany
+    {
+        return $this->hasMany(FormVersion::class)->where('status', 'published')->orderBy('version_number');
+    }
+
+    public function draftVersion(): ?FormVersion
+    {
+        return $this->versions()->where('status', 'draft')->first();
+    }
 }
