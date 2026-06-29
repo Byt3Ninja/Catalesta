@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { assign as assignRoundRobin } from '../lib/reviewerAssignment'
+import { aggregate } from '../lib/scoring'
+import type { Scorecard, ScoringCriterion } from '@/schemas/assessments'
 import type { SessionUser } from '@/schemas/session'
 import type { Organization } from '@/schemas/organizations'
 import type { Program } from '@/schemas/programs'
@@ -551,6 +553,36 @@ const scoringModelHandlers = [
     if (asgn) asgn.status = 'submitted'
 
     return HttpResponse.json({ data: sc })
+  }),
+
+  // ── Leaderboard ──────────────────────────────────────────────────────────
+  // Groups submitted scorecards by application, aggregates via lib/scoring,
+  // and returns rows sorted by mean DESC. Only submitted cards contribute.
+  http.get('*/api/v1/cohorts/:cohortId/stages/:stageId/leaderboard', ({ params }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+
+    const relevant = scorecards.filter(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.status === 'submitted',
+    )
+
+    const byApp = new Map<string, ScorecardRec[]>()
+    for (const sc of relevant) {
+      if (!byApp.has(sc.application_id)) byApp.set(sc.application_id, [])
+      byApp.get(sc.application_id)!.push(sc)
+    }
+
+    const rows: Array<{ application_id: string; mean: number; model_max: number; count: number; min: number; max: number; disqualified: boolean }> = []
+    for (const [application_id, cards] of byApp.entries()) {
+      const mvId = cards[0].model_version_id
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      if (!mv) continue
+      const agg = aggregate(mv.criteria as ScoringCriterion[], cards as unknown as Scorecard[])
+      rows.push({ application_id, ...agg })
+    }
+
+    rows.sort((a, b) => b.mean - a.mean)
+    return HttpResponse.json({ data: rows })
   }),
 ]
 

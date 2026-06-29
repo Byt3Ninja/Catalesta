@@ -131,3 +131,30 @@ export async function submitScorecard(
   if (res.status === 401) throw new ScorecardError('UNAUTHENTICATED')
   throw new ScorecardError('UNKNOWN', `Unexpected status ${res.status}`)
 }
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+
+export type LeaderboardRow = {
+  application_id: string
+  mean: number
+  model_max: number
+  count: number
+  min: number
+  max: number
+  disqualified: boolean
+}
+
+/**
+ * GET /cohorts/:cohortId/stages/:stageId/leaderboard
+ *
+ * Returns submitted-scorecard aggregates for every application in the stage,
+ * sorted by mean score descending. Application identity is masked server-side;
+ * the response carries application_id only (not applicant name or email).
+ */
+export async function getStageLeaderboard(cohortId: string, stageId: string): Promise<LeaderboardRow[]> {
+  const res = await apiFetch(`/cohorts/${cohortId}/stages/${stageId}/leaderboard`)
+  if (res.status === 200) return (await res.json() as { data: LeaderboardRow[] }).data
+  if (res.status === 404) throw new AssignmentError('NOT_FOUND')
+  if (res.status === 401) throw new AssignmentError('UNAUTHENTICATED')
+  throw new AssignmentError('UNKNOWN', `Unexpected status ${res.status}`)
+}
