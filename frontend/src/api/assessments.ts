@@ -2,15 +2,16 @@ import { apiFetch } from './tenant'
 import { csrfFetch } from './csrf'
 import {
   GetScoringModelError, SaveScoringModelError, PublishScoringModelError,
-  AssignmentError, ScorecardError,
+  AssignmentError, ScorecardError, DecisionError,
   scoringModelListResponseSchema, scoringModelResponseSchema,
   scoringModelVersionResponseSchema, scoringModelVersionListResponseSchema,
-  reviewerAssignmentListResponseSchema, scorecardResponseSchema,
+  reviewerAssignmentListResponseSchema, scorecardResponseSchema, decisionSchema,
   type ScoringModel, type ScoringModelVersion, type ScoringCriterion,
-  type ReviewerAssignment, type Scorecard,
+  type ReviewerAssignment, type Scorecard, type Decision,
 } from '../schemas/assessments'
 
-export { GetScoringModelError, SaveScoringModelError, PublishScoringModelError, AssignmentError, ScorecardError }
+export { GetScoringModelError, SaveScoringModelError, PublishScoringModelError, AssignmentError, ScorecardError, DecisionError }
+export type { Decision }
 
 export async function listScoringModels(programId: string): Promise<ScoringModel[]> {
   const res = await apiFetch(`/programs/${programId}/scoring-models`)
@@ -157,4 +158,55 @@ export async function getStageLeaderboard(cohortId: string, stageId: string): Pr
   if (res.status === 404) throw new AssignmentError('NOT_FOUND')
   if (res.status === 401) throw new AssignmentError('UNAUTHENTICATED')
   throw new AssignmentError('UNKNOWN', `Unexpected status ${res.status}`)
+}
+
+// ── Decisions ─────────────────────────────────────────────────────────────────
+
+export type DecisionProposal = { application_id: string; proposal: 'advance' | 'reject' }
+
+/**
+ * POST /cohorts/:cohortId/stages/:stageId/decisions/propose
+ *
+ * Runs the threshold-assisted proposal engine server-side (lib/scoring.proposeDecisions).
+ * Returns advance/reject proposals for every application that has submitted scorecards.
+ * No decision is persisted — this is a read-only planning step.
+ */
+export async function proposeStageDecisions(
+  cohortId: string,
+  stageId: string,
+  cutoff: number,
+): Promise<DecisionProposal[]> {
+  const res = await csrfFetch(`/cohorts/${cohortId}/stages/${stageId}/decisions/propose`, {
+    method: 'POST',
+    body: JSON.stringify({ cutoff }),
+  })
+  if (res.status === 200) return (await res.json() as { data: DecisionProposal[] }).data
+  if (res.status === 404) throw new DecisionError('NOT_FOUND')
+  if (res.status === 401) throw new DecisionError('UNAUTHENTICATED')
+  throw new DecisionError('UNKNOWN', `Unexpected status ${res.status}`)
+}
+
+/**
+ * POST /cohorts/:cohortId/stages/:stageId/decisions/commit
+ *
+ * Persists stage decisions with an immutable snapshot (model_version_id, submitted
+ * scorecards, mean) captured at commit time. The `advance` outcome routes the
+ * application into the stage's next_stage_ids.
+ */
+export async function commitStageDecisions(
+  cohortId: string,
+  stageId: string,
+  decisionsPayload: { application_id: string; outcome: 'advance' | 'reject' | 'waitlist' }[],
+): Promise<Decision[]> {
+  const res = await csrfFetch(`/cohorts/${cohortId}/stages/${stageId}/decisions/commit`, {
+    method: 'POST',
+    body: JSON.stringify({ decisions: decisionsPayload }),
+  })
+  if (res.status === 200 || res.status === 201) {
+    const payload = (await res.json()) as { data: unknown[] }
+    return payload.data.map((d) => decisionSchema.parse(d))
+  }
+  if (res.status === 404) throw new DecisionError('NOT_FOUND')
+  if (res.status === 401) throw new DecisionError('UNAUTHENTICATED')
+  throw new DecisionError('UNKNOWN', `Unexpected status ${res.status}`)
 }

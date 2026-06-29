@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/Button'
 import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { getFunnel, listSubmissions } from '../api/submissions'
-import { getStageLeaderboard } from '../api/assessments'
+import { getStageLeaderboard, proposeStageDecisions, commitStageDecisions } from '../api/assessments'
 import type { LeaderboardRow } from '../api/assessments'
+import type { Decision } from '../schemas/assessments'
 import type { Funnel } from '../schemas/submissions'
 import type { Organization } from '../schemas/organizations'
 import { format2 } from '../lib/decimal'
@@ -38,6 +39,10 @@ export function SubmissionsPage({
 }) {
   const [view, setView] = useState<View>('list')
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null)
+  // Threshold-assisted decide state. Reset when the stage selection changes.
+  const [cutoff, setCutoff] = useState<number>(0)
+  const [rowOutcomes, setRowOutcomes] = useState<Map<string, 'advance' | 'reject' | 'waitlist'>>(new Map())
+  const [committedDecisions, setCommittedDecisions] = useState<Decision[]>([])
 
   const funnelQuery = useQuery({
     queryKey: ['funnel', cohortId],
@@ -56,6 +61,32 @@ export function SubmissionsPage({
     queryFn: () => getStageLeaderboard(cohortId, selectedStageId!),
     enabled: selectedStageId !== null,
     retry: false,
+  })
+
+  // Propose and commit are user-triggered mutations — never fire at mount.
+  const proposeMutation = useMutation({
+    mutationFn: ({ stageId, cutoff: c }: { stageId: string; cutoff: number }) =>
+      proposeStageDecisions(cohortId, stageId, c),
+    onSuccess: (proposals) => {
+      const next = new Map<string, 'advance' | 'reject' | 'waitlist'>()
+      for (const p of proposals) next.set(p.application_id, p.proposal)
+      // Rows with no proposal (e.g. no submitted scorecards) default to 'reject'.
+      for (const row of leaderboardQuery.data ?? []) {
+        if (!next.has(row.application_id)) next.set(row.application_id, 'reject')
+      }
+      setRowOutcomes(next)
+    },
+  })
+
+  const commitMutation = useMutation({
+    mutationFn: ({
+      stageId,
+      decisions,
+    }: {
+      stageId: string
+      decisions: { application_id: string; outcome: 'advance' | 'reject' | 'waitlist' }[]
+    }) => commitStageDecisions(cohortId, stageId, decisions),
+    onSuccess: (decisions) => setCommittedDecisions(decisions),
   })
 
   const submissions = submissionsQuery.data ?? []
@@ -128,10 +159,15 @@ export function SubmissionsPage({
 
           <div>
             <label htmlFor="lb-stage-select">Stage</label>
-              <select
+            <select
               id="lb-stage-select"
               value={selectedStageId ?? ''}
-              onChange={(e) => setSelectedStageId(e.target.value || null)}
+              onChange={(e) => {
+                setSelectedStageId(e.target.value || null)
+                // Reset decide state whenever stage changes.
+                setRowOutcomes(new Map())
+                setCommittedDecisions([])
+              }}
             >
               <option value="">Select a stage…</option>
               {(stages ?? []).map((s) => (
@@ -155,7 +191,59 @@ export function SubmissionsPage({
           ) : (leaderboardQuery.data ?? []).length === 0 ? (
             <p className="ds-muted">No submitted scorecards yet for this stage.</p>
           ) : (
-            <LeaderboardTable rows={leaderboardQuery.data ?? []} />
+            <>
+              {/* Threshold-assisted decide controls — user-triggered, never auto-fetched. */}
+              <div>
+                <label htmlFor="lb-cutoff">Cutoff</label>
+                <input
+                  id="lb-cutoff"
+                  type="number"
+                  value={cutoff}
+                  min={0}
+                  onChange={(e) => setCutoff(Number(e.target.value))}
+                />
+                <Button
+                  onClick={() => proposeMutation.mutate({ stageId: selectedStageId!, cutoff })}
+                  disabled={proposeMutation.isPending}
+                >
+                  {proposeMutation.isPending ? 'Proposing…' : 'Propose'}
+                </Button>
+              </div>
+
+              <LeaderboardTable
+                rows={leaderboardQuery.data ?? []}
+                rowOutcomes={rowOutcomes.size > 0 ? rowOutcomes : undefined}
+                onOutcomeChange={(appId, outcome) =>
+                  setRowOutcomes((prev) => new Map(prev).set(appId, outcome))
+                }
+                committedDecisions={committedDecisions.length > 0 ? committedDecisions : undefined}
+              />
+
+              {rowOutcomes.size > 0 && committedDecisions.length === 0 && (
+                <Button
+                  onClick={() =>
+                    commitMutation.mutate({
+                      stageId: selectedStageId!,
+                      decisions: [...rowOutcomes.entries()].map(([application_id, outcome]) => ({
+                        application_id,
+                        outcome,
+                      })),
+                    })
+                  }
+                  disabled={commitMutation.isPending}
+                >
+                  {commitMutation.isPending ? 'Committing…' : 'Commit decisions'}
+                </Button>
+              )}
+
+              {committedDecisions.length > 0 && (
+                <p className="ds-muted">
+                  {/* `advance` follows the stage's next_stage_ids to route into the next stage
+                      (illustrative in MSW; real routing is pipeline-driven server-side). */}
+                  Decisions committed.
+                </p>
+              )}
+            </>
           )}
         </section>
       )}
@@ -224,8 +312,25 @@ function ZeroDay({ applyUrl }: { applyUrl: string }) {
  * Ranked leaderboard table. Application identity is masked — labels are
  * ordinal ("Application #1", "Application #2", …) so no applicant data is
  * shown on this screen. Mean and model_max display via `format2` (2dp half-up).
+ *
+ * When `rowOutcomes` is provided the table enters decide mode: an Outcome
+ * column appears with a per-row <select> (advance/reject/waitlist) seeded from
+ * the proposal (overridable). After commit, `committedDecisions` replaces the
+ * selects with read-only outcome text.
  */
-function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
+function LeaderboardTable({
+  rows,
+  rowOutcomes,
+  onOutcomeChange,
+  committedDecisions,
+}: {
+  rows: LeaderboardRow[]
+  rowOutcomes?: Map<string, 'advance' | 'reject' | 'waitlist'>
+  onOutcomeChange?: (applicationId: string, outcome: 'advance' | 'reject' | 'waitlist') => void
+  committedDecisions?: Decision[]
+}) {
+  const hasDecideMode = rowOutcomes !== undefined
+
   return (
     <table aria-label="Stage leaderboard">
       <thead>
@@ -236,23 +341,49 @@ function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
           <th scope="col">Count</th>
           <th scope="col">Spread</th>
           <th scope="col">Status</th>
+          {hasDecideMode && <th scope="col">Outcome</th>}
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, i) => (
-          <tr key={row.application_id}>
-            <td>{i + 1}</td>
-            <td>Application #{i + 1}</td>
-            <td>
-              {format2(row.mean)} / {format2(row.model_max)}
-            </td>
-            <td>{row.count}</td>
-            <td>
-              {format2(row.min)}–{format2(row.max)}
-            </td>
-            <td>{row.disqualified ? 'Disqualified' : '—'}</td>
-          </tr>
-        ))}
+        {rows.map((row, i) => {
+          const committed = committedDecisions?.find((d) => d.application_id === row.application_id)
+          return (
+            <tr key={row.application_id}>
+              <td>{i + 1}</td>
+              <td>Application #{i + 1}</td>
+              <td>
+                {format2(row.mean)} / {format2(row.model_max)}
+              </td>
+              <td>{row.count}</td>
+              <td>
+                {format2(row.min)}–{format2(row.max)}
+              </td>
+              <td>{row.disqualified ? 'Disqualified' : '—'}</td>
+              {hasDecideMode && (
+                <td>
+                  {committed ? (
+                    committed.outcome
+                  ) : (
+                    <select
+                      aria-label={`Outcome for Application #${i + 1}`}
+                      value={rowOutcomes!.get(row.application_id) ?? 'reject'}
+                      onChange={(e) =>
+                        onOutcomeChange?.(
+                          row.application_id,
+                          e.target.value as 'advance' | 'reject' | 'waitlist',
+                        )
+                      }
+                    >
+                      <option value="advance">Advance</option>
+                      <option value="reject">Reject</option>
+                      <option value="waitlist">Waitlist</option>
+                    </select>
+                  )}
+                </td>
+              )}
+            </tr>
+          )
+        })}
       </tbody>
     </table>
   )

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -6,7 +6,8 @@ import { DirectionProvider } from '../app/DirectionProvider'
 import { SubmissionsPage } from './SubmissionsPage'
 import type { StageOption } from './SubmissionsPage'
 import { jsonResponse } from '../tests/test-utils'
-import { getStageLeaderboard } from '../api/assessments'
+import { getStageLeaderboard, proposeStageDecisions, commitStageDecisions } from '../api/assessments'
+import type { Decision } from '../schemas/assessments'
 
 // Module-level mocks — hoisted by vitest before imports execute.
 // assessments: the leaderboard query is gated on stage selection so the mock
@@ -215,4 +216,124 @@ test('leaderboard: prompt shown when no stage is selected', async () => {
   expect(screen.getByText(/select a stage to view the leaderboard/i)).toBeInTheDocument()
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
   expect(vi.mocked(getStageLeaderboard)).not.toHaveBeenCalled()
+})
+
+// ── Threshold-assisted decide + commit tests ──────────────────────────────────
+
+// Shared leaderboard fixture for decide tests:
+// app_1: mean 8.5 (above cutoff 7) → propose advance
+// app_2: mean 4.0 (below cutoff 7) → propose reject
+// app_3: mean 7.0 but disqualified → propose reject (regardless of mean)
+const DECIDE_LEADERBOARD = [
+  { application_id: 'app_1', mean: 8.5, model_max: 10, count: 2, min: 8, max: 9, disqualified: false },
+  { application_id: 'app_2', mean: 4.0, model_max: 10, count: 1, min: 4, max: 4, disqualified: false },
+  { application_id: 'app_3', mean: 7.0, model_max: 10, count: 1, min: 7, max: 7, disqualified: true },
+]
+
+const MOCK_PROPOSALS = [
+  { application_id: 'app_1', proposal: 'advance' as const },
+  { application_id: 'app_2', proposal: 'reject' as const },
+  { application_id: 'app_3', proposal: 'reject' as const }, // disqualified → reject
+]
+
+const SNAPSHOT_BASE = {
+  model_version_id: 'smv_pub_1',
+  scorecards: [] as Decision['snapshot']['scorecards'],
+  mean: '8.50',
+  decided_at: '2026-06-29T10:00:00Z',
+}
+
+const MOCK_COMMITTED: Decision[] = [
+  { decision_id: 'd1', cohort_id: '01J0COH', stage_id: 'stg_screen', application_id: 'app_1', outcome: 'advance', snapshot: { ...SNAPSHOT_BASE }, decided_by: 'acc_demo' },
+  { decision_id: 'd2', cohort_id: '01J0COH', stage_id: 'stg_screen', application_id: 'app_2', outcome: 'waitlist', snapshot: { ...SNAPSHOT_BASE, mean: '4.00' }, decided_by: 'acc_demo' },
+  { decision_id: 'd3', cohort_id: '01J0COH', stage_id: 'stg_screen', application_id: 'app_3', outcome: 'reject', snapshot: { ...SNAPSHOT_BASE, mean: '7.00' }, decided_by: 'acc_demo' },
+]
+
+/** Navigate to leaderboard view and select the Screening stage. Resolves once the table is visible. */
+async function loadLeaderboard() {
+  fireEvent.click(screen.getByRole('button', { name: /leaderboard/i }))
+  fireEvent.change(screen.getByRole('combobox', { name: /stage/i }), { target: { value: 'stg_screen' } })
+  await screen.findByRole('table', { name: /stage leaderboard/i })
+}
+
+test('propose: seeds per-row outcomes based on cutoff and disqualified status', async () => {
+  // Seed XSRF so csrfFetch finds the token (mutations are mocked at the api module level anyway).
+  document.cookie = 'XSRF-TOKEN=test-token'
+
+  vi.mocked(getStageLeaderboard).mockResolvedValue(DECIDE_LEADERBOARD)
+  vi.mocked(proposeStageDecisions).mockResolvedValue(MOCK_PROPOSALS)
+  mockApi({ funnel: { viewed: 3, started: 2, submitted: 3 }, submissions: [] })
+
+  renderPage('ltr', 'light', STAGES)
+  await loadLeaderboard()
+
+  // Set cutoff to 7 and trigger proposal.
+  fireEvent.change(screen.getByLabelText(/cutoff/i), { target: { value: '7' } })
+  fireEvent.click(screen.getByRole('button', { name: /propose/i }))
+
+  // Wait for per-row outcome selects to appear — confirms the mutation completed and seeded state.
+  const selects = await screen.findAllByRole('combobox', { name: /outcome for application/i })
+  expect(selects).toHaveLength(3)
+
+  // Call args verified after the mutation has resolved.
+  expect(vi.mocked(proposeStageDecisions)).toHaveBeenCalledWith('01J0COH', 'stg_screen', expect.any(Number))
+
+  // app_1: mean 8.5 >= cutoff 7 → advance
+  expect(selects[0]).toHaveValue('advance')
+  // app_2: mean 4.0 < cutoff 7 → reject
+  expect(selects[1]).toHaveValue('reject')
+  // app_3: disqualified → reject (regardless of mean equalling the cutoff)
+  expect(selects[2]).toHaveValue('reject')
+})
+
+test('commit: sends overridden outcomes; returned decision has populated snapshot', async () => {
+  document.cookie = 'XSRF-TOKEN=test-token'
+
+  vi.mocked(getStageLeaderboard).mockResolvedValue(DECIDE_LEADERBOARD)
+  vi.mocked(proposeStageDecisions).mockResolvedValue(MOCK_PROPOSALS)
+  vi.mocked(commitStageDecisions).mockResolvedValue(MOCK_COMMITTED)
+  mockApi({ funnel: { viewed: 3, started: 2, submitted: 3 }, submissions: [] })
+
+  renderPage('ltr', 'light', STAGES)
+  await loadLeaderboard()
+
+  // Propose with cutoff=7.
+  fireEvent.change(screen.getByLabelText(/cutoff/i), { target: { value: '7' } })
+  fireEvent.click(screen.getByRole('button', { name: /propose/i }))
+
+  // Wait for outcome selects to appear.
+  const selects = await screen.findAllByRole('combobox', { name: /outcome for application/i })
+
+  // Override app_2 (index 1, proposed reject) to waitlist.
+  fireEvent.change(selects[1], { target: { value: 'waitlist' } })
+
+  // Commit decisions.
+  fireEvent.click(screen.getByRole('button', { name: /commit decisions/i }))
+
+  // Verify commitStageDecisions called with the overridden outcome for app_2.
+  await waitFor(() => {
+    expect(vi.mocked(commitStageDecisions)).toHaveBeenCalledWith(
+      '01J0COH',
+      'stg_screen',
+      expect.arrayContaining([
+        expect.objectContaining({ application_id: 'app_1', outcome: 'advance' }),
+        expect.objectContaining({ application_id: 'app_2', outcome: 'waitlist' }),
+        expect.objectContaining({ application_id: 'app_3', outcome: 'reject' }),
+      ]),
+    )
+  })
+
+  // After success the committed state is shown (no more outcome selects).
+  expect(await screen.findByText(/decisions committed/i)).toBeInTheDocument()
+  expect(screen.queryAllByRole('combobox', { name: /outcome for application/i })).toHaveLength(0)
+
+  // Verify the returned Decision objects carry a populated immutable snapshot.
+  const results = await (vi.mocked(commitStageDecisions).mock.results[0].value as Promise<Decision[]>)
+  expect(results[0]).toMatchObject({
+    snapshot: expect.objectContaining({
+      model_version_id: 'smv_pub_1',
+      scorecards: expect.any(Array),
+      mean: expect.any(String),
+    }),
+  })
 })

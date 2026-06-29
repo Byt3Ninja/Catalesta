@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { assign as assignRoundRobin } from '../lib/reviewerAssignment'
-import { aggregate } from '../lib/scoring'
+import { aggregate, proposeDecisions } from '../lib/scoring'
+import { format2 } from '../lib/decimal'
 import type { Scorecard, ScoringCriterion } from '@/schemas/assessments'
 import type { SessionUser } from '@/schemas/session'
 import type { Organization } from '@/schemas/organizations'
@@ -584,10 +585,84 @@ const scoringModelHandlers = [
     rows.sort((a, b) => b.mean - a.mean)
     return HttpResponse.json({ data: rows })
   }),
-]
 
-// Silence unused-variable warnings for stores consumed by future tasks.
-void decisions
+  // ── Decisions: propose ────────────────────────────────────────────────────
+  // Reuses the leaderboard aggregation to build rows, then applies
+  // lib/scoring.proposeDecisions with the caller-supplied cutoff.
+  // No records are persisted — this is a pure planning endpoint.
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/decisions/propose', async ({ params, request }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const body = (await request.json()) as { cutoff?: number }
+    const cutoff = body.cutoff ?? 0
+
+    const relevant = scorecards.filter(
+      (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.status === 'submitted',
+    )
+    const byApp = new Map<string, ScorecardRec[]>()
+    for (const sc of relevant) {
+      if (!byApp.has(sc.application_id)) byApp.set(sc.application_id, [])
+      byApp.get(sc.application_id)!.push(sc)
+    }
+    const rows: { application_id: string; mean: number; disqualified: boolean }[] = []
+    for (const [application_id, cards] of byApp.entries()) {
+      const mvId = cards[0].model_version_id
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      if (!mv) continue
+      const { mean, disqualified } = aggregate(mv.criteria as ScoringCriterion[], cards as unknown as Scorecard[])
+      rows.push({ application_id, mean, disqualified })
+    }
+
+    return HttpResponse.json({ data: proposeDecisions(rows, cutoff) })
+  }),
+
+  // ── Decisions: commit ─────────────────────────────────────────────────────
+  // Persists one Decision per incoming outcome entry. Each Decision carries an
+  // IMMUTABLE snapshot: the model_version_id, the application's submitted
+  // scorecards at this moment, and the formatted mean.
+  // NOTE: `advance` routes the application into the stage's next_stage_ids
+  // (illustrative in MSW; real routing is handled server-side via the pipeline).
+  http.post('*/api/v1/cohorts/:cohortId/stages/:stageId/decisions/commit', async ({ params, request }) => {
+    const cohortId = String(params.cohortId)
+    const stageId = String(params.stageId)
+    const body = (await request.json()) as { decisions?: { application_id: string; outcome: string }[] }
+    const incoming = body.decisions ?? []
+    const now = new Date().toISOString()
+
+    const committed: DecisionRec[] = []
+    for (const { application_id, outcome } of incoming) {
+      // Collect the application's submitted scorecards for the immutable snapshot.
+      const appCards = scorecards.filter(
+        (s) => s.cohort_id === cohortId && s.stage_id === stageId && s.application_id === application_id && s.status === 'submitted',
+      )
+      const mvId = appCards[0]?.model_version_id ?? ''
+      const mv = scoringModelVersions.find((v) => v.version_id === mvId)
+      const { mean } = mv
+        ? aggregate(mv.criteria as ScoringCriterion[], appCards as unknown as Scorecard[])
+        : { mean: 0 }
+
+      const snapshot = {
+        model_version_id: mvId,
+        scorecards: JSON.parse(JSON.stringify(appCards)) as ScorecardRec[], // immutable copy
+        mean: format2(mean),
+        decided_at: now,
+      }
+      const rec: DecisionRec = {
+        decision_id: `dec_${decisions.length + 1}`,
+        cohort_id: cohortId,
+        stage_id: stageId,
+        application_id,
+        outcome,
+        snapshot,
+        decided_by: 'acc_demo',
+      }
+      decisions.push(rec)
+      committed.push(rec)
+    }
+
+    return HttpResponse.json({ data: committed })
+  }),
+]
 
 export const handlers = [
   ...formHandlers,
