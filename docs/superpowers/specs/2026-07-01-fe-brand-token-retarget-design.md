@@ -1,6 +1,6 @@
 # Brand-Token Retarget — Design
 
-> Status: Approved (design) · Date: 2026-07-01 · Branch: `feat/fe-brand-token-retarget`
+> Status: Implemented · Date: 2026-07-01 · Branch: `feat/fe-brand-token-retarget`
 > Retarget the real frontend's design tokens from the current indigo/purple to the
 > Catalesta brand palette, so every surface (including the merged Programs slice #69)
 > rebrands from one token change — AA-verified, no per-component hex.
@@ -132,3 +132,7 @@ orange to a real CTA/urgent surface is deferred to whichever surface first needs
 - A dark-mode palette redesign (only `--primary`/`--ring`/brand tokens change in dark; ink stays).
 - Any per-component hex edit, layout change, or unifying the two token systems into one (separate refactor).
 - Replacing the legacy `.ds-*` system (kept; just retargeted).
+
+## 9. Implementation deviations
+
+**Focus ring colour:** the focus ring uses teal-dark `#0d7a74` (not bright `#1bbcb4`) because bright teal on white is only ≈2.38:1, which fails the WCAG 1.4.11 ≥3:1 non-text contrast floor enforced by the contrast gate (`src/tests/contrast.test.ts`). No other deviations from this spec.
