@@ -37,9 +37,14 @@ and therefore cannot be the literal `--primary`/link color:
 - White on Orange `#f26b3a` ≈ **3.0:1**. Orange as text on white ≈ 3.0:1.
 
 Each bright brand color gets an **AA-safe darker partner** for anything carrying
-text; the bright color is reserved for non-text/decorative use (focus ring,
-tints via alpha, dots, swatches):
-- Teal fills/links/text → **teal-dark `#0d7a74`** (white-on-fill ≈ **5.2:1** ✓; as text on white ≈ 5.2:1 ✓).
+text; the bright color is reserved for purely decorative use (tints via alpha,
+dots, swatches):
+- Teal fills/links/text **and the focus ring** → **teal-dark `#0d7a74`**
+  (white-on-fill ≈ **5.2:1** ✓; as text on white ≈ 5.2:1 ✓; on white ≈ 5.2:1 ✓ ≥ the 3:1 non-text floor).
+- **Correction from initial design:** the focus ring uses teal-dark `#0d7a74`, NOT
+  bright `#1bbcb4`. Bright teal on white is only ≈ **2.38:1**, which fails the
+  WCAG 1.4.11 ≥3:1 non-text contrast floor enforced by `src/tests/contrast.test.ts`.
+  Bright `#1bbcb4` therefore lives **only** as the decorative `--brand` token.
 - Orange fills/text → **`#c2410c`** (white-on-fill ≈ **5.2:1** ✓).
 - Navy `#0d1b2a` as ink on white ≈ **16:1** ✓ (no partner needed).
 
@@ -56,7 +61,7 @@ Light `:root` and `.dark` raw vars, then exposed unchanged through the existing
 
 - `--primary: #0d7a74` — **light is the authoritative value**; dark mirrors it only
   so dark isn't left indigo (minimal parity, not tuned for dark). `--primary-foreground: #ffffff` (unchanged).
-- `--ring: #1bbcb4` (focus ring; non-text; bright teal is fine and visible) — light authoritative, dark mirrors.
+- `--ring: #0d7a74` (focus ring — teal-dark; ≈5.2:1 on white ≥ the 3:1 non-text floor; bright `#1bbcb4` fails it) — light authoritative, dark mirrors.
 - `--foreground: #0d1b2a` and `--card-foreground: #0d1b2a` in **light only**.
   `.dark` keeps `--foreground:#fafafa` / `--card-foreground:#fafafa` (navy on dark fails — unchanged).
 - **Unchanged:** `--secondary`, `--secondary-foreground`, `--muted`, `--muted-foreground`,
@@ -76,7 +81,8 @@ Light `:root` and `.dark` raw vars, then exposed unchanged through the existing
 
 - `--color-accent-btn: #0d7a74` (real consumers `.ds-btn--primary`, `.ds-link`,
   `.apply-reference` — all white-text / text-on-white → AA teal-dark) — light & dark.
-- `--color-accent: #1bbcb4` (bright), `--color-focus: #1bbcb4` (ring) — light & dark.
+- `--color-focus: #0d7a74` (`.ds-focusable` outline — teal-dark, ≥3:1) — light & dark.
+- `--color-accent: #1bbcb4` (bright; decorative — no `.ds-*` rule renders text on it) — light & dark.
 - `--color-ink: #0d1b2a` (navy) in **light**; `.ds-*` dark block keeps its light ink
   (`#ece9f7`) unchanged.
 - Everything else in `tokens.css` (bg/surface/border/success/warning/danger/spacing/
@@ -94,12 +100,15 @@ orange to a real CTA/urgent surface is deferred to whichever surface first needs
 
 ## 6. Testing
 
-- **Contrast test** (extend `frontend/src/styles/contrast.ts` + its test, or add a
-  new `*.test.ts`): assert each brand pairing meets its threshold — white on
-  `#0d7a74` ≥ 4.5, white on `#c2410c` ≥ 4.5, `#0d1b2a` on white ≥ 4.5, `#0d7a74`
-  on white ≥ 4.5 (text-primary), and the focus ring color differs from its
-  background. Use the existing `contrast.ts` ratio helper if present; otherwise add
-  a minimal `contrastRatio(hex,hex)` and test it against a known pair.
+- **Contrast test** (UPDATE the existing gate `frontend/src/tests/contrast.test.ts`,
+  which hand-mirrors the index.css hexes since jsdom can't read CSS vars): change
+  its `light`/`dark` mirror objects to the new token values (`accentBtn`→`#0d7a74`,
+  `ink`→`#0d1b2a` light, `ring`→`#0d7a74`) so the existing floor checks run against
+  the brand palette, and ADD brand-pairing assertions: white on `#0d7a74` ≥ 4.5,
+  `#0d7a74` on white ≥ 4.5, white on `#c2410c` ≥ 4.5, `#0d1b2a` on white ≥ 4.5,
+  `#0d7a74` ring on white ≥ 3, plus negative guards documenting the decorative-only
+  rule — white on `#1bbcb4` < 4.5 AND `#1bbcb4` on white < 3 (would-fail-as-ring),
+  white on `#f26b3a` < 4.5. Uses the existing `contrastRatio` from `../styles/contrast`.
 - **Storybook:** a "Design System/Brand palette" story rendering the swatches.
 - **Regression:** full FE suite green (`npm run typecheck && npm run lint && npm run test`).
   The Programs and other page tests assert text/roles, not hex, so they stay green;
