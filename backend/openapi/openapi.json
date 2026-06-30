@@ -457,6 +457,153 @@
                 }
             }
         },
+        "/v1/cohorts/{id}/bind-form": {
+            "post": {
+                "operationId": "cohorts.bind-form",
+                "description": "Bind a published FormVersion to a draft cohort. Idempotent for the same\nversion; 409 when a different version is already bound or the cohort is\nnot in draft status. Cross-tenant cohort ids 404 via BelongsToTenant scope.",
+                "summary": "POST /api/v1/cohorts/{id}/bind-form",
+                "tags": [
+                    "Cohort"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BindCohortFormRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CohortResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CohortResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/cohorts/{id}/open": {
+            "post": {
+                "operationId": "cohorts.open",
+                "description": "Transition a draft cohort (with a bound form) to Open status.\n409 when the cohort is not draft or has no form bound.\nCross-tenant cohort ids 404 via BelongsToTenant scope.",
+                "summary": "POST /api/v1/cohorts/{id}/open",
+                "tags": [
+                    "Cohort"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`CohortResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CohortResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/forms": {
             "get": {
                 "operationId": "forms.index",
@@ -3414,6 +3561,18 @@
                 ],
                 "title": "AccountSessionResource"
             },
+            "BindCohortFormRequest": {
+                "type": "object",
+                "properties": {
+                    "form_version_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "form_version_id"
+                ],
+                "title": "BindCohortFormRequest"
+            },
             "CohortResource": {
                 "type": "object",
                 "properties": {
@@ -3453,6 +3612,9 @@
                     "timeline": {
                         "type": "string"
                     },
+                    "bound_form_version_id": {
+                        "type": "string"
+                    },
                     "submissions_count": {
                         "type": "integer",
                         "description": "Present only on the list (withCount); never null on show/store."
@@ -3477,6 +3639,7 @@
                     "starts_at",
                     "ends_at",
                     "timeline",
+                    "bound_form_version_id",
                     "created_at",
                     "updated_at"
                 ],
