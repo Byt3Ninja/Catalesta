@@ -10,6 +10,7 @@ use App\Modules\Stages\Domain\Exceptions\StagePipelineNotPublishableException;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Domain\Models\StageType;
 use App\Modules\Stages\Domain\Models\StageVersion;
+use App\Shared\Audit\AuditLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -76,6 +77,7 @@ final class StagePipelineSnapshotTest extends TestCase
         ]); // no published version
 
         $this->expectException(StagePipelineNotPublishableException::class);
+        $this->expectExceptionMessageMatches('/screen/');
         $this->service()->handle($program->refresh());
     }
 
@@ -87,5 +89,20 @@ final class StagePipelineSnapshotTest extends TestCase
 
         $this->expectException(StagePipelineNotPublishableException::class);
         $this->service()->handle($program->refresh());
+    }
+
+    public function test_audit_fires_only_on_new_version_not_idempotent_republish(): void
+    {
+        $program = $this->programWithPublishedStage();
+
+        // First publish creates a version and fires audit
+        $this->service()->handle($program);
+        $publishCount = AuditLog::query()->where('action', 'stage_pipeline.published')->count();
+        $this->assertSame(1, $publishCount);
+
+        // Idempotent republish returns same version without firing audit
+        $this->service()->handle($program->refresh());
+        $publishCount = AuditLog::query()->where('action', 'stage_pipeline.published')->count();
+        $this->assertSame(1, $publishCount); // Still 1, audit did not fire again
     }
 }

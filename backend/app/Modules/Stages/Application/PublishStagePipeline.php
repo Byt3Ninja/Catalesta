@@ -61,7 +61,8 @@ final class PublishStagePipeline
             ['name' => $program->name],
         );
 
-        $version = DB::transaction(function () use ($pipeline, $snapshot, $hash): StagePipelineVersion {
+        $created = false;
+        $version = DB::transaction(function () use ($pipeline, $snapshot, $hash, &$created): StagePipelineVersion {
             /** @var StagePipelineVersion|null $existing */
             $existing = StagePipelineVersion::query()
                 ->where('stage_pipeline_id', $pipeline->id)
@@ -72,6 +73,7 @@ final class PublishStagePipeline
                 return $existing; // idempotent republish — no duplicate row
             }
 
+            $created = true;
             $version = StagePipelineVersion::create([
                 'stage_pipeline_id' => $pipeline->id,
                 'content_hash' => $hash,
@@ -83,10 +85,12 @@ final class PublishStagePipeline
             return $version->refresh();
         });
 
-        $this->audit->record(AuditAction::StagePipelinePublished->value, 'stage_pipeline_version', $version->id, [], [
-            'content_hash' => $hash,
-            'version_number' => $version->version_number,
-        ]);
+        if ($created) {
+            $this->audit->record(AuditAction::StagePipelinePublished->value, 'stage_pipeline_version', $version->id, [], [
+                'content_hash' => $hash,
+                'version_number' => $version->version_number,
+            ]);
+        }
 
         return $version;
     }
@@ -95,7 +99,7 @@ final class PublishStagePipeline
      * @param  Collection<int, ProgramStage>  $stages
      * @return array<string, mixed>
      */
-    private function buildSnapshot(Program $program, $stages): array
+    private function buildSnapshot(Program $program, Collection $stages): array
     {
         $transitions = StageTransition::query()->where('program_id', $program->id)->get();
         $stageIds = $stages->pluck('id')->all();
