@@ -199,6 +199,17 @@ final class StagePipelineReadTest extends TestCase
             ->assertJsonPath('data.0.status', 'published');
     }
 
+    public function test_versions_cross_tenant_returns_404(): void
+    {
+        [, , , $pipelineVersion] = $this->publishedPipelineFixture();
+        $pipelineId = $pipelineVersion->stage_pipeline_id;
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->getJson("/api/v1/stage-pipelines/{$pipelineId}/versions")
+            ->assertStatus(404);
+    }
+
     // ── Version show endpoint + FE shape ─────────────────────────────────────
 
     public function test_version_show_returns_fe_shaped_stages(): void

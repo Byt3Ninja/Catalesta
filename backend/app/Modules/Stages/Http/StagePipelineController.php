@@ -27,9 +27,9 @@ final class StagePipelineController extends Controller
      */
     public function index(string $program): AnonymousResourceCollection
     {
-        $prog = Program::query()->findOrFail($program);
-
         $this->authorize('viewAny', StagePipeline::class);
+
+        $prog = Program::query()->findOrFail($program);
 
         $pipelines = StagePipeline::query()
             ->where('program_id', $prog->id)
