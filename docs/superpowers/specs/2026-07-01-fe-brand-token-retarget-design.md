@@ -15,6 +15,11 @@ but the real app currently renders **indigo** (`#4f46e5`, Tailwind layer) and
 without violating the WCAG-AA contrast floor that the tokens already guarantee
 (rule 08).
 
+**Light theme is the primary/default brand target.** The brand work is judged in
+light mode; the dark theme receives only the minimal AA-safe parity needed to stay
+consistent (its `--primary`/`--ring` follow light so it isn't left indigo) — it is
+explicitly **not** a dark-mode brand redesign, and dark ink/surfaces are unchanged.
+
 ## 2. Two token systems (both must change)
 
 | System | File | Brand hue today | Consumers |
@@ -49,8 +54,9 @@ estimates above.
 Light `:root` and `.dark` raw vars, then exposed unchanged through the existing
 `@theme inline` block.
 
-- `--primary: #0d7a74` (light **and** dark). `--primary-foreground: #ffffff` (unchanged).
-- `--ring: #1bbcb4` (focus ring; non-text; bright teal is fine and visible) — light & dark.
+- `--primary: #0d7a74` — **light is the authoritative value**; dark mirrors it only
+  so dark isn't left indigo (minimal parity, not tuned for dark). `--primary-foreground: #ffffff` (unchanged).
+- `--ring: #1bbcb4` (focus ring; non-text; bright teal is fine and visible) — light authoritative, dark mirrors.
 - `--foreground: #0d1b2a` and `--card-foreground: #0d1b2a` in **light only**.
   `.dark` keeps `--foreground:#fafafa` / `--card-foreground:#fafafa` (navy on dark fails — unchanged).
 - **Unchanged:** `--secondary`, `--secondary-foreground`, `--muted`, `--muted-foreground`,
