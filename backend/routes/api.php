@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Http\Controllers\HealthController;
 use App\Modules\Applications\Http\SubmissionController;
 use App\Modules\Applications\Http\SubmitController;
+use App\Modules\Assessments\Http\ScoringModelController;
+use App\Modules\Assessments\Http\ScoringModelVersionController;
 use App\Modules\Cohorts\Http\ApplyController;
 use App\Modules\Cohorts\Http\CohortController;
 use App\Modules\Forms\Http\FormController;
@@ -145,6 +147,18 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/forms/{id}/fork', [FormController::class, 'fork'])->name('forms.fork');
         Route::get('/forms/{id}', [FormController::class, 'show'])->name('forms.show');
         Route::get('/form-versions/{id}', [FormVersionController::class, 'show'])->name('form-versions.show');
+
+        // Scoring-model authoring (Assessments Phase A — per-program) — ADR-0012 Phase A
+        // Program-nested create + list (program_id is authoritative from the route).
+        Route::get('/programs/{program}/scoring-models', [ScoringModelController::class, 'index'])->name('programs.scoring-models.index');
+        Route::post('/programs/{program}/scoring-models', [ScoringModelController::class, 'store'])->name('programs.scoring-models.store');
+        // More-specific /scoring-models/{id}/versions before catch-all {id} — same ordering rule as forms.
+        Route::get('/scoring-models/{id}/versions', [ScoringModelController::class, 'versions'])->name('scoring-models.versions.index');
+        Route::patch('/scoring-models/{id}/draft', [ScoringModelController::class, 'saveDraft'])->name('scoring-models.draft.update');
+        Route::post('/scoring-models/{id}/publish', [ScoringModelController::class, 'publish'])->name('scoring-models.publish');
+        Route::post('/scoring-models/{id}/fork', [ScoringModelController::class, 'fork'])->name('scoring-models.fork');
+        Route::get('/scoring-models/{id}', [ScoringModelController::class, 'show'])->name('scoring-models.show');
+        Route::get('/scoring-model-versions/{id}', [ScoringModelVersionController::class, 'show'])->name('scoring-model-versions.show');
     });
 
     // Authentication (OIDC authorization-code + PKCE)
