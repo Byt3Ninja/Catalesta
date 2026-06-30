@@ -37,7 +37,7 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => createProgram(name.trim(), description.trim() || undefined),
+    mutationFn: () => createProgram(name.trim(), { description: description.trim() || undefined }),
     onSuccess: () => {
       setName('')
       setDescription('')

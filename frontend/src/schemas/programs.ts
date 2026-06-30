@@ -11,6 +11,7 @@ export const programSchema = z.object({
   name: z.string(),
   slug: z.string(),
   status: z.enum(['draft', 'published', 'archived', 'closed']),
+  type: z.enum(['accelerator', 'incubator', 'hackathon', 'fellowship']).nullable(),
   description: z.string().nullable(),
   settings: z.record(z.string(), z.unknown()).nullable(),
   created_at: z.string(),
@@ -18,6 +19,15 @@ export const programSchema = z.object({
 })
 
 export type Program = z.infer<typeof programSchema>
+
+export const PROGRAM_TYPES = ['accelerator', 'incubator', 'hackathon', 'fellowship'] as const
+export type ProgramType = (typeof PROGRAM_TYPES)[number]
+export const PROGRAM_TYPE_LABEL: Record<ProgramType, string> = {
+  accelerator: 'Accelerator',
+  incubator: 'Incubator',
+  hackathon: 'Hackathon',
+  fellowship: 'Fellowship',
+}
 
 export const programResponseSchema = z.object({
   data: programSchema,
