@@ -7,7 +7,9 @@ namespace App\Modules\Programs\Domain\Models;
 use App\Modules\Stages\Domain\Models\ProgramStage;
 use App\Modules\Stages\Domain\Models\StageTransition;
 use App\Shared\Tenancy\BelongsToTenant;
+use Database\Factories\ProgramFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -15,9 +17,18 @@ use Illuminate\Support\Str;
 final class Program extends Model
 {
     use BelongsToTenant;
+
+    /** @use HasFactory<ProgramFactory> */
+    use HasFactory;
+
     use HasUlids;
 
     protected $fillable = ['name', 'slug', 'status', 'type', 'description', 'settings', 'template_id'];
+
+    protected static function newFactory(): ProgramFactory
+    {
+        return ProgramFactory::new();
+    }
 
     /**
      * @return array<string, string>
