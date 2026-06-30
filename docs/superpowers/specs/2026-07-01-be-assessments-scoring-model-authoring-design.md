@@ -76,7 +76,10 @@ Endpoints (authenticated, tenant-scoped), matching `api/assessments.ts`:
 - `GET /scoring-models/{id}` · `GET /scoring-models/{id}/versions`
 - `GET /scoring-model-versions/{id}`
 - `PATCH /scoring-models/{id}/draft` `{criteria}` → 200 / 404 / 409
-- `POST /scoring-models/{id}/publish` → 200 / 404 / 409 (nothing to publish)
+- `POST /scoring-models/{id}/publish` → 200 / 404 (unknown model) / 409 (no draft to
+  publish) / 422 (draft has zero criteria — a model with no criteria cannot score).
+  Note: the shipped FE `publishScoringModel` maps only 404/409 and surfaces 422 as a
+  generic error; a tiny FE follow-up can add a 422 message. Backend stays REST-correct.
 - `POST /scoring-models/{id}/fork` `{from_version_id}` → 200/201
 
 `ScoringModelResource`: `model_id`, `program_id`, `name`, `latest_version`
