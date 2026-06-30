@@ -23,4 +23,6 @@ enum AuditAction: string
     case DecisionRecorded = 'decision.recorded';
     case DecisionReopened = 'decision.reopened';
     case DecisionsExported = 'decisions.exported';
+    case StagePipelinePublished = 'stage_pipeline.published';
+    case CohortStagePipelineBound = 'cohort.stage_pipeline_bound';
 }
