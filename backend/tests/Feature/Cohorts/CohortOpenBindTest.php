@@ -140,4 +140,57 @@ final class CohortOpenBindTest extends TestCase
             ->postJson("/api/v1/cohorts/{$cohort->id}/bind-form", ['form_version_id' => $version->id])
             ->assertStatus(403);
     }
+
+    public function test_open_transitions_draft_to_open_with_a_bound_form(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort();
+        $version = $this->publishedVersion();
+        $cohort->update(['form_version_id' => $version->id]);
+
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/open")
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'open');
+    }
+
+    public function test_open_without_a_bound_form_conflicts_409(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort(); // no form bound
+
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/open")
+            ->assertStatus(409);
+    }
+
+    public function test_open_already_open_conflicts_409(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort();
+        $version = $this->publishedVersion();
+        $cohort->update(['form_version_id' => $version->id, 'status' => 'open']);
+
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/open")
+            ->assertStatus(409);
+    }
+
+    public function test_open_returns_404_across_tenants(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort();
+        $version = $this->publishedVersion();
+        $cohort->update(['form_version_id' => $version->id]);
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/open")
+            ->assertStatus(404);
+    }
 }

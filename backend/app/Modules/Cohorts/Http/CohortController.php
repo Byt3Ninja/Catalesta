@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Cohorts\Http;
 
 use App\Modules\Cohorts\Application\BindCohortForm;
+use App\Modules\Cohorts\Application\OpenCohort;
 use App\Modules\Cohorts\Domain\Exceptions\CohortStateException;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Domain\Models\CohortStatus;
@@ -126,6 +127,27 @@ final class CohortController extends Controller
         );
 
         return new CohortResource($cohort);
+    }
+
+    /**
+     * POST /api/v1/cohorts/{id}/open
+     *
+     * Transition a draft cohort (with a bound form) to Open status.
+     * 409 when the cohort is not draft or has no form bound.
+     * Cross-tenant cohort ids 404 via BelongsToTenant scope.
+     */
+    public function open(OpenCohort $service, string $id): JsonResponse
+    {
+        $cohort = Cohort::query()->findOrFail($id);
+        $this->authorize('open', $cohort);
+
+        try {
+            $cohort = $service->handle($cohort);
+        } catch (CohortStateException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return (new CohortResource($cohort))->response()->setStatusCode(200);
     }
 
     /**

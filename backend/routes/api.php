@@ -88,6 +88,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
         Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
         Route::post('/cohorts/{id}/bind-form', [CohortController::class, 'bindForm'])->name('cohorts.bind-form');
+        Route::post('/cohorts/{id}/open', [CohortController::class, 'open'])->name('cohorts.open');
 
         // Operator submission read API (Story 2.8, FR-034) — tenant-scoped list + detail.
         Route::get('/cohorts/{cohort}/submissions', [SubmissionController::class, 'index'])->name('cohorts.submissions.index');

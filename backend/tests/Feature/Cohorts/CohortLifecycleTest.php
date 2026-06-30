@@ -46,9 +46,12 @@ final class CohortLifecycleTest extends TestCase
     {
         [$cohort, $form] = $this->bootCohortAndForm();
 
-        $opened = $this->app->make(OpenCohort::class)->handle(
-            $cohort, $form, now()->subDay(), now()->addDay(),
-        );
+        $cohort->update([
+            'form_version_id' => $form->id,
+            'enrollment_opens_at' => now()->subDay(),
+            'enrollment_closes_at' => now()->addDay(),
+        ]);
+        $opened = $this->app->make(OpenCohort::class)->handle($cohort->refresh());
 
         $this->assertSame(CohortStatus::Open, $opened->status);
         $this->assertSame($form->id, $opened->form_version_id);
@@ -58,7 +61,12 @@ final class CohortLifecycleTest extends TestCase
     public function test_public_url_resolves_open_cohort_without_tenant_context(): void // AC-1/3
     {
         [$cohort, $form] = $this->bootCohortAndForm();
-        $this->app->make(OpenCohort::class)->handle($cohort, $form, now()->subDay(), now()->addDay());
+        $cohort->update([
+            'form_version_id' => $form->id,
+            'enrollment_opens_at' => now()->subDay(),
+            'enrollment_closes_at' => now()->addDay(),
+        ]);
+        $this->app->make(OpenCohort::class)->handle($cohort->refresh());
 
         $resp = $this->getJson("/api/v1/apply/{$cohort->id}");
 
@@ -69,7 +77,12 @@ final class CohortLifecycleTest extends TestCase
     public function test_close_sets_status_and_is_audited_and_public_reports_closed(): void // AC-2/3/4
     {
         [$cohort, $form] = $this->bootCohortAndForm();
-        $this->app->make(OpenCohort::class)->handle($cohort, $form, now()->subDay(), now()->addDay());
+        $cohort->update([
+            'form_version_id' => $form->id,
+            'enrollment_opens_at' => now()->subDay(),
+            'enrollment_closes_at' => now()->addDay(),
+        ]);
+        $this->app->make(OpenCohort::class)->handle($cohort->refresh());
 
         $closed = $this->app->make(CloseCohort::class)->handle($cohort);
         $this->assertSame(CohortStatus::Closed, $closed->status);
@@ -82,7 +95,12 @@ final class CohortLifecycleTest extends TestCase
     {
         [$cohort, $form] = $this->bootCohortAndForm();
         // Window entirely in the past → open status but outside window → closed.
-        $this->app->make(OpenCohort::class)->handle($cohort, $form, now()->subDays(2), now()->subDay());
+        $cohort->update([
+            'form_version_id' => $form->id,
+            'enrollment_opens_at' => now()->subDays(2),
+            'enrollment_closes_at' => now()->subDay(),
+        ]);
+        $this->app->make(OpenCohort::class)->handle($cohort->refresh());
 
         $this->getJson("/api/v1/apply/{$cohort->id}")->assertOk()->assertJson(['open' => false]);
     }
@@ -95,7 +113,12 @@ final class CohortLifecycleTest extends TestCase
     public function test_public_url_returns_the_published_form_definition(): void // Story 2.7 form-fetch
     {
         [$cohort, $form] = $this->bootCohortAndForm();
-        $this->app->make(OpenCohort::class)->handle($cohort, $form, now()->subDay(), now()->addDay());
+        $cohort->update([
+            'form_version_id' => $form->id,
+            'enrollment_opens_at' => now()->subDay(),
+            'enrollment_closes_at' => now()->addDay(),
+        ]);
+        $this->app->make(OpenCohort::class)->handle($cohort->refresh());
 
         // The applicant page needs the field definitions to render the stepped form.
         $this->getJson("/api/v1/apply/{$cohort->id}")
