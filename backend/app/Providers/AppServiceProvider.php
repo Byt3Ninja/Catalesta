@@ -18,6 +18,8 @@ use App\Modules\Programs\Domain\Models\Program;
 use App\Modules\Programs\Domain\Models\Track;
 use App\Modules\Programs\Policies\ProgramPolicy;
 use App\Modules\Stages\Domain\Models\ProgramStage;
+use App\Modules\Stages\Domain\Models\StagePipeline;
+use App\Modules\Stages\Policies\StagePipelinePolicy;
 use App\Modules\Stages\Policies\StagePolicy;
 use App\Shared\Audit\AuthorizationAuditRecorder;
 use App\Shared\Entitlement\AllowAllEntitlementService;
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Track::class, ProgramPolicy::class);
         Gate::policy(Cohort::class, CohortPolicy::class);
         Gate::policy(ProgramStage::class, StagePolicy::class);
+        Gate::policy(StagePipeline::class, StagePipelinePolicy::class);
         Gate::policy(Form::class, FormPolicy::class);
         Gate::policy(ApplicationSubmission::class, ApplicationSubmissionPolicy::class);
 
