@@ -240,6 +240,7 @@ test('route /programs/:programId renders the program detail for an org user', as
           name: 'Spring Accelerator',
           slug: 'spring-accelerator',
           status: 'draft',
+          type: null,
           description: null,
           settings: null,
           created_at: '2026-06-20T10:00:00+00:00',

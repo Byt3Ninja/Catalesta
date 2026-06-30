@@ -10,28 +10,28 @@ import { Link } from '../components/Link'
 import { Spinner } from '../components/Loading'
 import { StateBlock } from '../components/StateBlock'
 import { cloneProgram, getProgram, publishProgram, updateProgram } from '../api/programs'
+import { listCohorts } from '../api/cohorts'
+import { deriveProgramSummary } from '../lib/programSummary'
+import { ProgramTypeBadge } from '../components/ProgramTypeBadge'
+import { ProgramStatusBadge } from '../components/ProgramStatusBadge'
 import { ProgramCohortsSection } from './ProgramCohortsSection'
 import {
   CloneProgramError,
   GetProgramError,
   PublishProgramError,
   UpdateProgramError,
+  PROGRAM_TYPES,
+  PROGRAM_TYPE_LABEL,
   type Program,
+  type ProgramType,
 } from '../schemas/programs'
-
-/** Human-readable program status (text, never colour-alone). */
-const PROGRAM_STATUS_LABEL: Record<Program['status'], string> = {
-  draft: 'Draft',
-  published: 'Published',
-  archived: 'Archived',
-  closed: 'Closed',
-}
 
 /**
  * Program detail (Story 1.2 / FE-1). Shows one program and hosts its lifecycle
- * actions: inline Edit (name/description), Clone (→ new draft), and Publish (draft
- * only). Editing mutates the live program (audited) — it does NOT create a version;
- * publishing is what records an immutable version. A console surface → AppShell.
+ * actions: inline Edit (name/description/type), Clone (→ new draft), and Publish
+ * (draft only). Editing mutates the live program (audited) — it does NOT create a
+ * version; publishing is what records an immutable version. A console surface →
+ * AppShell.
  */
 export function ProgramDetailPage({ programId }: { programId: string }) {
   const queryClient = useQueryClient()
@@ -43,9 +43,12 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
     retry: false,
   })
 
+  const cohortsQuery = useQuery({ queryKey: ['cohorts'], queryFn: listCohorts, retry: false })
+
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [type, setType] = useState<ProgramType | ''>('')
   const [cloning, setCloning] = useState(false)
   const [cloneName, setCloneName] = useState('')
 
@@ -57,7 +60,11 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
 
   const updateMutation = useMutation({
     mutationFn: () =>
-      updateProgram(programId, { name: name.trim(), description: description.trim() || null }),
+      updateProgram(programId, {
+        name: name.trim(),
+        description: description.trim() || null,
+        type: type || null,
+      }),
     onSuccess: async () => {
       setEditing(false)
       await invalidate()
@@ -82,6 +89,7 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
   const beginEdit = (p: Program) => {
     setName(p.name)
     setDescription(p.description ?? '')
+    setType(p.type ?? '')
     setEditing(true)
   }
 
@@ -107,13 +115,9 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
             <h1 id="program-heading">
               <bdi>{program.name}</bdi>
             </h1>
-            <p>
-              <span
-                data-status={program.status}
-                className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
-              >
-                {PROGRAM_STATUS_LABEL[program.status] ?? program.status}
-              </span>{' '}
+            <p className="flex items-center gap-2">
+              <ProgramStatusBadge status={program.status} />
+              <ProgramTypeBadge type={program.type} />
               <span className="text-sm text-muted-foreground">{program.slug}</span>
             </p>
 
@@ -144,6 +148,21 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                   />
+                  <div className="grid gap-1">
+                    <label htmlFor="program-type" className="text-sm font-medium">Program type</label>
+                    <select
+                      id="program-type"
+                      name="program-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value as ProgramType | '')}
+                      className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    >
+                      <option value="">No type</option>
+                      {PROGRAM_TYPES.map((t) => (
+                        <option key={t} value={t}>{PROGRAM_TYPE_LABEL[t]}</option>
+                      ))}
+                    </select>
+                  </div>
                 </FormLayout>
                 <Button type="submit" loading={updateMutation.isPending} disabled={name.trim().length === 0}>
                   Save
@@ -162,6 +181,40 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
                   ) : (
                     <p className="text-sm text-muted-foreground">No description.</p>
                   )}
+                  {(() => {
+                    const cohorts = (cohortsQuery.data ?? []).filter(
+                      (c) => c.program_id === programId,
+                    )
+                    const s = deriveProgramSummary(cohorts)
+                    return (
+                      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                        <div>
+                          <dt className="inline font-medium">Cohorts</dt>{' '}
+                          <dd className="inline">{s.cohortCount}</dd>
+                        </div>
+                        <div>
+                          <dt className="inline font-medium">Submissions</dt>{' '}
+                          <dd className="inline">
+                            {cohortsQuery.isLoading ? '—' : `${s.submissions} submissions`}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline font-medium">Capacity</dt>{' '}
+                          <dd className="inline">
+                            {s.capacity != null ? `Capacity ${s.capacity}` : '—'}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline font-medium">Dates</dt>{' '}
+                          <dd className="inline">
+                            {s.dateRange
+                              ? `${s.dateRange.start.slice(0, 10)} → ${s.dateRange.end.slice(0, 10)}`
+                              : '—'}
+                          </dd>
+                        </div>
+                      </dl>
+                    )
+                  })()}
                   <p className="text-sm text-muted-foreground">
                     Created {program.created_at} · Updated {program.updated_at}
                   </p>
