@@ -5,12 +5,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #09090b;
+  --foreground: #0d1b2a; /* brand navy — ≈16:1 on white */
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #0d1b2a;
   --popover: #ffffff;
   --popover-foreground: #09090b;
-  --primary: #4f46e5; /* indigo-600 — white text ≈6.3:1 (passes 4.5) */
+  --primary: #0d7a74; /* teal-dark — white text ≈5.2:1 (passes 4.5) */
   --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
@@ -22,7 +22,11 @@
   --destructive-foreground: #ffffff;
   --border: #e4e4e7; /* zinc-200 — decorative dividers only (not contrast-gated) */
   --input: #71717a; /* zinc-500 — ≈4.8:1 on white (passes 3:1) */
-  --ring: #6366f1; /* indigo-500 — focus ring only (non-text) */
+  --ring: #0d7a74; /* teal-dark — ≈5.2:1 on white (passes 3:1 non-text); bright #1bbcb4 fails */
+  --brand: #1bbcb4; /* bright teal — decorative/tint only (fails text/ring floors) */
+  --brand-strong: #0d7a74; /* AA-safe teal for fills/text */
+  --brand-orange: #f26b3a; /* decorative/tint/dot only */
+  --brand-orange-strong: #c2410c; /* AA-safe orange CTA — white text ≈5.2:1 */
   --radius: 0.5rem;
 }
 
@@ -33,7 +37,7 @@
   --card-foreground: #fafafa;
   --popover: #18181b;
   --popover-foreground: #fafafa;
-  --primary: #4f46e5;
+  --primary: #0d7a74;
   --primary-foreground: #ffffff;
   --secondary: #27272a;
   --secondary-foreground: #fafafa;
@@ -45,7 +49,11 @@
   --destructive-foreground: #fafafa;
   --border: #27272a;
   --input: #71717a; /* zinc-500 — ≈3.3:1 on #18181b (passes 3:1) */
-  --ring: #6366f1;
+  --ring: #0d7a74;
+  --brand: #1bbcb4;
+  --brand-strong: #0d7a74;
+  --brand-orange: #f26b3a;
+  --brand-orange-strong: #c2410c;
 }
 
 @theme inline {
@@ -68,6 +76,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-strong: var(--brand-orange-strong);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
