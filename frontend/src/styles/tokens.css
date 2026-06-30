@@ -1,23 +1,24 @@
 /*
  * Catalesta design tokens (Story 1.0) — from DESIGN.md. Single source consumed by
  * all components. Light is :root; dark overrides under [data-theme="dark"].
- * Verified-contrast pairs: accentBtn (white text >=4.5:1), inputBorder (>=3:1).
+ * Verified-contrast pairs: accentBtn #0d7a74 (white text >=4.5:1), inputBorder (>=3:1),
+ * focus #0d7a74 (>=3:1 on surface). Brand teal #1bbcb4 is decorative-only.
  */
 :root {
   --color-bg: #f7f7fb;
   --color-surface: #ffffff;
   --color-surface-alt: #f1effa;
-  --color-ink: #1a1430;
+  --color-ink: #0d1b2a; /* brand navy */
   --color-ink-muted: #5b5470;
   --color-ink-faint: #8e87a6;
-  --color-accent: #6d4aff;
-  --color-accent-btn: #5a38e6; /* primary-button fill, white text >=4.5:1 */
+  --color-accent: #1bbcb4; /* bright teal — decorative (no .ds-* rule renders text on it) */
+  --color-accent-btn: #0d7a74; /* teal-dark fill/link, white text ≈5.2:1 */
   --color-border: #e6e3f0;
   --color-input-border: #79718f; /* >=3:1 on surface (WCAG 1.4.11) */
   --color-success: #0a7d45;
   --color-warning: #9a6410;
   --color-danger: #d92d20;
-  --color-focus: #6d4aff;
+  --color-focus: #0d7a74; /* teal-dark focus outline, >=3:1 on surface */
   --color-on-accent: #ffffff;
 
   --font-display: 'Space Grotesk', system-ui, sans-serif;
@@ -45,14 +46,14 @@
   --color-ink: #ece9f7;
   --color-ink-muted: #a9a2c2;
   --color-ink-faint: #7c7596;
-  --color-accent: #7c5cff;
-  --color-accent-btn: #5a38e6;
+  --color-accent: #1bbcb4;
+  --color-accent-btn: #0d7a74;
   --color-border: #2e2a40;
   --color-input-border: #6e6788;
   --color-success: #34c77b;
   --color-warning: #f2c14e;
   --color-danger: #ff6b5e;
-  --color-focus: #9279ff;
+  --color-focus: #0d7a74;
   --color-on-accent: #ffffff;
 }
 
