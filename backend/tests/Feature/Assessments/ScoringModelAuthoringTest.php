@@ -402,4 +402,118 @@ final class ScoringModelAuthoringTest extends TestCase
             ->postJson("/api/v1/programs/{$program->id}/scoring-models", ['name' => 'Blocked'])
             ->assertStatus(403);
     }
+
+    public function test_member_without_assessments_manage_cannot_save_draft(): void
+    {
+        [$admin, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($admin, $org);
+        $program = Program::factory()->create();
+        $model = ScoringModel::create(['program_id' => $program->id, 'name' => 'Eval']);
+        ScoringModelVersion::create(['scoring_model_id' => $model->id, 'criteria' => []]);
+
+        $member = $this->makeAccount();
+        $m = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
+        $m->organization_id = $org->id;
+        $m->save();
+
+        $this->resetTenantContext();
+
+        $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->patchJson("/api/v1/scoring-models/{$model->id}/draft", ['criteria' => $this->criteria()])
+            ->assertStatus(403);
+    }
+
+    public function test_member_without_assessments_manage_cannot_publish(): void
+    {
+        [$admin, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($admin, $org);
+        $program = Program::factory()->create();
+        $model = ScoringModel::create(['program_id' => $program->id, 'name' => 'Eval']);
+        ScoringModelVersion::create(['scoring_model_id' => $model->id, 'criteria' => $this->criteria()]);
+
+        $member = $this->makeAccount();
+        $m = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
+        $m->organization_id = $org->id;
+        $m->save();
+
+        $this->resetTenantContext();
+
+        $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/scoring-models/{$model->id}/publish")
+            ->assertStatus(403);
+    }
+
+    public function test_member_without_assessments_manage_cannot_fork(): void
+    {
+        [$admin, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($admin, $org);
+        $program = Program::factory()->create();
+        $model = ScoringModel::create(['program_id' => $program->id, 'name' => 'Eval']);
+        $published = ScoringModelVersion::create([
+            'scoring_model_id' => $model->id, 'status' => 'published',
+            'version_number' => 1, 'content_hash' => str_repeat('a', 64),
+            'criteria' => $this->criteria(), 'published_at' => now(),
+        ]);
+
+        $member = $this->makeAccount();
+        $m = new OrganizationMembership(['account_id' => $member->id, 'status' => 'active']);
+        $m->organization_id = $org->id;
+        $m->save();
+
+        $this->resetTenantContext();
+
+        $this->actingAs($member, 'web')
+            ->withHeader('X-Organization-Id', $org->id)
+            ->postJson("/api/v1/scoring-models/{$model->id}/fork", ['from_version_id' => $published->id])
+            ->assertStatus(403);
+    }
+
+    // ── cross-tenant 404 on program-nested routes ────────────────────
+
+    public function test_index_returns_404_for_program_owned_by_another_tenant(): void
+    {
+        [$admin, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($admin, $org);
+        $program = Program::factory()->create();
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->getJson("/api/v1/programs/{$program->id}/scoring-models")
+            ->assertStatus(404);
+    }
+
+    public function test_create_returns_404_for_program_owned_by_another_tenant(): void
+    {
+        [$admin, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($admin, $org);
+        $program = Program::factory()->create();
+
+        [$other, $otherOrg] = $this->bootUserWithOrg('Other Org');
+
+        $this->actingAsTenantRequest($other, $otherOrg)
+            ->postJson("/api/v1/programs/{$program->id}/scoring-models", ['name' => 'Cross-Tenant'])
+            ->assertStatus(404);
+    }
+
+    // ── descriptors survive the HTTP round-trip ──────────────────────
+
+    public function test_save_draft_preserves_descriptors_in_response(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $program = Program::factory()->create();
+        $model = ScoringModel::create(['program_id' => $program->id, 'name' => 'Eval']);
+        ScoringModelVersion::create(['scoring_model_id' => $model->id, 'criteria' => []]);
+
+        // criteria() index 1 is 'c2' / 'Market Fit' with descriptors ['Strong','Weak'].
+        // input('criteria') (not validated()) must preserve the nested key end-to-end.
+        $res = $this->actingAsTenantRequest($user, $org)
+            ->patchJson("/api/v1/scoring-models/{$model->id}/draft", ['criteria' => $this->criteria()]);
+
+        $res->assertStatus(200);
+        $this->assertSame(['Strong', 'Weak'], $res->json('data.criteria.1.descriptors'));
+    }
 }
