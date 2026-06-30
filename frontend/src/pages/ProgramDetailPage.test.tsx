@@ -257,3 +257,20 @@ it('edits the program type', async () => {
     expect(body.type).toBe('incubator')
   })
 })
+
+it('degrades the summary strip to — when the cohorts query errors', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    const url = String(input)
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (method === 'GET' && /\/cohorts$/.test(url)) {
+      return Promise.resolve(new Response(null, { status: 500 }))
+    }
+    return Promise.resolve(jsonResponse({ data: DRAFT }))
+  })
+  renderDetail()
+  expect(await screen.findByRole('heading', { name: 'Spring Accelerator' })).toBeInTheDocument()
+  expect(screen.queryByText(/0 submissions/i)).not.toBeInTheDocument()
+  // All four derived cells degrade to em-dash when cohorts are unavailable
+  const dashes = screen.getAllByText('—')
+  expect(dashes.length).toBeGreaterThanOrEqual(4)
+})

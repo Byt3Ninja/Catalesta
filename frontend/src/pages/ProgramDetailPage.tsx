@@ -182,6 +182,7 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
                     <p className="text-sm text-muted-foreground">No description.</p>
                   )}
                   {(() => {
+                    const cohortsUnavailable = cohortsQuery.isLoading || cohortsQuery.isError
                     const cohorts = (cohortsQuery.data ?? []).filter(
                       (c) => c.program_id === programId,
                     )
@@ -190,24 +191,24 @@ export function ProgramDetailPage({ programId }: { programId: string }) {
                       <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                         <div>
                           <dt className="inline font-medium">Cohorts</dt>{' '}
-                          <dd className="inline">{s.cohortCount}</dd>
+                          <dd className="inline">{cohortsUnavailable ? '—' : s.cohortCount}</dd>
                         </div>
                         <div>
                           <dt className="inline font-medium">Submissions</dt>{' '}
                           <dd className="inline">
-                            {cohortsQuery.isLoading ? '—' : `${s.submissions} submissions`}
+                            {cohortsUnavailable ? '—' : `${s.submissions} submissions`}
                           </dd>
                         </div>
                         <div>
                           <dt className="inline font-medium">Capacity</dt>{' '}
                           <dd className="inline">
-                            {s.capacity != null ? `Capacity ${s.capacity}` : '—'}
+                            {cohortsUnavailable ? '—' : s.capacity != null ? `Capacity ${s.capacity}` : '—'}
                           </dd>
                         </div>
                         <div>
                           <dt className="inline font-medium">Dates</dt>{' '}
                           <dd className="inline">
-                            {s.dateRange
+                            {cohortsUnavailable ? '—' : s.dateRange
                               ? `${s.dateRange.start.slice(0, 10)} → ${s.dateRange.end.slice(0, 10)}`
                               : '—'}
                           </dd>
