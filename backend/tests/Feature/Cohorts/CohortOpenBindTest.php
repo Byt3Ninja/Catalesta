@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cohorts;
 
+use App\Modules\Cohorts\Application\OpenCohort;
 use App\Modules\Cohorts\Domain\Models\Cohort;
+use App\Modules\Cohorts\Domain\Models\CohortStatus;
 use App\Modules\Forms\Domain\Models\Form;
 use App\Modules\Forms\Domain\Models\FormVersion;
 use App\Modules\Organizations\Domain\Models\OrganizationMembership;
+use App\Shared\Entitlement\EntitlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -192,5 +195,70 @@ final class CohortOpenBindTest extends TestCase
         $this->actingAsTenantRequest($other, $otherOrg)
             ->postJson("/api/v1/cohorts/{$cohort->id}/open")
             ->assertStatus(404);
+    }
+
+    public function test_bind_form_rejects_foreign_tenant_version_with_404(): void
+    {
+        // Create a draft cohort in org A.
+        [$userA, $orgA] = $this->bootUserWithOrg();
+        $this->actingAsTenant($userA, $orgA);
+        $cohort = $this->draftCohort();
+
+        // Switch to org B and create a published FormVersion there.
+        // BelongsToTenant scopes FormVersion to the creating org's context.
+        [$userB, $orgB] = $this->bootUserWithOrg('Org B');
+        $this->resetTenantContext();
+        $this->actingAsTenant($userB, $orgB);
+        $orgBVersion = $this->publishedVersion(str_repeat('b', 64));
+
+        // Acting as org A, the org-B version is invisible via BelongsToTenant →
+        // findOrFail throws → 404.
+        $this->resetTenantContext();
+        $this->actingAsTenantRequest($userA, $orgA)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/bind-form", ['form_version_id' => $orgBVersion->id])
+            ->assertStatus(404);
+    }
+
+    public function test_bind_form_returns_422_when_form_version_id_is_absent(): void
+    {
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort();
+
+        // Empty body — BindCohortFormRequest requires form_version_id.
+        $this->actingAsTenantRequest($user, $org)
+            ->postJson("/api/v1/cohorts/{$cohort->id}/bind-form", [])
+            ->assertStatus(422);
+    }
+
+    public function test_open_entitlement_gate_propagates_exception_when_denied(): void
+    {
+        // Bind a throwing entitlement double — mirrors PublishProgramTest pattern.
+        // OpenCohort calls $entitlement->check('cohort.open') before the transaction,
+        // so a denial must leave the cohort as draft with no audit entry.
+        $this->app->bind(EntitlementService::class, fn () => new class implements EntitlementService
+        {
+            public function check(string $action): void
+            {
+                throw new \RuntimeException('blocked: '.$action);
+            }
+        });
+
+        [$user, $org] = $this->bootUserWithOrg();
+        $this->actingAsTenant($user, $org);
+        $cohort = $this->draftCohort();
+        $version = $this->publishedVersion();
+        $cohort->update(['form_version_id' => $version->id]);
+
+        try {
+            $this->app->make(OpenCohort::class)->handle($cohort);
+            $this->fail('Expected the entitlement gate to block cohort.open.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('cohort.open', $e->getMessage());
+        }
+
+        // Cohort must remain draft — nothing written before the gate fires.
+        $this->assertSame(CohortStatus::Draft, $cohort->refresh()->status);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'cohort.opened', 'target_id' => $cohort->id]);
     }
 }
