@@ -71,6 +71,7 @@ final class OrganizationApiTest extends TestCase
         $effectivePermissions = $membership->effectivePermissionKeys();
         $this->assertContains('organizations.manage', $effectivePermissions);
         $this->assertContains('forms.manage', $effectivePermissions);
+        $this->assertContains('assessments.manage', $effectivePermissions);
     }
 
     /**
