@@ -22,6 +22,8 @@ use App\Modules\Programs\Http\TrackController;
 use App\Modules\Reporting\Http\FunnelController;
 use App\Modules\Stages\Http\StageController;
 use App\Modules\Stages\Http\StageDependencyController;
+use App\Modules\Stages\Http\StagePipelineController;
+use App\Modules\Stages\Http\StagePipelineVersionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -88,6 +90,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/cohorts/{id}', [CohortController::class, 'show'])->name('cohorts.show');
         Route::patch('/cohorts/{id}', [CohortController::class, 'update'])->name('cohorts.update');
         Route::post('/cohorts/{id}/bind-form', [CohortController::class, 'bindForm'])->name('cohorts.bind-form');
+        Route::post('/cohorts/{id}/bind-stage-pipeline', [CohortController::class, 'bindStagePipeline'])->name('cohorts.bind-stage-pipeline');
         Route::post('/cohorts/{id}/open', [CohortController::class, 'open'])->name('cohorts.open');
 
         // Operator submission read API (Story 2.8, FR-034) — tenant-scoped list + detail.
@@ -110,6 +113,14 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'index'])->name('programs.stages.dependencies.index');
         Route::post('/programs/{program}/stages/{stage}/dependencies', [StageDependencyController::class, 'store'])->name('programs.stages.dependencies.store');
         Route::delete('/stage-dependencies/{id}', [StageDependencyController::class, 'destroy'])->name('stage-dependencies.destroy');
+
+        // Stage pipeline routes (ADR-0011 Phase 1: structural preview snapshot)
+        Route::get('/programs/{program}/stage-pipelines', [StagePipelineController::class, 'index'])->name('programs.stage-pipelines.index');
+        Route::post('/programs/{program}/stage-pipelines/publish', [StagePipelineController::class, 'publish'])->name('programs.stage-pipelines.publish');
+        // versions before {id} so the literal 'versions' segment is not matched as an {id}
+        Route::get('/stage-pipelines/{pipeline}/versions', [StagePipelineController::class, 'versions'])->name('stage-pipelines.versions.index');
+        Route::get('/stage-pipelines/{id}', [StagePipelineController::class, 'show'])->name('stage-pipelines.show');
+        Route::get('/stage-pipeline-versions/{id}', [StagePipelineVersionController::class, 'show'])->name('stage-pipeline-versions.show');
 
         // Track sub-resource routes (nested under program for create/list)
         Route::get('/programs/{program}/tracks', [TrackController::class, 'index'])->name('programs.tracks.index');

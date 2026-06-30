@@ -537,6 +537,86 @@
                 }
             }
         },
+        "/v1/cohorts/{id}/bind-stage-pipeline": {
+            "post": {
+                "operationId": "cohorts.bind-stage-pipeline",
+                "description": "Bind a published StagePipelineVersion to a draft cohort. Idempotent for the\nsame version; 409 when a different version is already bound or the cohort is\nnot in draft status. Cross-tenant cohort ids 404 via BelongsToTenant scope.",
+                "summary": "POST /api/v1/cohorts/{id}/bind-stage-pipeline",
+                "tags": [
+                    "Cohort"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BindCohortStagePipelineRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`CohortResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CohortResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/cohorts/{id}/open": {
             "post": {
                 "operationId": "cohorts.open",
@@ -3020,6 +3100,289 @@
                 }
             }
         },
+        "/v1/programs/{program}/stage-pipelines": {
+            "get": {
+                "operationId": "programs.stage-pipelines.index",
+                "description": "List the program's pipeline (0 until first publish, 1 thereafter \u2014 one per program).",
+                "summary": "GET /api/v1/programs/{program}/stage-pipelines",
+                "tags": [
+                    "StagePipeline"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `StagePipelineResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StagePipelineResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/programs/{program}/stage-pipelines/publish": {
+            "post": {
+                "operationId": "programs.stage-pipelines.publish",
+                "description": "Snapshot the program's published stage graph into an immutable StagePipelineVersion.\nIdempotent: republishing an identical graph returns the existing version (200).",
+                "summary": "POST /api/v1/programs/{program}/stage-pipelines/publish",
+                "tags": [
+                    "StagePipeline"
+                ],
+                "parameters": [
+                    {
+                        "name": "program",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StagePipelineVersionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StagePipelineVersionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "properties": {
+                                                "stages": {
+                                                    "type": "array",
+                                                    "prefixItems": [
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ],
+                                                    "minItems": 1,
+                                                    "maxItems": 1,
+                                                    "additionalItems": false
+                                                }
+                                            },
+                                            "required": [
+                                                "stages"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "errors"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/stage-pipelines/{pipeline}/versions": {
+            "get": {
+                "operationId": "stage-pipelines.versions.index",
+                "description": "List all versions for a pipeline, ordered by version_number ascending.",
+                "summary": "GET /api/v1/stage-pipelines/{pipeline}/versions",
+                "tags": [
+                    "StagePipeline"
+                ],
+                "parameters": [
+                    {
+                        "name": "pipeline",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `StagePipelineVersionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/StagePipelineVersionResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/stage-pipelines/{id}": {
+            "get": {
+                "operationId": "stage-pipelines.show",
+                "description": "Show a single pipeline with version metadata.\nBelongsToTenant scope on StagePipeline enforces cross-tenant 404.",
+                "summary": "GET /api/v1/stage-pipelines/{id}",
+                "tags": [
+                    "StagePipeline"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StagePipelineResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StagePipelineResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/stage-pipeline-versions/{id}": {
+            "get": {
+                "operationId": "stage-pipeline-versions.show",
+                "description": "Show a single pipeline version with FE-mapped stage shape.\nBelongsToTenant global scope on StagePipelineVersion enforces cross-tenant 404.",
+                "summary": "GET /api/v1/stage-pipeline-versions/{id}",
+                "tags": [
+                    "StagePipelineVersion"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`StagePipelineVersionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/StagePipelineVersionResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/cohorts/{cohort}/submissions": {
             "get": {
                 "operationId": "cohorts.submissions.index",
@@ -3573,6 +3936,18 @@
                 ],
                 "title": "BindCohortFormRequest"
             },
+            "BindCohortStagePipelineRequest": {
+                "type": "object",
+                "properties": {
+                    "stage_pipeline_version_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "stage_pipeline_version_id"
+                ],
+                "title": "BindCohortStagePipelineRequest"
+            },
             "CohortResource": {
                 "type": "object",
                 "properties": {
@@ -3615,6 +3990,9 @@
                     "bound_form_version_id": {
                         "type": "string"
                     },
+                    "stage_pipeline_version_id": {
+                        "type": "string"
+                    },
                     "submissions_count": {
                         "type": "integer",
                         "description": "Present only on the list (withCount); never null on show/store."
@@ -3640,6 +4018,7 @@
                     "ends_at",
                     "timeline",
                     "bound_form_version_id",
+                    "stage_pipeline_version_id",
                     "created_at",
                     "updated_at"
                 ],
@@ -4038,6 +4417,83 @@
                     "created_at"
                 ],
                 "title": "StageDependencyResource"
+            },
+            "StagePipelineResource": {
+                "type": "object",
+                "properties": {
+                    "pipeline_id": {
+                        "type": "string"
+                    },
+                    "program_id": {
+                        "type": "string",
+                        "description": "FE: pipeline_id (not id)"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "latest_version": {
+                        "type": "integer"
+                    },
+                    "published_version_ids": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "current_draft_version_id": {
+                        "type": "null"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "description": "Phase 1: authoring not implemented (ADR-0011)"
+                    }
+                },
+                "required": [
+                    "pipeline_id",
+                    "program_id",
+                    "name",
+                    "latest_version",
+                    "published_version_ids",
+                    "current_draft_version_id",
+                    "created_at"
+                ],
+                "title": "StagePipelineResource"
+            },
+            "StagePipelineVersionResource": {
+                "type": "object",
+                "properties": {
+                    "version_id": {
+                        "type": "string"
+                    },
+                    "pipeline_id": {
+                        "type": "string",
+                        "description": "FE: version_id (not id)"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "stages": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "published_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "version_id",
+                    "pipeline_id",
+                    "version",
+                    "status",
+                    "stages",
+                    "created_at",
+                    "published_at"
+                ],
+                "title": "StagePipelineVersionResource"
             },
             "StageResource": {
                 "type": "object",
