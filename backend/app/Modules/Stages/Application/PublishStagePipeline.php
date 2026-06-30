@@ -109,6 +109,7 @@ final class PublishStagePipeline
             /** @var StageVersion $pv */
             $pv = StageVersion::query()->findOrFail($stage->current_published_version_id);
             $rules = StageRule::query()->where('stage_version_id', $pv->id)
+                ->orderBy('type')->orderBy('id')
                 ->get(['type', 'expression'])
                 ->map(fn (StageRule $r) => ['type' => $r->type->value, 'expression' => $r->expression])->all();
 
@@ -124,7 +125,7 @@ final class PublishStagePipeline
                 'next_stage_ids' => $transitions->where('from_program_stage_id', $stage->id)
                     ->sortBy('order_index')->pluck('to_program_stage_id')->values()->all(),
                 'depends_on_stage_ids' => $deps->where('program_stage_id', $stage->id)
-                    ->pluck('depends_on_program_stage_id')->values()->all(),
+                    ->pluck('depends_on_program_stage_id')->sort()->values()->all(),
             ];
         })->all();
 

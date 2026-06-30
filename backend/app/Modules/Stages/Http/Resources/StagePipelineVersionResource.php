@@ -49,7 +49,7 @@ final class StagePipelineVersionResource extends JsonResource
         return [
             'version_id' => $this->id,                            // FE: version_id (not id)
             'pipeline_id' => $this->stage_pipeline_id,
-            'version' => $this->version_number,
+            'version' => (int) $this->version_number,
             'status' => $this->status->value,
             'stages' => array_map(fn (array $s): array => [
                 'stage_id' => $s['stage_id'],

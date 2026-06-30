@@ -4468,7 +4468,7 @@
                         "description": "FE: version_id (not id)"
                     },
                     "version": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "status": {
                         "type": "string"
