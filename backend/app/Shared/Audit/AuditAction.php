@@ -16,6 +16,7 @@ enum AuditAction: string
 {
     case ProgramPublished = 'program.published';
     case CohortOpened = 'cohort.opened';
+    case CohortFormBound = 'cohort.form_bound';
     case CohortClosed = 'cohort.closed';
     case ApplicationSubmitted = 'application.submitted';
     case SubmissionScored = 'submission.scored';

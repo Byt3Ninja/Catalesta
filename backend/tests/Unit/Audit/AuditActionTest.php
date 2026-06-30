@@ -11,13 +11,14 @@ final class AuditActionTest extends TestCase
 {
     /**
      * Completeness guard (FR-052): the enumerated P1a audited set is EXACTLY these
-     * 8 actions. Adding/removing/renaming a case without updating FR-052 fails here.
+     * actions. Adding/removing/renaming a case without updating FR-052 fails here.
      */
     public function test_registry_is_exactly_the_enumerated_p1a_set(): void
     {
         $expected = [
             'program.published',
             'cohort.opened',
+            'cohort.form_bound',
             'cohort.closed',
             'application.submitted',
             'submission.scored',
