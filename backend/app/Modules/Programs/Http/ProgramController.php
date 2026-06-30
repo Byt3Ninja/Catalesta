@@ -8,6 +8,7 @@ use App\Modules\Programs\Application\CloneProgram;
 use App\Modules\Programs\Application\PublishProgram;
 use App\Modules\Programs\Domain\Models\Program;
 use App\Modules\Programs\Domain\Models\ProgramStatus;
+use App\Modules\Programs\Domain\Models\ProgramType;
 use App\Modules\Programs\Http\Requests\StoreProgramRequest;
 use App\Modules\Programs\Http\Requests\UpdateProgramRequest;
 use App\Modules\Programs\Http\Resources\ProgramResource;
@@ -47,7 +48,7 @@ final class ProgramController extends Controller
     {
         $this->authorize('create', Program::class);
 
-        /** @var array{name: string, description?: string|null, settings?: array<string, mixed>|null} $data */
+        /** @var array{name: string, type?: string|null, description?: string|null, settings?: array<string, mixed>|null} $data */
         $data = $request->validated();
 
         $program = Program::create(array_merge(
@@ -94,10 +95,10 @@ final class ProgramController extends Controller
 
         $this->authorize('update', $program);
 
-        /** @var array{name?: string, description?: string|null, settings?: array<string, mixed>|null} $data */
+        /** @var array{name?: string, type?: string|null, description?: string|null, settings?: array<string, mixed>|null} $data */
         $data = $request->validated();
 
-        $before = $program->only(['name', 'description', 'settings']);
+        $before = $program->only(['name', 'description', 'settings', 'type']);
 
         if (isset($data['name'])) {
             $program->name = $data['name'];
@@ -111,9 +112,14 @@ final class ProgramController extends Controller
             $program->settings = $data['settings'];
         }
 
+        if (array_key_exists('type', $data)) {
+            $rawType = $data['type'];
+            $program->type = $rawType !== null ? ProgramType::from($rawType) : null;
+        }
+
         $program->save();
 
-        $after = $program->only(['name', 'description', 'settings']);
+        $after = $program->only(['name', 'description', 'settings', 'type']);
 
         $audit->record(
             'program.updated',

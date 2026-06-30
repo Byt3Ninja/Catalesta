@@ -75,6 +75,7 @@ final class PublishProgram
     {
         return [
             'name' => $program->name,
+            'type' => $program->type?->value,
             'description' => $program->description,
             'settings' => $program->settings,
         ];

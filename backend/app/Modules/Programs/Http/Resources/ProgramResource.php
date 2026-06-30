@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Programs\Http\Resources;
 
 use App\Modules\Programs\Domain\Models\ProgramStatus;
+use App\Modules\Programs\Domain\Models\ProgramType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -14,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property-read string $name
  * @property-read string $slug
  * @property-read ProgramStatus $status
+ * @property-read ProgramType|null $type
  * @property-read string|null $description
  * @property-read array<string, mixed>|null $settings
  * @property-read Carbon $created_at
@@ -31,6 +33,7 @@ final class ProgramResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'status' => $this->status->value,
+            'type' => $this->type?->value,
             'description' => $this->description,
             'settings' => $this->settings,
             'created_at' => $this->created_at->toIso8601String(),

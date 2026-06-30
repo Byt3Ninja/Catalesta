@@ -17,7 +17,7 @@ final class Program extends Model
     use BelongsToTenant;
     use HasUlids;
 
-    protected $fillable = ['name', 'slug', 'status', 'description', 'settings', 'template_id'];
+    protected $fillable = ['name', 'slug', 'status', 'type', 'description', 'settings', 'template_id'];
 
     /**
      * @return array<string, string>
@@ -25,6 +25,7 @@ final class Program extends Model
     protected $casts = [
         'settings' => 'array',
         'status' => ProgramStatus::class,
+        'type' => ProgramType::class,
     ];
 
     protected static function booting(): void
