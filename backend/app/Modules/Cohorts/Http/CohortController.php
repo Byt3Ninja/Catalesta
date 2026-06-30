@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Cohorts\Http;
 
 use App\Modules\Cohorts\Application\BindCohortForm;
+use App\Modules\Cohorts\Application\BindCohortStagePipeline;
 use App\Modules\Cohorts\Application\OpenCohort;
 use App\Modules\Cohorts\Domain\Exceptions\CohortStateException;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Domain\Models\CohortStatus;
 use App\Modules\Cohorts\Http\Requests\BindCohortFormRequest;
+use App\Modules\Cohorts\Http\Requests\BindCohortStagePipelineRequest;
 use App\Modules\Cohorts\Http\Requests\StoreCohortRequest;
 use App\Modules\Cohorts\Http\Requests\UpdateCohortRequest;
 use App\Modules\Cohorts\Http\Resources\CohortResource;
@@ -167,6 +169,30 @@ final class CohortController extends Controller
 
         try {
             $cohort = $service->handle($cohort, $data['form_version_id']);
+        } catch (CohortStateException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return (new CohortResource($cohort))->response()->setStatusCode(200);
+    }
+
+    /**
+     * POST /api/v1/cohorts/{id}/bind-stage-pipeline
+     *
+     * Bind a published StagePipelineVersion to a draft cohort. Idempotent for the
+     * same version; 409 when a different version is already bound or the cohort is
+     * not in draft status. Cross-tenant cohort ids 404 via BelongsToTenant scope.
+     */
+    public function bindStagePipeline(BindCohortStagePipelineRequest $request, BindCohortStagePipeline $service, string $id): JsonResponse
+    {
+        $cohort = Cohort::query()->findOrFail($id);
+        $this->authorize('bindStagePipeline', $cohort);
+
+        /** @var array{stage_pipeline_version_id: string} $data */
+        $data = $request->validated();
+
+        try {
+            $cohort = $service->handle($cohort, $data['stage_pipeline_version_id']);
         } catch (CohortStateException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }

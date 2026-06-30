@@ -67,4 +67,12 @@ final class CohortPolicy
     {
         return app(TenantContext::class)->can('cohorts.manage');
     }
+
+    /**
+     * Binding a stage pipeline version to a cohort requires the `cohorts.manage` permission.
+     */
+    public function bindStagePipeline(Account $user, Cohort $cohort): bool
+    {
+        return app(TenantContext::class)->can('cohorts.manage');
+    }
 }
