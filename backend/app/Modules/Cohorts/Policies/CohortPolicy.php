@@ -51,4 +51,20 @@ final class CohortPolicy
     {
         return app(TenantContext::class)->can('cohorts.manage');
     }
+
+    /**
+     * Opening a cohort requires the `cohorts.manage` permission.
+     */
+    public function open(Account $user, Cohort $cohort): bool
+    {
+        return app(TenantContext::class)->can('cohorts.manage');
+    }
+
+    /**
+     * Binding a form to a cohort requires the `cohorts.manage` permission.
+     */
+    public function bindForm(Account $user, Cohort $cohort): bool
+    {
+        return app(TenantContext::class)->can('cohorts.manage');
+    }
 }
