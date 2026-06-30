@@ -14,6 +14,7 @@ use App\Modules\Assessments\Domain\Exceptions\NoDraftException;
 use App\Modules\Assessments\Domain\Models\ScoringModel;
 use App\Modules\Assessments\Domain\Models\ScoringModelVersion;
 use App\Modules\Programs\Domain\Models\Program;
+use App\Shared\Audit\AuditLog;
 use App\Shared\Versioning\VersionStateException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -176,6 +177,25 @@ final class ScoringModelServiceTest extends TestCase
         $this->assertNotSame($v1->id, $v2->id);
         $this->assertNotNull(ScoringModelVersion::find($v1->id));
         $this->assertDatabaseCount('scoring_model_versions', 2);
+    }
+
+    public function test_idempotent_republish_does_not_reaudit(): void
+    {
+        $model = $this->makeModel();
+        $this->app->make(SaveScoringModelDraft::class)->handle($model, $this->validCriteria());
+        $v1 = $this->app->make(PublishScoringModel::class)->handle($model->refresh());
+
+        // One audit row after the real publish.
+        $this->assertSame(1, AuditLog::where('action', 'scoring_model.published')->count());
+
+        // Fork with identical criteria and republish — idempotent path.
+        $this->app->make(ForkScoringModelDraft::class)->handle($model->refresh(), $v1->id);
+        $v2 = $this->app->make(PublishScoringModel::class)->handle($model->refresh());
+
+        // Same version returned, no new version row, still exactly one audit row.
+        $this->assertSame($v1->id, $v2->id);
+        $this->assertDatabaseCount('scoring_model_versions', 1);
+        $this->assertSame(1, AuditLog::where('action', 'scoring_model.published')->count());
     }
 
     // ── ForkScoringModelDraft ──────────────────────────────────────────

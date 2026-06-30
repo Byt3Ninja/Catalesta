@@ -50,7 +50,8 @@ final class PublishScoringModel
 
         $hash = hash('sha256', $this->validator->canonicalJson($draft->criteria));
 
-        $version = DB::transaction(function () use ($model, $draft, $hash): ScoringModelVersion {
+        $created = false;
+        $version = DB::transaction(function () use ($model, $draft, $hash, &$created): ScoringModelVersion {
             /** @var ScoringModelVersion|null $existing */
             $existing = ScoringModelVersion::query()
                 ->where('scoring_model_id', $model->id)
@@ -65,6 +66,7 @@ final class PublishScoringModel
                 return $existing;
             }
 
+            $created = true;
             $draft->content_hash = $hash; // still draft — mutation allowed
             $draft->save();
             $this->publisher->publish($draft); // sets version_number, Published, published_at
@@ -73,13 +75,15 @@ final class PublishScoringModel
             return $draft->refresh();
         });
 
-        $this->audit->record(
-            AuditAction::ScoringModelPublished->value,
-            'scoring_model_version',
-            $version->id,
-            [],
-            ['content_hash' => $hash, 'version_number' => $version->version_number],
-        );
+        if ($created) {
+            $this->audit->record(
+                AuditAction::ScoringModelPublished->value,
+                'scoring_model_version',
+                $version->id,
+                [],
+                ['content_hash' => $hash, 'version_number' => $version->version_number],
+            );
+        }
 
         return $version;
     }
