@@ -1,6 +1,6 @@
 # Assessments Phase A — Scoring-Model Authoring + Versioning — Design
 
-> Status: Approved (design) · Date: 2026-07-01 · Branch: `feat/be-assessments-scoring-model-authoring`
+> Status: Implemented · Date: 2026-07-01 · Branch: `feat/be-assessments-scoring-model-authoring`
 > Implements **Phase A** of ADR-0012 (Assessments module). Scoring-model authoring
 > + versioning only — a direct twin of the Forms authoring slice (#66). No scoring
 > math, no assignments/scorecards/decisions/binding (Phases B–D).
@@ -132,3 +132,7 @@ model with no criteria cannot score).
 - `cohorts.stage_scoring_model_version_ids` + `bind-stage-scoring-model`
   (Phase D / ADR-0011 Phase 3).
 - Stage/cohort coupling of any kind — Phase A is program-scoped authoring only.
+
+## 11. Implementation deviations (T1–T4)
+
+Three deviations from the original design, all intentional: (1) program-scoped index/store resolve `$program` via `string $program` + tenant-scoped `findOrFail` rather than route-model-binding, matching the existing Programs controller pattern; (2) publishing an empty draft returns 422 (REST-correct `NoCriteriaException` mapping) rather than 409 — FE maps 422 to a generic error and a dedicated FE 422-handler follow-up is logged; (3) audit fires only on real publish, not on idempotent republish of the same content hash, matching `PublishStagePipeline` behaviour. No other deviations.
