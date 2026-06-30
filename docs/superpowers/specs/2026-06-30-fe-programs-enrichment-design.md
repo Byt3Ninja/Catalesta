@@ -1,6 +1,7 @@
 # Programs Enrichment (mockup-referenced) — Design
 
-> Status: Approved (design) · Date: 2026-06-30 · Branch: `feat/fe-programs-enrichment`
+> Status: Implemented · Date: 2026-06-30 · Branch: `feat/fe-programs-enrichment`
+> Deviation note: No deviations.
 > Enriches the real Programs surface (`frontend/src/pages/Programs*`) using the
 > `catalesta-ui/` Figma mockup as the visual/UX reference, wired to the live
 > Programs backend. Single full-stack slice (user elected all-in-one over a
