@@ -65,6 +65,8 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
     [cohortsQuery.data],
   )
 
+  const cohortsUnavailable = cohortsQuery.isLoading || cohortsQuery.isError
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return programs
@@ -184,15 +186,15 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
                               <ProgramTypeBadge type={program.type} />
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">{s?.cohortCount ?? 0}</td>
-                          <td className="px-4 py-3">{cohortsQuery.isLoading ? '—' : s?.submissions ?? 0}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{s?.capacity != null ? `— / ${s.capacity}` : '—'}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{cohortsUnavailable ? '—' : s?.cohortCount ?? 0}</td>
+                          <td className="px-4 py-3">{cohortsUnavailable ? '—' : s?.submissions ?? 0}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{cohortsUnavailable ? '—' : s?.capacity != null ? `— / ${s.capacity}` : '—'}</td>
                           <td className="px-4 py-3"><ProgramStatusBadge status={program.status} /></td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {s?.activeCohortStatus ? `Cohort: ${COHORT_STATUS_LABEL[s.activeCohortStatus]}` : '—'}
+                            {cohortsUnavailable ? '—' : s?.activeCohortStatus ? `Cohort: ${COHORT_STATUS_LABEL[s.activeCohortStatus]}` : '—'}
                           </td>
                           <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {s?.dateRange ? `${fmtDate(s.dateRange.start)} → ${fmtDate(s.dateRange.end)}` : '—'}
+                            {cohortsUnavailable ? '—' : s?.dateRange ? `${fmtDate(s.dateRange.start)} → ${fmtDate(s.dateRange.end)}` : '—'}
                           </td>
                         </tr>
                       )
@@ -206,7 +208,7 @@ export function ProgramsPage({ organization }: { organization: Organization }) {
                 <span>Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</Button>
-                  <span aria-current="page">Page {currentPage} of {pageCount}</span>
+                  <span>Page {currentPage} of {pageCount}</span>
                   <Button variant="secondary" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>Next</Button>
                 </div>
               </div>

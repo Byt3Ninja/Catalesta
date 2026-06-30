@@ -232,6 +232,38 @@ it('shows an error state with retry when the list fails', async () => {
   expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
 })
 
+it('degrades derived columns to — when the cohorts query errors', async () => {
+  vi.spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: [PROGRAM_PUBLISHED] }))        // GET /programs
+    .mockResolvedValueOnce(jsonResponse({ error: 'server error' }, 500))       // GET /cohorts: 500
+
+  renderProgramsPage()
+
+  // Program row renders — page did not crash
+  expect(await screen.findByText('Spring')).toBeInTheDocument()
+
+  const table = screen.getByRole('table')
+  const rows = within(table).getAllByRole('row')
+  // There should be a data row (header + at least one data row)
+  expect(rows.length).toBeGreaterThan(1)
+
+  // All derived cells in the data row(s) should show — not 0
+  const cells = within(table).getAllByRole('cell')
+  const cellTexts = cells.map((c) => c.textContent)
+
+  // At least one — present (submissions column degrades)
+  expect(cellTexts.some((t) => t === '—')).toBe(true)
+
+  // No cell should show a bare "0" for submissions (the bug we fixed)
+  // The submissions cell is the third <td>; assert it is not "0"
+  // Find the data row (skip header row)
+  const dataRow = rows[1]
+  const dataCells = within(dataRow).getAllByRole('cell')
+  // cohorts count is dataCells[1], submissions is dataCells[2]
+  expect(dataCells[1].textContent).toBe('—')
+  expect(dataCells[2].textContent).toBe('—')
+})
+
 it('creates a program with a type', async () => {
   let postedBody: Record<string, unknown> | null = null
   vi.spyOn(globalThis, 'fetch')
