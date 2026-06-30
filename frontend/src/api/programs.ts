@@ -10,6 +10,7 @@ import {
   programListResponseSchema,
   programResponseSchema,
   type Program,
+  type ProgramType,
 } from '../schemas/programs'
 
 /**
@@ -32,11 +33,14 @@ export async function listPrograms(): Promise<Program[]> {
  */
 export async function createProgram(
   name: string,
-  description?: string,
+  opts: { description?: string; type?: ProgramType } = {},
 ): Promise<Program> {
+  const body: Record<string, unknown> = { name }
+  if (opts.description) body.description = opts.description
+  if (opts.type) body.type = opts.type
   const response = await csrfFetch(`/programs`, {
     method: 'POST',
-    body: JSON.stringify(description ? { name, description } : { name }),
+    body: JSON.stringify(body),
   })
 
   if (response.status === 201) {
@@ -108,7 +112,7 @@ export async function getProgram(id: string): Promise<Program> {
  */
 export async function updateProgram(
   id: string,
-  input: { name?: string; description?: string | null },
+  input: { name?: string; description?: string | null; type?: ProgramType | null },
 ): Promise<Program> {
   const response = await csrfFetch(`/programs/${id}`, {
     method: 'PATCH',
@@ -140,10 +144,16 @@ export async function updateProgram(
  * body is the new program. Requires a name.
  * [Source: backend ProgramController::clone]
  */
-export async function cloneProgram(id: string, name: string): Promise<Program> {
+export async function cloneProgram(
+  id: string,
+  name: string,
+  opts: { type?: ProgramType } = {},
+): Promise<Program> {
+  const body: Record<string, unknown> = { name }
+  if (opts.type) body.type = opts.type
   const response = await csrfFetch(`/programs/${id}/clone`, {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(body),
   })
 
   if (response.status === 201) {

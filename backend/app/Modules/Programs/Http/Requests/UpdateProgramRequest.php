@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Programs\Http\Requests;
 
+use App\Modules\Programs\Domain\Models\ProgramType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateProgramRequest extends FormRequest
 {
@@ -23,6 +25,7 @@ final class UpdateProgramRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'type' => ['sometimes', 'nullable', Rule::enum(ProgramType::class)],
             'description' => ['sometimes', 'nullable', 'string'],
             'settings' => ['sometimes', 'nullable', 'array'],
         ];

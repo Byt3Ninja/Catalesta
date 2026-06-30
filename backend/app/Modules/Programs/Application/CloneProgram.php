@@ -45,6 +45,7 @@ final class CloneProgram
                 'name' => $newName,
                 'slug' => $slug,
                 'status' => ProgramStatus::Draft,
+                'type' => $source->type,
                 'description' => $source->description,
                 'settings' => $source->settings,
                 // template_id deliberately omitted (stays null)

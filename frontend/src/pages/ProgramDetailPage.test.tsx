@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
-import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, test, vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { DirectionProvider } from '../app/DirectionProvider'
@@ -22,6 +23,7 @@ const DRAFT = {
   name: 'Spring Accelerator',
   slug: 'spring-accelerator',
   status: 'draft',
+  type: null,
   description: 'Seed cohort',
   settings: null,
   created_at: '2026-06-20T10:00:00+00:00',
@@ -33,6 +35,7 @@ const PROGRAM = {
   name: 'Published Program',
   slug: 'published-program',
   status: 'published',
+  type: null,
   description: null,
   settings: null,
   created_at: '2026-06-20T10:00:00+00:00',
@@ -206,4 +209,68 @@ test('shows the program\'s cohorts section with a linked cohort', async () => {
     'href',
     '/cohorts/01J0COH',
   )
+})
+
+it('renders the program type badge and derived summary strip', async () => {
+  const TYPED = { ...DRAFT, type: 'accelerator' as const }
+  const summaryCohort = {
+    id: '01J0COH2',
+    organization_id: '01J0ORG',
+    program_id: '01J0PROG',
+    name: 'Batch A',
+    slug: 'batch-a',
+    status: 'open',
+    capacity: 30,
+    enrollment_opens_at: null,
+    enrollment_closes_at: null,
+    starts_at: '2025-01-01T00:00:00Z',
+    ends_at: '2025-06-01T00:00:00Z',
+    timeline: null,
+    submissions_count: 9,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  }
+  mockApi([jsonResponse({ data: TYPED })], [summaryCohort])
+  renderDetail()
+  expect(await screen.findByText('Accelerator')).toBeInTheDocument()
+  expect(screen.getByText(/9 submissions/i)).toBeInTheDocument()
+  expect(screen.getByText(/capacity 30/i)).toBeInTheDocument()
+})
+
+it('edits the program type', async () => {
+  const TYPED = { ...DRAFT, type: 'accelerator' as const }
+  const spy = mockApi([
+    jsonResponse({ data: TYPED }),                                              // initial GET
+    jsonResponse({ data: { ...TYPED, type: 'incubator' } }),                   // PATCH response
+    jsonResponse({ data: { ...TYPED, type: 'incubator' } }),                   // refetch after invalidate
+  ])
+  renderDetail()
+  await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }))
+  await userEvent.selectOptions(screen.getByLabelText(/program type/i), 'incubator')
+  await userEvent.click(screen.getByRole('button', { name: /^save$/i }))
+  await vi.waitFor(() => {
+    const patchCall = spy.mock.calls.find(
+      ([, init]) => (init?.method ?? '').toUpperCase() === 'PATCH',
+    )
+    expect(patchCall).toBeDefined()
+    const body = JSON.parse(String(patchCall![1]?.body)) as Record<string, unknown>
+    expect(body.type).toBe('incubator')
+  })
+})
+
+it('degrades the summary strip to — when the cohorts query errors', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    const url = String(input)
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (method === 'GET' && /\/cohorts$/.test(url)) {
+      return Promise.resolve(new Response(null, { status: 500 }))
+    }
+    return Promise.resolve(jsonResponse({ data: DRAFT }))
+  })
+  renderDetail()
+  expect(await screen.findByRole('heading', { name: 'Spring Accelerator' })).toBeInTheDocument()
+  expect(screen.queryByText(/0 submissions/i)).not.toBeInTheDocument()
+  // All four derived cells degrade to em-dash when cohorts are unavailable
+  const dashes = screen.getAllByText('—')
+  expect(dashes.length).toBeGreaterThanOrEqual(4)
 })

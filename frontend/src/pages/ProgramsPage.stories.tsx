@@ -15,43 +15,149 @@ const ORG = {
   updated_at: '2026-06-20T10:00:00+00:00',
 }
 
+const PROGRAMS = [
+  {
+    id: '01J0PROG1',
+    name: 'Spring Accelerator',
+    slug: 'spring-accelerator',
+    status: 'draft',
+    type: 'accelerator',
+    description: null,
+    settings: null,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  },
+  {
+    id: '01J0PROG2',
+    name: 'Founders Bootcamp',
+    slug: 'founders-bootcamp',
+    status: 'published',
+    type: 'incubator',
+    description: null,
+    settings: null,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  },
+]
+
+const COHORTS = [
+  {
+    id: 'c1',
+    organization_id: '01J0ORG',
+    program_id: '01J0PROG1',
+    name: 'Cohort 1',
+    slug: 'cohort-1',
+    status: 'open',
+    capacity: 40,
+    enrollment_opens_at: null,
+    enrollment_closes_at: null,
+    starts_at: '2026-01-01T00:00:00Z',
+    ends_at: '2026-06-01T00:00:00Z',
+    timeline: null,
+    submissions_count: 8,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  },
+  {
+    id: 'c2',
+    organization_id: '01J0ORG',
+    program_id: '01J0PROG2',
+    name: 'Cohort 2',
+    slug: 'cohort-2',
+    status: 'closed',
+    capacity: 25,
+    enrollment_opens_at: null,
+    enrollment_closes_at: null,
+    starts_at: '2025-09-01T00:00:00Z',
+    ends_at: '2025-12-01T00:00:00Z',
+    timeline: null,
+    submissions_count: 22,
+    created_at: '2026-06-20T10:00:00+00:00',
+    updated_at: '2026-06-20T10:00:00+00:00',
+  },
+]
+
+/** Mock fetch that routes /cohorts and /programs to canned data. */
+function mockFetch(programs: unknown[], cohorts: unknown[]) {
+  globalThis.fetch = (async (url: RequestInfo | URL) => {
+    const urlStr = String(url)
+    if (urlStr.includes('/cohorts')) {
+      return new Response(JSON.stringify({ data: cohorts }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify({ data: programs }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }) as typeof fetch
+}
+
 /** Each story serves a canned program list (a draft + a published program). */
-function withProviders(dir: 'ltr' | 'rtl') {
+function withProviders(dir: 'ltr' | 'rtl', programs = PROGRAMS, cohorts = COHORTS) {
   function ForceDir({ children }: { children: ReactElement }) {
     const { setDir } = useDirection()
     useEffect(() => setDir(dir), [setDir])
     return children
   }
   return function Decorator(Story: () => ReactElement) {
-    globalThis.fetch = (async () =>
-      new Response(
-        JSON.stringify({
-          data: [
-            {
-              id: '01J0PROG1',
-              name: 'Spring Accelerator',
-              slug: 'spring-accelerator',
-              status: 'draft',
-              description: null,
-              settings: null,
-              created_at: '2026-06-20T10:00:00+00:00',
-              updated_at: '2026-06-20T10:00:00+00:00',
-            },
-            {
-              id: '01J0PROG2',
-              name: 'Founders Bootcamp',
-              slug: 'founders-bootcamp',
-              status: 'published',
-              description: null,
-              settings: null,
-              created_at: '2026-06-20T10:00:00+00:00',
-              updated_at: '2026-06-20T10:00:00+00:00',
-            },
-          ],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )) as typeof fetch
+    mockFetch(programs, cohorts)
     const client = new QueryClient()
+    return (
+      <DirectionProvider>
+        <QueryClientProvider client={client}>
+          <ForceDir>
+            <Story />
+          </ForceDir>
+        </QueryClientProvider>
+      </DirectionProvider>
+    )
+  }
+}
+
+function withNeverResolve(dir: 'ltr' | 'rtl') {
+  function ForceDir({ children }: { children: ReactElement }) {
+    const { setDir } = useDirection()
+    useEffect(() => setDir(dir), [setDir])
+    return children
+  }
+  return function Decorator(Story: () => ReactElement) {
+    globalThis.fetch = (() => new Promise(() => {})) as typeof fetch
+    const client = new QueryClient()
+    return (
+      <DirectionProvider>
+        <QueryClientProvider client={client}>
+          <ForceDir>
+            <Story />
+          </ForceDir>
+        </QueryClientProvider>
+      </DirectionProvider>
+    )
+  }
+}
+
+function withErrorFetch(dir: 'ltr' | 'rtl') {
+  function ForceDir({ children }: { children: ReactElement }) {
+    const { setDir } = useDirection()
+    useEffect(() => setDir(dir), [setDir])
+    return children
+  }
+  return function Decorator(Story: () => ReactElement) {
+    globalThis.fetch = (async (url: RequestInfo | URL) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/cohorts')) {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({ error: 'server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as typeof fetch
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return (
       <DirectionProvider>
         <QueryClientProvider client={client}>
@@ -79,4 +185,16 @@ export const Default: Story = {
 
 export const Arabic: Story = {
   decorators: [withProviders('rtl')],
+}
+
+export const Empty: Story = {
+  decorators: [withProviders('ltr', [], [])],
+}
+
+export const Loading: Story = {
+  decorators: [withNeverResolve('ltr')],
+}
+
+export const Error: Story = {
+  decorators: [withErrorFetch('ltr')],
 }

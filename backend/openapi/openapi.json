@@ -4223,6 +4223,9 @@
                     "status": {
                         "type": "string"
                     },
+                    "type": {
+                        "type": "string"
+                    },
                     "description": {
                         "type": "string"
                     },
@@ -4241,6 +4244,7 @@
                     "name",
                     "slug",
                     "status",
+                    "type",
                     "description",
                     "settings",
                     "created_at",
@@ -4323,6 +4327,16 @@
                     "updated_at"
                 ],
                 "title": "ProgramTemplateResource"
+            },
+            "ProgramType": {
+                "type": "string",
+                "enum": [
+                    "accelerator",
+                    "incubator",
+                    "hackathon",
+                    "fellowship"
+                ],
+                "title": "ProgramType"
             },
             "RegisterRequest": {
                 "type": "object",
@@ -4683,6 +4697,9 @@
                         "type": "string",
                         "maxLength": 255
                     },
+                    "type": {
+                        "$ref": "#/components/schemas/ProgramType"
+                    },
                     "description": {
                         "type": [
                             "string",
@@ -5029,6 +5046,9 @@
                     "name": {
                         "type": "string",
                         "maxLength": 255
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/ProgramType"
                     },
                     "description": {
                         "type": [

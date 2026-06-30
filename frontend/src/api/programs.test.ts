@@ -15,6 +15,7 @@ const PROGRAM = {
   name: 'Spring Accelerator',
   slug: 'spring-accelerator',
   status: 'draft',
+  type: null,
   description: null,
   settings: null,
   created_at: '2026-06-20T10:00:00+00:00',
@@ -56,7 +57,7 @@ test('createProgram sends X-XSRF-TOKEN + optional description when provided', as
   const fetchSpy = vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(jsonResponse({ data: PROGRAM }, 201))
-  await createProgram('Spring Accelerator', 'Cohort for seed startups')
+  await createProgram('Spring Accelerator', { description: 'Cohort for seed startups' })
   const init = fetchSpy.mock.calls[0][1]
   const headers = new Headers(init?.headers)
   expect(headers.get('X-XSRF-TOKEN')).toBe('t')
@@ -182,4 +183,23 @@ test('listPrograms sends X-Organization-Id when an org is active', async () => {
   await listPrograms()
 
   expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('X-Organization-Id')).toBe('org-3')
+})
+
+test('sends type on create and parses it back', async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(jsonResponse({ data: { ...PROGRAM, type: 'accelerator' } }, 201))
+  const program = await createProgram('Spring', { type: 'accelerator' })
+  expect(program.type).toBe('accelerator')
+  const init = fetchSpy.mock.calls[0][1]
+  const body = JSON.parse((init?.body as string) ?? '{}')
+  expect(body.type).toBe('accelerator')
+})
+
+test('parses a null type', async () => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    jsonResponse({ data: { ...PROGRAM, type: null } }, 201),
+  )
+  const program = await createProgram('NoType')
+  expect(program.type).toBeNull()
 })
