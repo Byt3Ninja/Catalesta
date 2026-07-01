@@ -27,6 +27,7 @@ final class AuditActionTest extends TestCase
             'decisions.exported',
             'stage_pipeline.published',
             'cohort.stage_pipeline_bound',
+            'scoring_model.published',
         ];
 
         $actual = array_map(fn (AuditAction $a) => $a->value, AuditAction::cases());

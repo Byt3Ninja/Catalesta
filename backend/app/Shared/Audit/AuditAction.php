@@ -25,4 +25,5 @@ enum AuditAction: string
     case DecisionsExported = 'decisions.exported';
     case StagePipelinePublished = 'stage_pipeline.published';
     case CohortStagePipelineBound = 'cohort.stage_pipeline_bound';
+    case ScoringModelPublished = 'scoring_model.published';
 }

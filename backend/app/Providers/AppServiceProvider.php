@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Modules\Applications\Domain\Models\ApplicationSubmission;
 use App\Modules\Applications\Policies\ApplicationSubmissionPolicy;
+use App\Modules\Assessments\Domain\Models\ScoringModel;
+use App\Modules\Assessments\Policies\ScoringModelPolicy;
 use App\Modules\Cohorts\Domain\Models\Cohort;
 use App\Modules\Cohorts\Policies\CohortPolicy;
 use App\Modules\Forms\Domain\Models\Form;
@@ -63,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ProgramStage::class, StagePolicy::class);
         Gate::policy(StagePipeline::class, StagePipelinePolicy::class);
         Gate::policy(Form::class, FormPolicy::class);
+        Gate::policy(ScoringModel::class, ScoringModelPolicy::class);
         Gate::policy(ApplicationSubmission::class, ApplicationSubmissionPolicy::class);
 
         $perEmailIp = fn (Request $r) => Limit::perMinute(6)
